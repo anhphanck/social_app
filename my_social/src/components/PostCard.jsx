@@ -37,6 +37,14 @@ export default function PostCard({ post, user, onEdit, onDelete }) {
 
       <div className="mt-2 text-gray-800">
         {post.content}
+        {post.image && (
+            <img
+              src={post.image}
+              alt="post"
+              className="rounded-md mt-2 max-h-80 w-full object-cover"
+            />
+          )}
+
       </div>
 
       <div className="flex space-x-4 mt-3 text-gray-600 text-sm">
