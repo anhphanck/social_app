@@ -7,10 +7,9 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ⚙️ Cấu hình nơi lưu ảnh
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../uploads")); // Đường dẫn tuyệt đối
+    cb(null, path.join(__dirname, "../uploads")); 
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -20,7 +19,6 @@ const storage = multer.diskStorage({
 
 export const upload = multer({ storage });
 
-// 🧩 Lấy tất cả bài viết
 export const getAllPosts = (req, res) => {
   const q = `
     SELECT posts.*, users.username, users.avatar 
@@ -40,7 +38,6 @@ export const getAllPosts = (req, res) => {
   });
 };
 
-// 📝 Tạo bài viết (có thể có ảnh)
 export const createPost = (req, res) => {
   const { user_id, content } = req.body;
   const image = req.file ? req.file.filename : null;
@@ -67,32 +64,25 @@ export const createPost = (req, res) => {
   });
 };
 
-// ✏️ Cập nhật bài viết (có thể sửa nội dung & ảnh)
 export const updatePost = (req, res) => {
   const { id } = req.params;
   const { content, removeImage } = req.body;
   const newImage = req.file ? req.file.filename : null;
 
-  // 🔹 Trước khi update, lấy ảnh cũ ra để xóa nếu cần
   db.query("SELECT image FROM posts WHERE id=?", [id], (err, result) => {
     if (err) return res.status(500).json({ message: "Lỗi lấy bài viết" });
     if (result.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
 
     const oldImage = result[0].image;
 
-    // Nếu có yêu cầu xóa ảnh cũ
     if (removeImage && oldImage) {
       const filePath = path.join(__dirname, "../uploads", oldImage);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
-
-    // Nếu người dùng upload ảnh mới → xóa ảnh cũ đi
     if (newImage && oldImage) {
       const filePath = path.join(__dirname, "../uploads", oldImage);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
-
-    // 🔹 Tạo câu truy vấn UPDATE
     let q = "UPDATE posts SET content=?";
     const params = [content];
 
@@ -113,7 +103,6 @@ export const updatePost = (req, res) => {
   });
 };
 
-// 🗑️ Xóa bài viết
 export const deletePost = (req, res) => {
   const postId = req.params.id;
 
@@ -135,5 +124,35 @@ export const deletePost = (req, res) => {
       if (err) return res.status(500).json({ message: "Lỗi xóa bài viết" });
       res.json({ message: "Đã xóa bài viết và ảnh" });
     });
+  });
+};
+
+// 🔍 Tìm kiếm bài viết theo nội dung hoặc tên người dùng
+export const searchPosts = (req, res) => {
+  const { q } = req.query; // lấy từ khóa từ URL: /api/posts/search?q=abc
+  if (!q) return res.status(400).json({ message: "Thiếu từ khóa tìm kiếm" });
+
+  const sql = `
+    SELECT posts.*, users.username, users.avatar
+    FROM posts
+    JOIN users ON posts.user_id = users.id
+    WHERE posts.content LIKE ? OR users.username LIKE ?
+    ORDER BY posts.created_at DESC
+  `;
+
+  const keyword = `%${q}%`;
+
+  db.query(sql, [keyword, keyword], (err, data) => {
+    if (err) {
+      console.error("Lỗi tìm kiếm:", err);
+      return res.status(500).json({ message: "Lỗi server khi tìm kiếm" });
+    }
+
+    const updated = data.map((post) => ({
+      ...post,
+      image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+    }));
+
+    res.json(updated);
   });
 };

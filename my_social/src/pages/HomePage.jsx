@@ -5,8 +5,8 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import Rightbar from "../components/Rightbar";
 import CreatePost from "../components/CreatePost";
-import PostCard from "../components/PostCard";
 import Midbar from "../components/Midbar";
+import EditablePost from "../components/EditablePost";
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
@@ -19,6 +19,7 @@ export default function HomePage() {
   const [editingPost, setEditingPost] = useState(null); // { id, content, image, removeImage }
   const [editFile, setEditFile] = useState(null); // ảnh cho bài đang sửa
   const [editContent, setEditContent] = useState(""); // nội dung sửa
+  const [searchQuery, setSearchQuery] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user"));
   const API_URL = "http://localhost:5000/api";
@@ -27,7 +28,7 @@ export default function HomePage() {
     fetchPosts();
     fetchUsers();
   }, []);
-
+  
   const fetchPosts = async () => {
     try {
       const res = await axios.get(`${API_URL}/posts`);
@@ -78,13 +79,13 @@ export default function HomePage() {
     try {
       await axios.delete(`${API_URL}/posts/${id}`);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      fetchPosts();
+      fetchPosts(); 
     } catch (err) {
       console.error(err);
     }
   };
 
-  // ✏️ Bắt đầu sửa
+
   const handleStartEdit = (post) => {
     setEditingPost({ id: post.id, removeImage: false });
     setEditContent(post.content);
@@ -93,7 +94,7 @@ export default function HomePage() {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  // 💾 Lưu chỉnh sửa
+  
   const handleSaveEdit = async () => {
     if (!editingPost) return;
     const formData = new FormData();
@@ -115,7 +116,6 @@ export default function HomePage() {
     }
   };
 
-  // ❌ Huỷ chỉnh sửa
   const handleCancelEdit = () => {
     setEditingPost(null);
     setEditFile(null);
@@ -125,12 +125,41 @@ export default function HomePage() {
     localStorage.removeItem("user");
     window.location.href = "/auth";
   };
+  
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      const search = async () => {
+        if (!searchQuery.trim()) {
+          fetchPosts();
+          return;
+        }
 
+        try {
+          const res = await axios.get(
+            `${API_URL}/posts/search?q=${encodeURIComponent(searchQuery)}`
+          );
+          setPosts(res.data);
+        } catch (err) {
+          console.error("Lỗi khi tìm kiếm:", err);
+        }
+      };
+
+      search();
+    }, 500); 
+
+    return () => clearTimeout(delay); // hủy nếu user gõ tiếp
+  }, [searchQuery]);
   return (
     <div className="flex flex-col min-h-screen">
       {/* NAV */}
       <div className="fixed top-0 left-0 w-full z-50">
-        <Navbar user={user} onLogout={handleLogout} />
+        <Navbar
+         user={user} 
+         onLogout={handleLogout} 
+         searchQuery={searchQuery}
+         setSearchQuery={setSearchQuery}
+         />
+         
       </div>
 
       <div className="flex flex-1 mt-16">
@@ -159,97 +188,21 @@ export default function HomePage() {
               )}
 
               {posts.map((p) => (
-                <div id={`post-${p.id}`} key={p.id}>
-                  {editingPost?.id === p.id ? (
-                    <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200 mb-4">
-                      {/* Nhập nội dung */}
-                      <textarea
-                        rows="3"
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-md resize-none mb-3"
-                      />
-
-                      {/* Hiển thị ảnh cũ */}
-                      {p.image && !editingPost.removeImage && !editFile && (
-                        <div className="relative mb-3">
-                          <img
-                            src={`http://localhost:5000/uploads/${p.image}`}
-                            alt="post"
-                            className="rounded-md max-h-60 object-cover w-full"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditingPost({ ...editingPost, removeImage: true })
-                            }
-                            className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Ảnh mới (nếu chọn) */}
-                      {editFile && (
-                        <div className="relative mb-3">
-                          <img
-                            src={URL.createObjectURL(editFile)}
-                            alt="preview"
-                            className="rounded-md max-h-60 object-cover w-full"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setEditFile(null)}
-                            className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-md hover:bg-red-600"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Chọn ảnh mới */}
-                      <div className="mb-3">
-                        <label
-                          htmlFor="editImage"
-                          className="flex items-center gap-1 text-sky-600 cursor-pointer hover:text-sky-700 text-sm"
-                        >
-                          🖼 <span>Chọn ảnh mới</span>
-                        </label>
-                        <input
-                          id="editImage"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => setEditFile(e.target.files[0])}
-                        />
-                      </div>
-
-                      {/* Nút hành động */}
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={handleCancelEdit}
-                          className="px-3 py-1 border rounded text-sm"
-                        >
-                          Huỷ
-                        </button>
-                        <button
-                          onClick={handleSaveEdit}
-                          className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                        >
-                          Lưu
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <PostCard
-                      post={p}
-                      user={user}
-                      onEdit={handleStartEdit}
-                      onDelete={handleDelete}
-                    />
-                  )}
-                </div>
+                <EditablePost
+                  key={p.id}
+                  post={p}
+                  editingPost={editingPost}
+                  editContent={editContent}
+                  editFile={editFile}
+                  setEditFile={setEditFile}
+                  setEditContent={setEditContent}
+                  setEditingPost={setEditingPost}
+                  handleSaveEdit={handleSaveEdit}
+                  handleCancelEdit={handleCancelEdit}
+                  handleStartEdit={handleStartEdit}
+                  handleDelete={handleDelete}
+                  user={user}
+                />
               ))}
             </div>
           </div>

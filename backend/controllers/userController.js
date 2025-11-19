@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 
 const SECRET_KEY = "secret_key_demo";
 
-// Đăng ký
 export const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -26,7 +25,6 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// Đăng nhập
 export const loginUser = (req, res) => {
   const { email, password } = req.body;
 
@@ -49,7 +47,6 @@ export const loginUser = (req, res) => {
     });
   });
 };
-// Lấy tất cả uer
 
 export const getAllUsers = (req, res) => {
   const q = "SELECT id, username, email, created_at FROM users ORDER BY id DESC";

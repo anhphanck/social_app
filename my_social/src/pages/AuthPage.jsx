@@ -38,7 +38,7 @@ export default function AuthPage({ setUser }) {
         localStorage.setItem("user", JSON.stringify(res.data.user));
         setUser(res.data.user);  
         setMessage("Đăng nhập thành công!");
-        navigate("/"); // sau này là HomePage
+        navigate("/");
       } else {
         await axios.post(`${API_URL}/register`, {
           username: formData.username,
@@ -58,7 +58,7 @@ export default function AuthPage({ setUser }) {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center overflow-hidden bg-gradient-to-r from-sky-400 to-gray-300 relative">
+    <div className="min-h-screen flex justify-center items-center overflow-hidden bg-linear-to-r from-sky-400 to-gray-300 relative">
       <motion.img
         src="/palm.png"
         alt="Palm"
@@ -172,7 +172,7 @@ export default function AuthPage({ setUser }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="mt-4 bg-gradient-to-r from-sky-400 to-sky-600 text-white py-2 rounded-full shadow-md hover:opacity-90 disabled:opacity-60"
+                  className="mt-4 bg-linear-to-r from-sky-400 to-sky-600 text-white py-2 rounded-full shadow-md hover:opacity-90 disabled:opacity-60"
                 >
                   {loading ? "Đang xử lý..." : "Đăng ký"}
                 </button>
