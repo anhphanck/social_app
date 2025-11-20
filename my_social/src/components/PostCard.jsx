@@ -1,7 +1,10 @@
 
 import React from "react";
+import { useContext } from "react";
+import { UserContext } from "../context/UserContext";
 
-export default function PostCard({ post, user, onEdit, onDelete }) {
+export default function PostCard({ post, onEdit, onDelete }) {
+  const { user } = useContext(UserContext);
   return (
     <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200 mb-4">
       <div className="flex justify-between items-center mb-2">
@@ -17,7 +20,7 @@ export default function PostCard({ post, user, onEdit, onDelete }) {
           </div>
         </div>
 
-        {post.user_id === user.id && (
+        {user && post.user_id === user.id && (
           <div className="space-x-3 text-sm">
             <button
               onClick={() => onEdit(post)}

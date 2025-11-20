@@ -4,8 +4,11 @@ import axios from "axios";
 import AuthCard from "../components/AuthCard";
 import AuthInput from "../components/AuthInput";
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { UserContext } from "../context/UserContext";
 
-export default function AuthPage({ setUser }) {
+export default function AuthPage() {
+  const { setUser } = useContext(UserContext);
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     username: "",
@@ -36,9 +39,9 @@ export default function AuthPage({ setUser }) {
           password: formData.password,
         });
         localStorage.setItem("user", JSON.stringify(res.data.user));
-        setUser(res.data.user);  
+        setUser(res.data.user); 
         setMessage("Đăng nhập thành công!");
-        navigate("/");
+        navigate("/");  
       } else {
         await axios.post(`${API_URL}/register`, {
           username: formData.username,

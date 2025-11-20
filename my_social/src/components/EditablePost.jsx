@@ -1,4 +1,5 @@
-
+import { useContext } from "react";
+import { UserContext } from "../context/UserContext";
 import React from "react";
 import PostCard from "../components/PostCard";
 export default function EditablePost({
@@ -13,8 +14,8 @@ export default function EditablePost({
   handleCancelEdit,
   handleStartEdit,
   handleDelete,
-  user,
 }) {
+  const { user } = useContext(UserContext);
   return (
     <div id={`post-${post.id}`} key={post.id}>
       {editingPost?.id === post.id ? (

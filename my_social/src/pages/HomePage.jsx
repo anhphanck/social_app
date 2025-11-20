@@ -7,6 +7,8 @@ import Rightbar from "../components/Rightbar";
 import CreatePost from "../components/CreatePost";
 import Midbar from "../components/Midbar";
 import EditablePost from "../components/EditablePost";
+import { useContext } from "react";
+import { UserContext } from "../context/UserContext";
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
@@ -21,14 +23,18 @@ export default function HomePage() {
   const [editContent, setEditContent] = useState(""); // nội dung sửa
   const [searchQuery, setSearchQuery] = useState("");
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { user, logout,  } = useContext(UserContext);
+
   const API_URL = "http://localhost:5000/api";
+
+
 
   useEffect(() => {
     fetchPosts();
     fetchUsers();
   }, []);
   
+   
   const fetchPosts = async () => {
     try {
       const res = await axios.get(`${API_URL}/posts`);
@@ -50,6 +56,7 @@ export default function HomePage() {
   // 🟢 Đăng bài mới
   const handleAddPost = async (e) => {
     e.preventDefault();
+    if (!user) return;
     if (!newPost.trim() && !file) return;
     setLoading(true);
 
@@ -122,10 +129,9 @@ export default function HomePage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    logout();
     window.location.href = "/auth";
   };
-  
   useEffect(() => {
     const delay = setTimeout(() => {
       const search = async () => {
@@ -171,7 +177,7 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto">
             <Midbar />
             <CreatePost
-              user={user}
+              
               newPost={newPost}
               setNewPost={setNewPost}
               onSubmit={handleAddPost}
@@ -201,7 +207,7 @@ export default function HomePage() {
                   handleCancelEdit={handleCancelEdit}
                   handleStartEdit={handleStartEdit}
                   handleDelete={handleDelete}
-                  user={user}
+                  
                 />
               ))}
             </div>

@@ -1,4 +1,8 @@
-export default function CreatePost({ user, newPost, setNewPost, onSubmit, loading, file, setFile }) {
+import { useContext } from "react";
+import { UserContext } from "../context/UserContext";
+
+export default function CreatePost({ newPost, setNewPost, onSubmit, loading, file, setFile }) {
+  const { user } = useContext(UserContext);
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
