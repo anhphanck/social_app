@@ -6,10 +6,12 @@ const SECRET_KEY = "secret_key_demo";
 
 export const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
-
+  console.log("username:", username);
+console.log("email:", email);
+console.log("password:", password);
   if (!username || !email || !password)
     return res.status(400).json({ message: "Thiếu thông tin" });
-
+  
   try {
     const hashed = await bcrypt.hash(password, 10);
     const q = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";

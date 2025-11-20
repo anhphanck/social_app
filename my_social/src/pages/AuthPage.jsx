@@ -15,9 +15,10 @@ export default function AuthPage() {
     email: "",
     password: "",
   });
-
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("error");
 
   const API_URL = "http://localhost:5000/api/users";
   const navigate = useNavigate();
@@ -50,11 +51,13 @@ export default function AuthPage() {
         });
         setMessage("Đăng ký thành công! Vui lòng đăng nhập.");
         setIsLogin(true);
+        setMessageType("success");
       }
     } catch (err) {
       setMessage(
-        err.response?.data?.error || "Lỗi kết nối tới server. Thử lại sau."
+         err.response?.data?.message || "Lỗi kết nối tới server. Thử lại sau."
       );
+      setMessageType("error");
     } finally {
       setLoading(false);
     }
@@ -122,7 +125,12 @@ export default function AuthPage() {
                   {loading ? "Đang xử lý..." : "Đăng nhập"}
                 </button>
                 {message && (
-                  <p className="text-center text-sm text-red-600 mt-2">
+                  <p
+                    className={
+                      `text-center text-sm mt-2 ` +
+                      (messageType === "success" ? "text-green-600" : "text-red-600")
+                    }
+                  >
                     {message}
                   </p>
                 )}
