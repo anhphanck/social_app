@@ -1,4 +1,3 @@
-// src/pages/HomePage.jsx
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
@@ -53,7 +52,6 @@ export default function HomePage() {
     }
   };
 
-  // 🟢 Đăng bài mới
   const handleAddPost = async (e) => {
     e.preventDefault();
     if (!user) return;
@@ -80,7 +78,6 @@ export default function HomePage() {
     }
   };
 
-  // 🔴 Xoá bài viết
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xoá bài viết này không?")) return;
     try {
@@ -150,10 +147,10 @@ export default function HomePage() {
         }
       };
 
-      search();
+      search(); 
     }, 500); 
 
-    return () => clearTimeout(delay); // hủy nếu user gõ tiếp
+    return () => clearTimeout(delay);
   }, [searchQuery]);
   return (
     <div className="flex flex-col min-h-screen">

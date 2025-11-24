@@ -10,7 +10,7 @@ export default function Rightbar({ users }) {
       <div className="bg-white shadow-sm p-3 rounded-md h-35">
         <h3 className="font-semibold text-sky-700 mb-2">🟢 Bạn bè đang online</h3>
         {users.slice(0, 2).map((u) => (
-          <p key={u.id} className="text-sm">🟢 {u.username}</p>
+          <p key={u.id} className="text-sm">🟢 {u.username}</p> 
         ))}
       </div>
 

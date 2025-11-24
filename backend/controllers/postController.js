@@ -20,23 +20,52 @@ const storage = multer.diskStorage({
 export const upload = multer({ storage });
 
 export const getAllPosts = (req, res) => {
+  const userId = req.query.user_id || null;
+
   const q = `
-    SELECT posts.*, users.username, users.avatar 
-    FROM posts 
+    SELECT 
+      posts.*, 
+      users.username, 
+      users.avatar,
+
+      -- cảm xúc của người dùng hiện tại
+      (SELECT reaction 
+         FROM post_reactions 
+         WHERE post_id = posts.id AND user_id = ?) AS user_reaction,
+
+      -- đếm theo từng loại reaction
+      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'like') AS like_count,
+      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'love') AS love_count,
+      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'haha') AS haha_count,
+      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'sad') AS sad_count
+
+    FROM posts
     JOIN users ON posts.user_id = users.id
     ORDER BY posts.created_at DESC
   `;
-  db.query(q, (err, data) => {
+
+  db.query(q, [userId], (err, data) => {
     if (err) return res.status(500).json({ message: "Lỗi server" });
 
     const updated = data.map((post) => ({
       ...post,
+
+      // format ảnh
       image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+
+      // gộp các reaction vào object
+      reactions: {
+        like: post.like_count,
+        love: post.love_count,
+        haha: post.haha_count,
+        sad: post.sad_count
+      }
     }));
 
     res.json(updated);
   });
 };
+
 
 export const createPost = (req, res) => {
   const { user_id, content } = req.body;
@@ -48,7 +77,7 @@ export const createPost = (req, res) => {
   const q = "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)";
   db.query(q, [user_id, content, image], (err, result) => {
     if (err) {
-      console.error("❌ Lỗi khi thêm bài viết:", err);
+      console.error("Lỗi khi thêm bài viết:", err);
       return res.status(500).json({ message: "Không thể đăng bài" });
     }
 
@@ -127,9 +156,8 @@ export const deletePost = (req, res) => {
   });
 };
 
-// 🔍 Tìm kiếm bài viết theo nội dung hoặc tên người dùng
 export const searchPosts = (req, res) => {
-  const { q } = req.query; // lấy từ khóa từ URL: /api/posts/search?q=abc
+  const { q } = req.query; 
   if (!q) return res.status(400).json({ message: "Thiếu từ khóa tìm kiếm" });
 
   const sql = `
@@ -156,3 +184,35 @@ export const searchPosts = (req, res) => {
     res.json(updated);
   });
 };
+
+//Like bài viết
+export const reactPost = (req, res) => {
+  const { post_id, user_id, reaction } = req.body;
+
+  const sql = `
+    INSERT INTO post_reactions (post_id, user_id, reaction)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE reaction = VALUES(reaction)
+  `;
+
+  db.query(sql, [post_id, user_id, reaction], (err) => {
+    if (err) return res.status(500).json({ message: "Lỗi reaction" });
+    res.json({ message: "Đã phản ứng", reaction });
+  });
+};
+
+
+// Bỏ like
+export const removeReact = (req, res) => {
+  const { post_id, user_id } = req.body;
+
+  db.query(
+    "DELETE FROM post_reactions WHERE post_id=? AND user_id=?",
+    [post_id, user_id],
+    (err) => {
+      if (err) return res.status(500).json({ message: "Lỗi bỏ reaction" });
+      res.json({ message: "Đã bỏ phản ứng" });
+    }
+  );
+};
+
