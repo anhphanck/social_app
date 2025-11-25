@@ -1,10 +1,17 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { UserContext } from "../context/UserContext";
 
-export default function CreatePost({ newPost, setNewPost, onSubmit, loading, file, setFile }) {
+export default function CreatePost({ newPost, setNewPost, onSubmit, loading, files, setFiles }) {
   const { user } = useContext(UserContext);
+  
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+    const selectedFiles = Array.from(e.target.files);
+    setFiles(selectedFiles);
+  };
+
+  const removeFile = (index) => {
+    const newFiles = files.filter((_, i) => i !== index);
+    setFiles(newFiles);
   };
 
   return (
@@ -26,37 +33,42 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
         className="w-full p-2 rounded-md outline-none resize-none bg-white border border-gray-200 placeholder-gray-500 text-gray-800"
       ></textarea>
 
-      {/* Hiển thị ảnh nếu có */}
-      {file && (
-        <div className="mt-3 relative">
-          <img
-            src={URL.createObjectURL(file)}
-            alt="preview"
-            className="rounded-md max-h-60 object-cover w-full"
-          />
-          <button
-            type="button"
-            onClick={() => setFile(null)}
-            className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-md hover:bg-red-600"
-          >
-            ✕
-          </button>
+      {/* Hiển thị preview nhiều ảnh */}
+      {files && files.length > 0 && (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {files.map((file, index) => (
+            <div key={index} className="relative">
+              <img
+                src={URL.createObjectURL(file)}
+                alt={`preview-${index}`}
+                className="rounded-md max-h-40 object-cover w-full"
+              />
+              <button
+                type="button"
+                onClick={() => removeFile(index)}
+                className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-md hover:bg-red-600"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
       <div className="flex justify-between items-center mt-3 border-t border-gray-200 pt-2">
         <div className="flex space-x-4 text-sky-600 text-sm">
-          {/* Nút chọn ảnh */}
+          {/* Nút chọn nhiều ảnh */}
           <label
             htmlFor="imageUpload"
             className="flex items-center gap-1 cursor-pointer hover:text-sky-700"
           >
-            🖼 <span>Thêm ảnh</span>
+            🖼 <span>Thêm ảnh ({files?.length || 0}/10)</span>
           </label>
           <input
             id="imageUpload"
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
             onChange={handleFileChange}
           />
@@ -69,8 +81,8 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
         </div>
 
         <button
-          onClick={(e) => onSubmit(e, file)}
-          disabled={loading || (!newPost.trim() && !file)}
+          onClick={(e) => onSubmit(e, files)}
+          disabled={loading || (!newPost.trim() && (!files || files.length === 0))}
           className="bg-sky-600 text-white px-4 py-1.5 rounded-md hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Đang đăng..." : "Chia sẻ"}

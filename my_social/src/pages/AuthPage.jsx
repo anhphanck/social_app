@@ -8,7 +8,7 @@ import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
 
 export default function AuthPage() {
-  const { setUser } = useContext(UserContext);
+  const { setUser, setToken } = useContext(UserContext);
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     username: "",
@@ -40,7 +40,9 @@ export default function AuthPage() {
           password: formData.password,
         });
         localStorage.setItem("user", JSON.stringify(res.data.user));
-        setUser(res.data.user); 
+        localStorage.setItem("token", res.data.token);
+        setUser(res.data.user);
+        setToken(res.data.token);
         setMessage("Đăng nhập thành công!");
         navigate("/");  
       } else {

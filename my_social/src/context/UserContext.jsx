@@ -25,9 +25,34 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
-    if (socketRef.current) return;
-    const socket = io("http://localhost:5000", { auth: { token } });
+    if (!token) {
+      // Nếu không có token, disconnect socket nếu đang kết nối
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        setSocketInstance(null);
+        setSocketConnected(false);
+      }
+      return;
+    }
+    
+    // Nếu đã có socket và đang kết nối, không tạo lại
+    if (socketRef.current && socketRef.current.connected) {
+      return;
+    }
+    
+    // Disconnect socket cũ nếu có
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    
+    const socket = io("http://localhost:5000", { 
+      auth: { token },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    });
     socketRef.current = socket;
     setSocketInstance(socket);
 

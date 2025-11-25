@@ -233,40 +233,54 @@ function CommentList({ postId, showInput }) {
   return (
     <div className="mt-4">
       {showInput && replyTo === null && (
-        <div className="mt-2 flex gap-2 items-center">
+        <div className="mt-3 flex gap-2 items-center">
           <input
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
-            className="border rounded-md p-1 flex-1"
+            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && submitComment()}
+            className="border rounded-lg p-2 flex-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
             placeholder="Viết bình luận..."
           />
-          <button onClick={submitComment} className="text-white bg-sky-600 p-1 rounded-md">
+          <button 
+            onClick={submitComment} 
+            disabled={!newContent.trim()}
+            className="text-white bg-sky-600 px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
             Gửi
           </button>
         </div>
       )}
 
       {replyTo !== null && (
-        <div className="mt-2 flex gap-2 items-center">
-          <span className="text-gray-500">Replying to {replyTo}</span>
-          <input
-            value={newContent}
-            onChange={(e) => setNewContent(e.target.value)}
-            className="border rounded-md p-1 flex-1"
-            placeholder="Viết trả lời..."
-          />
-          <button onClick={submitComment} className="text-white bg-sky-600 p-1 rounded-md">
-            Gửi
-          </button>
-          <button
-            onClick={() => {
-              setReplyTo(null);
-              setNewContent("");
-            }}
-            className="text-gray-600 ml-2"
-          >
-            Hủy
-          </button>
+        <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs text-gray-500">Đang trả lời</span>
+            <button
+              onClick={() => {
+                setReplyTo(null);
+                setNewContent("");
+              }}
+              className="text-xs text-red-500 hover:text-red-700 ml-auto"
+            >
+              Hủy
+            </button>
+          </div>
+          <div className="flex gap-2 items-center">
+            <input
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && submitComment()}
+              className="border rounded-lg p-2 flex-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              placeholder="Viết trả lời..."
+            />
+            <button 
+              onClick={submitComment} 
+              disabled={!newContent.trim()}
+              className="text-white bg-sky-600 px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Gửi
+            </button>
+          </div>
         </div>
       )}
 
@@ -330,18 +344,28 @@ export default function PostCard({ post, onEdit, onDelete }) {
     const sorted = entries.sort((a, b) => b[1] - a[1]);
     const total = entries.reduce((sum, [_, c]) => sum + c, 0);
     return (
-      <div className="flex items-center gap-2 text-sm mt-1">
-        <div className="flex items-center gap-1">
-          {sorted.map(([type]) => <span key={type} className="text-lg">{icons[type]}</span>)}
-          <span className="text-gray-500">{total}</span>
+      <div className="flex items-center justify-between text-sm mt-2 py-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+            {sorted.slice(0, 3).map(([type]) => (
+              <span key={type} className="text-base">{icons[type]}</span>
+            ))}
+            {total > 0 && (
+              <span className="text-gray-700 font-medium ml-1">{total}</span>
+            )}
+          </div>
         </div>
-        {post.comment_count > 0 && <span className="text-gray-500 ml-2">{post.comment_count} bình luận</span>}
+        {post.comment_count > 0 && (
+          <span className="text-gray-600 hover:text-blue-600 cursor-pointer transition-colors">
+            {post.comment_count} bình luận
+          </span>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200 mb-4">
+    <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-4 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white">
@@ -362,32 +386,95 @@ export default function PostCard({ post, onEdit, onDelete }) {
 
       <div className="mt-2 text-gray-800">
         {post.content}
-        {post.image && <img src={post.image} alt="post" className="rounded-md mt-2 max-h-80 w-full object-cover" />}
+        
+        {/* Hiển thị nhiều ảnh */}
+        {post.images && post.images.length > 0 && (
+          <div className={`mt-3 rounded-lg overflow-hidden ${
+            post.images.length === 1 ? 'grid grid-cols-1' :
+            post.images.length === 2 ? 'grid grid-cols-2 gap-1' :
+            post.images.length === 3 ? 'grid grid-cols-2 gap-1' :
+            'grid grid-cols-2 gap-1'
+          }`}>
+            {post.images.slice(0, 4).map((img, idx) => (
+              <div key={idx} className={`relative ${
+                post.images.length === 3 && idx === 0 ? 'row-span-2' : ''
+              }`}>
+                <img 
+                  src={img} 
+                  alt={`post-${idx}`} 
+                  className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition"
+                  style={{ 
+                    minHeight: post.images.length === 1 ? '400px' : 
+                              post.images.length === 2 ? '300px' : '200px'
+                  }}
+                />
+                {idx === 3 && post.images.length > 4 && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-2xl font-bold">
+                    +{post.images.length - 4}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Backward compatible: hiển thị ảnh cũ nếu không có images */}
+        {(!post.images || post.images.length === 0) && post.image && (
+          <img src={post.image} alt="post" className="rounded-md mt-2 max-h-80 w-full object-cover" />
+        )}
       </div>
 
       {renderReactions()}
 
-      <div className="flex space-x-4 mt-1 text-sm relative">
-        <button
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onClick={() => reaction === "like" ? removeReaction() : sendReaction("like")}
-          className={`flex items-center gap-1 select-none ${reaction === "like" ? "text-blue-600" : "text-gray-500"}`}
-        >
-          👍
-        </button>
-        <button onClick={() => setShowCommentInput(s => !s)} className="text-gray-500">💬 Bình luận</button>
-        <button className="text-gray-500">↗️ Chia sẻ</button>
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
+        <div className="flex space-x-6 text-sm relative">
+          <button
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onClick={() => reaction === "like" ? removeReaction() : sendReaction("like")}
+            className={`flex items-center gap-2 select-none transition-colors ${
+              reaction ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-blue-600"
+            }`}
+          >
+            <span className="text-lg">{reaction ? icons[reaction] : "👍"}</span>
+            <span>Thích</span>
+          </button>
+          <button 
+            onClick={() => setShowCommentInput(s => !s)} 
+            className={`flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors ${
+              showCommentInput ? "text-blue-600 font-semibold" : ""
+            }`}
+          >
+            <span className="text-lg">💬</span>
+            <span>Bình luận</span>
+          </button>
+          <button className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors">
+            <span className="text-lg">↗️</span>
+            <span>Chia sẻ</span>
+          </button>
 
-        {showMenu && (
-          <div className="absolute bg-white border shadow-md rounded-xl p-2 flex gap-2 bottom-8 z-20" onMouseLeave={() => setShowMenu(false)}>
-            {Object.keys(icons).map((k) => <button key={k} className="text-2xl" onClick={() => sendReaction(k)}>{icons[k]}</button>)}
-          </div>
-        )}
+          {showMenu && (
+            <div className="absolute bg-white border shadow-lg rounded-xl p-3 flex gap-3 bottom-10 left-0 z-20 animate-fade-in" onMouseLeave={() => setShowMenu(false)}>
+              {Object.keys(icons).map((k) => (
+                <button 
+                  key={k} 
+                  className="text-3xl hover:scale-125 transition-transform" 
+                  onClick={() => sendReaction(k)}
+                  title={k}
+                >
+                  {icons[k]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {showCommentInput && <CommentList postId={post.id} showInput={true} />}
+      {showCommentInput && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <CommentList postId={post.id} showInput={true} />
+        </div>
+      )}
     </div>
   );
 };

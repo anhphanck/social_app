@@ -15,61 +15,84 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
 
   const [newPost, setNewPost] = useState("");
-  const [file, setFile] = useState(null); // chỉ cho bài đăng mới
+  const [files, setFiles] = useState([]); // nhiều ảnh cho bài đăng mới
 
-  const [editingPost, setEditingPost] = useState(null); // { id, content, image, removeImage }
-  const [editFile, setEditFile] = useState(null); // ảnh cho bài đang sửa
+  const [editingPost, setEditingPost] = useState(null); // { id, content, images, removeImages }
+  const [editFiles, setEditFiles] = useState([]); // nhiều ảnh cho bài đang sửa
+  const [keepImages, setKeepImages] = useState([]); // ảnh cũ muốn giữ lại
   const [editContent, setEditContent] = useState(""); // nội dung sửa
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { user, logout,  } = useContext(UserContext);
+  const { user, logout, token } = useContext(UserContext);
 
   const API_URL = "http://localhost:5000/api";
 
 
 
   useEffect(() => {
-    fetchPosts();
-    fetchUsers();
-  }, []);
+    if (user) {
+      fetchPosts();
+      fetchUsers();
+    }
+  }, [user]);
   
    
   const fetchPosts = async () => {
     try {
-      const res = await axios.get(`${API_URL}/posts`);
-      setPosts(res.data);
+      const token = localStorage.getItem('token');
+      const userId = user?.id || null;
+      const url = userId ? `${API_URL}/posts?user_id=${userId}` : `${API_URL}/posts`;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.get(url, { headers });
+      setPosts(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi khi lấy posts:", err);
+      // Nếu lỗi, vẫn set mảng rỗng để không crash
+      setPosts([]);
     }
   };
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`${API_URL}/users`);
+      // API users yêu cầu token, nhưng có thể không có token
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_URL}/users`, { headers });
       setUsers(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi khi lấy users:", err);
+      // Nếu lỗi 401, có thể do chưa đăng nhập hoặc token hết hạn
+      if (err.response?.status === 401) {
+        console.warn("Token không hợp lệ, cần đăng nhập lại");
+      }
     }
   };
 
-  const handleAddPost = async (e) => {
+  const handleAddPost = async (e, filesToUpload) => {
     e.preventDefault();
     if (!user) return;
-    if (!newPost.trim() && !file) return;
+    if (!newPost.trim() && (!filesToUpload || filesToUpload.length === 0)) return;
     setLoading(true);
 
     try {
       const formData = new FormData();
       formData.append("user_id", user.id);
       formData.append("content", newPost);
-      if (file) formData.append("image", file);
+      if (filesToUpload && filesToUpload.length > 0) {
+        filesToUpload.forEach((file) => {
+          formData.append("images", file);
+        });
+      }
       
       await axios.post(`${API_URL}/posts`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
       });
       await new Promise(resolve => setTimeout(resolve, 1000));
       setNewPost("");
-      setFile(null);
+      setFiles([]);
       fetchPosts();
     } catch (err) {
       console.error("Lỗi khi đăng bài:", err);
@@ -91,9 +114,11 @@ export default function HomePage() {
 
 
   const handleStartEdit = (post) => {
-    setEditingPost({ id: post.id, removeImage: false });
+    setEditingPost({ id: post.id, removeImages: false });
     setEditContent(post.content);
-    setEditFile(null);
+    setEditFiles([]);
+    // Giữ lại tất cả ảnh hiện có
+    setKeepImages(post.images || (post.image ? [post.image] : []));
     const el = document.getElementById(`post-${post.id}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   };
@@ -103,16 +128,36 @@ export default function HomePage() {
     if (!editingPost) return;
     const formData = new FormData();
     formData.append("content", editContent);
-    if (editFile) formData.append("image", editFile);
-    if (editingPost.removeImage) formData.append("removeImage", "true");
+    
+    // Thêm ảnh mới
+    if (editFiles && editFiles.length > 0) {
+      editFiles.forEach((file) => {
+        formData.append("images", file);
+      });
+    }
+    
+    // Xử lý ảnh cũ
+    if (editingPost.removeImages) {
+      formData.append("removeImages", "true");
+    } else if (keepImages && keepImages.length > 0) {
+      // Gửi danh sách ảnh muốn giữ lại (chỉ tên file, không phải full URL)
+      keepImages.forEach(img => {
+        const filename = img.includes('/uploads/') ? img.split('/uploads/')[1] : img;
+        formData.append("keepImages", filename);
+      });
+    }
 
     try {
       await axios.put(`${API_URL}/posts/${editingPost.id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
       });
       await new Promise(resolve => setTimeout(resolve, 2000));
       setEditingPost(null);
-      setEditFile(null);
+      setEditFiles([]);
+      setKeepImages([]);
       setEditContent("");
       fetchPosts();
     } catch (err) {
@@ -122,7 +167,8 @@ export default function HomePage() {
 
   const handleCancelEdit = () => {
     setEditingPost(null);
-    setEditFile(null);
+    setEditFiles([]);
+    setKeepImages([]);
   };
 
   const handleLogout = () => {
@@ -174,13 +220,12 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto">
             <Midbar />
             <CreatePost
-              
               newPost={newPost}
               setNewPost={setNewPost}
               onSubmit={handleAddPost}
               loading={loading}
-              file={file}
-              setFile={setFile}
+              files={files}
+              setFiles={setFiles}
             />
 
             <div className="mt-4">
@@ -196,15 +241,16 @@ export default function HomePage() {
                   post={p}
                   editingPost={editingPost}
                   editContent={editContent}
-                  editFile={editFile}
-                  setEditFile={setEditFile}
+                  editFiles={editFiles}
+                  setEditFiles={setEditFiles}
+                  keepImages={keepImages}
+                  setKeepImages={setKeepImages}
                   setEditContent={setEditContent}
                   setEditingPost={setEditingPost}
                   handleSaveEdit={handleSaveEdit}
                   handleCancelEdit={handleCancelEdit}
                   handleStartEdit={handleStartEdit}
                   handleDelete={handleDelete}
-                  
                 />
               ))}
             </div>

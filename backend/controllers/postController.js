@@ -17,7 +17,10 @@ const storage = multer.diskStorage({
   },
 });
 
-export const upload = multer({ storage });
+export const upload = multer({ 
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB per file
+});
 
 export const getAllPosts = (req, res) => {
   const userId = req.query.user_id || null;
@@ -47,79 +50,178 @@ export const getAllPosts = (req, res) => {
   db.query(q, [userId], (err, data) => {
     if (err) return res.status(500).json({ message: "Lỗi server" });
 
-    const updated = data.map((post) => ({
-      ...post,
+    // Lấy tất cả ảnh cho các posts
+    const postIds = data.map(p => p.id);
+    if (postIds.length === 0) {
+      // Nếu không có posts, trả về mảng rỗng với format đúng
+      return res.json(data.map((post) => ({
+        ...post,
+        images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
+        image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+        reactions: {
+          like: post.like_count || 0,
+          love: post.love_count || 0,
+          haha: post.haha_count || 0,
+          sad: post.sad_count || 0
+        }
+      })));
+    }
 
-      // format ảnh
-      image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
-
-      // gộp các reaction vào object
-      reactions: {
-        like: post.like_count,
-        love: post.love_count,
-        haha: post.haha_count,
-        sad: post.sad_count
+    // Kiểm tra xem bảng post_images có tồn tại không
+    const imageQuery = `SELECT post_id, image FROM post_images WHERE post_id IN (${postIds.join(',')}) ORDER BY id ASC`;
+    db.query(imageQuery, (imgErr, images) => {
+      // Nếu bảng chưa tồn tại, chỉ dùng ảnh cũ
+      if (imgErr) {
+        console.warn("Bảng post_images chưa tồn tại hoặc lỗi:", imgErr.message);
+        const updated = data.map((post) => ({
+          ...post,
+          images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
+          image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+          reactions: {
+            like: post.like_count || 0,
+            love: post.love_count || 0,
+            haha: post.haha_count || 0,
+            sad: post.sad_count || 0
+          }
+        }));
+        return res.json(updated);
       }
-    }));
 
-    res.json(updated);
+      // Nhóm ảnh theo post_id
+      const imagesByPost = {};
+      images.forEach(img => {
+        if (!imagesByPost[img.post_id]) {
+          imagesByPost[img.post_id] = [];
+        }
+        imagesByPost[img.post_id].push(`http://localhost:5000/uploads/${img.image}`);
+      });
+
+      const updated = data.map((post) => ({
+        ...post,
+        // Lấy ảnh từ post_images, nếu không có thì fallback về image cũ (backward compatible)
+        images: imagesByPost[post.id] || (post.image ? [`http://localhost:5000/uploads/${post.image}`] : []),
+        image: imagesByPost[post.id]?.[0] || (post.image ? `http://localhost:5000/uploads/${post.image}` : null), // Giữ lại cho backward compatible
+
+        // gộp các reaction vào object
+        reactions: {
+          like: post.like_count,
+          love: post.love_count,
+          haha: post.haha_count,
+          sad: post.sad_count
+        }
+      }));
+
+      res.json(updated);
+    });
   });
 };
 
 
 export const createPost = (req, res) => {
   const { user_id, content } = req.body;
-  const image = req.file ? req.file.filename : null;
+  const files = req.files || [];
+  const images = files.map(f => f.filename);
 
-  if (!user_id || (!content && !image))
+  if (!user_id || (!content && images.length === 0))
     return res.status(400).json({ message: "Thiếu nội dung hoặc ảnh" });
 
+  // Tạo post
   const q = "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)";
-  db.query(q, [user_id, content, image], (err, result) => {
+  const firstImage = images.length > 0 ? images[0] : null; // Giữ lại image cho backward compatible
+  
+  db.query(q, [user_id, content, firstImage], (err, result) => {
     if (err) {
       console.error("Lỗi khi thêm bài viết:", err);
       return res.status(500).json({ message: "Không thể đăng bài" });
     }
 
-    res.json({
-      message: "Đăng bài thành công",
-      post: {
-        id: result.insertId,
-        user_id,
-        content,
-        image: image ? `http://localhost:5000/uploads/${image}` : null,
-      },
-    });
+    const postId = result.insertId;
+
+    // Lưu nhiều ảnh vào bảng post_images
+    if (images.length > 0) {
+      const imageValues = images.map(img => [postId, img]);
+      const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
+      
+      db.query(insertImagesQuery, [imageValues], (imgErr) => {
+        if (imgErr) {
+          console.error("Lỗi khi lưu ảnh:", imgErr);
+          // Vẫn trả về success nhưng log lỗi
+        }
+
+        res.json({
+          message: "Đăng bài thành công",
+          post: {
+            id: postId,
+            user_id,
+            content,
+            images: images.map(img => `http://localhost:5000/uploads/${img}`),
+            image: images[0] ? `http://localhost:5000/uploads/${images[0]}` : null,
+          },
+        });
+      });
+    } else {
+      res.json({
+        message: "Đăng bài thành công",
+        post: {
+          id: postId,
+          user_id,
+          content,
+          images: [],
+          image: null,
+        },
+      });
+    }
   });
 };
 
 export const updatePost = (req, res) => {
   const { id } = req.params;
-  const { content, removeImage } = req.body;
-  const newImage = req.file ? req.file.filename : null;
+  const { content, removeImages, keepImages } = req.body;
+  const newFiles = req.files || [];
+  const newImages = newFiles.map(f => f.filename);
 
   db.query("SELECT image FROM posts WHERE id=?", [id], (err, result) => {
     if (err) return res.status(500).json({ message: "Lỗi lấy bài viết" });
     if (result.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
 
-    const oldImage = result[0].image;
+    // Xóa ảnh cũ nếu cần
+    if (removeImages === "true" || (Array.isArray(keepImages) && keepImages.length === 0 && newImages.length > 0)) {
+      // Lấy tất cả ảnh cũ
+      db.query("SELECT image FROM post_images WHERE post_id=?", [id], (imgErr, oldImages) => {
+        if (!imgErr && oldImages) {
+          oldImages.forEach(img => {
+            const filePath = path.join(__dirname, "../uploads", img.image);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+          });
+        }
+        // Xóa tất cả ảnh cũ
+        db.query("DELETE FROM post_images WHERE post_id=?", [id]);
+      });
+    } else if (Array.isArray(keepImages) && keepImages.length > 0) {
+      // Xóa ảnh không được giữ lại
+      db.query("SELECT image FROM post_images WHERE post_id=?", [id], (imgErr, oldImages) => {
+        if (!imgErr && oldImages) {
+          oldImages.forEach(img => {
+            if (!keepImages.includes(img.image)) {
+              const filePath = path.join(__dirname, "../uploads", img.image);
+              if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+              db.query("DELETE FROM post_images WHERE post_id=? AND image=?", [id, img.image]);
+            }
+          });
+        }
+      });
+    }
 
-    if (removeImage && oldImage) {
-      const filePath = path.join(__dirname, "../uploads", oldImage);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
-    if (newImage && oldImage) {
-      const filePath = path.join(__dirname, "../uploads", oldImage);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
+    // Cập nhật content
     let q = "UPDATE posts SET content=?";
     const params = [content];
 
-    if (removeImage) {
-      q += ", image=NULL";
-    } else if (newImage) {
+    // Cập nhật image đầu tiên cho backward compatible
+    if (newImages.length > 0) {
       q += ", image=?";
-      params.push(newImage);
+      params.push(newImages[0]);
+    } else if (removeImages === "true") {
+      q += ", image=NULL";
     }
 
     q += " WHERE id=?";
@@ -127,6 +229,16 @@ export const updatePost = (req, res) => {
 
     db.query(q, params, (err) => {
       if (err) return res.status(500).json({ message: "Không thể cập nhật" });
+
+      // Thêm ảnh mới
+      if (newImages.length > 0) {
+        const imageValues = newImages.map(img => [id, img]);
+        const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
+        db.query(insertImagesQuery, [imageValues], (imgErr) => {
+          if (imgErr) console.error("Lỗi khi lưu ảnh mới:", imgErr);
+        });
+      }
+
       res.json({ message: "Cập nhật thành công" });
     });
   });
@@ -135,20 +247,19 @@ export const updatePost = (req, res) => {
 export const deletePost = (req, res) => {
   const postId = req.params.id;
 
-  db.query("SELECT image FROM posts WHERE id=?", [postId], (err, data) => {
-    if (err) return res.status(500).json({ message: "Lỗi lấy ảnh" });
-    if (data.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
-
-    const oldImage = data[0].image;
-
-    if (oldImage) {
-      const filePath = path.join(__dirname, "../uploads", oldImage);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log("🗑 Đã xóa ảnh:", oldImage);
-      }
+  // Xóa tất cả ảnh từ post_images
+  db.query("SELECT image FROM post_images WHERE post_id=?", [postId], (imgErr, images) => {
+    if (!imgErr && images) {
+      images.forEach(img => {
+        const filePath = path.join(__dirname, "../uploads", img.image);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log("🗑 Đã xóa ảnh:", img.image);
+        }
+      });
     }
 
+    // Xóa bài viết (CASCADE sẽ xóa post_images tự động)
     db.query("DELETE FROM posts WHERE id=?", [postId], (err) => {
       if (err) return res.status(500).json({ message: "Lỗi xóa bài viết" });
       res.json({ message: "Đã xóa bài viết và ảnh" });
