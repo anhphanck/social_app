@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:5000/api/users'
+const API_URL = 'http://localhost:5000/api/admin/users'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)

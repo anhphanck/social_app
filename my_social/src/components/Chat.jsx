@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useContext } from "react";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
 
-export default function Chat() {
+export default function Chat({ users = [] }) {
   const { user, token, socket, currentChatId, setCurrentChatId, setUnreadCounts } = useContext(UserContext);
   const [messages, setMessages] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -83,17 +83,35 @@ export default function Chat() {
   // show other user's name instead of id
   const [otherName, setOtherName] = useState(null);
   useEffect(() => {
-    if (!currentChatId) return;
+    if (!currentChatId) {
+      setOtherName(null);
+      return;
+    }
+    
+    // Tìm user trong danh sách users đã có (từ Rightbar)
+    if (users && users.length > 0) {
+      const found = users.find((u) => String(u.id) === String(currentChatId));
+      if (found) {
+        setOtherName(found.username);
+        return;
+      }
+    }
+    
+    // Nếu không tìm thấy trong danh sách, fetch từ API
     (async () => {
       try {
-        const res = await axios.get(`${API_URL}/users`);
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get(`${API_URL}/users`, { headers });
         const found = (res.data || []).find((u) => String(u.id) === String(currentChatId));
-        setOtherName(found ? found.username : null);
+        setOtherName(found ? found.username : `User ${currentChatId}`);
       } catch (e) {
         console.warn('Failed to fetch users for name', e);
+        // Nếu không fetch được, hiển thị ID
+        setOtherName(`User ${currentChatId}`);
       }
     })();
-  }, [currentChatId]);
+  }, [currentChatId, users]);
 
   const send = async () => {
     if (!text.trim() && !file) return;

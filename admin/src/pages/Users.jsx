@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:5000/api/users'
+const API_URL = 'http://localhost:5000/api/admin/users'
 
 export default function Users() {
   const [users, setUsers] = useState([])
@@ -52,7 +52,7 @@ export default function Users() {
   const handleUpdateRole = async (userId, newRole) => {
     try {
       const token = localStorage.getItem('adminToken')
-      await axios.put(`${API_URL}/${userId}/role`, 
+      await axios.put(`http://localhost:5000/api/admin/users/${userId}/role`, 
         { role: newRole },
         {
           headers: {

@@ -1,12 +1,11 @@
 import express from "express";
-import { registerUser, loginUser, getAllUsers, updateUserRole  } from "../controllers/userController.js";
-import { verifyToken, verifyAdmin } from "../middleware/authMiddleware.js";
+import { registerUser, loginUser, getAllUsers } from "../controllers/userController.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.get("/", verifyAdmin, getAllUsers); // Chỉ admin mới xem được danh sách users
-router.put("/:userId/role", verifyAdmin, updateUserRole); // Chỉ admin mới thay đổi role
+router.get("/", verifyToken, getAllUsers); // User thường cần token để xem danh sách users
 
 export default router;

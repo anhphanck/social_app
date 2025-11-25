@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import { createServer } from "http";
 import { Server as IOServer } from "socket.io";
 import userRoutes from "./routes/userRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
@@ -14,7 +15,8 @@ const app = express();
 app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
 app.use(bodyParser.json());
 
-app.use("/api/users", userRoutes);
+app.use("/api/users", userRoutes); // Cho user thường
+app.use("/api/admin", adminRoutes); // Cho admin panel
 app.use("/api/posts", postRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/comments", commentRoutes);

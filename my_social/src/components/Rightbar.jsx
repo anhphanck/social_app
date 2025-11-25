@@ -46,7 +46,7 @@ export default function Rightbar({ users }) {
           </div>
         ))}
       </div>
-      <Chat />
+      <Chat users={users} />
     </div>
   );
 }
