@@ -17,6 +17,7 @@ export default function EditablePost({
   handleCancelEdit,
   handleStartEdit,
   handleDelete,
+  handleTogglePin,
 }) {
   const { user } = useContext(UserContext);
   const [removingImageIndex, setRemovingImageIndex] = useState(null);
@@ -122,6 +123,7 @@ export default function EditablePost({
           user={user}
           onEdit={handleStartEdit}
           onDelete={handleDelete}
+          onTogglePin={(shouldPin) => handleTogglePin && handleTogglePin(post.id, shouldPin)}
         />
       )}
     </div>

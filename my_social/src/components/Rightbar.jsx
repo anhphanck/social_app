@@ -2,15 +2,38 @@ import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
 import Chat from "./Chat";
 
-export default function Rightbar({ users }) {
-  const { setCurrentChatId, unreadCounts, onlineUsers, setUnreadCounts } = useContext(UserContext);
+export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
+  const { setCurrentChatId, unreadCounts, onlineUsers, setUnreadCounts, user } = useContext(UserContext);
 
   return (
     <div className="w-72 p-4 space-y-4 flex-1 bg-white mt-2 ">
 
-      <div className="bg-white shadow-sm p-3 rounded-md h-50">
+      <div className="bg-white shadow-sm p-3 rounded-md max-h-60 overflow-y-auto">
         <h3 className="font-semibold text-sky-700 mb-2">📌 Bài viết đã ghim</h3>
-        <div className="text-sm text-gray-700">user1: Xin chào mọi người!</div>
+        {(!pinnedPosts || pinnedPosts.length === 0) && (
+          <div className="text-sm text-gray-500">Chưa có bài viết nào được ghim</div>
+        )}
+        {pinnedPosts.map((post) => (
+          <div key={post.id} className="border border-gray-100 rounded-md p-2 mb-2 text-sm">
+            <div className="font-semibold text-gray-800 line-clamp-1">{post.username}</div>
+            <div className="text-gray-600 mt-1 line-clamp-2">{post.content || 'Không có nội dung'}</div>
+            <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+              <span>{post.created_at ? new Date(post.created_at).toLocaleString('vi-VN') : ''}</span>
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Bạn có chắc muốn gỡ ghim bài viết này?')) {
+                      onUnpin && onUnpin(post.id);
+                    }
+                  }}
+                  className="text-red-500 hover:underline"
+                >
+                  Gỡ ghim
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
       
       <div className="bg-white shadow-sm p-3 rounded-md h-35">

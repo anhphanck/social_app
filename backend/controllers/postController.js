@@ -44,7 +44,7 @@ export const getAllPosts = (req, res) => {
 
     FROM posts
     JOIN users ON posts.user_id = users.id
-    ORDER BY posts.created_at DESC
+    ORDER BY posts.is_pinned DESC, posts.created_at DESC
   `;
 
   db.query(q, [userId], (err, data) => {
@@ -58,6 +58,7 @@ export const getAllPosts = (req, res) => {
         ...post,
         images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
         image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+        is_pinned: Boolean(post.is_pinned),
         reactions: {
           like: post.like_count || 0,
           love: post.love_count || 0,
@@ -77,6 +78,7 @@ export const getAllPosts = (req, res) => {
           ...post,
           images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
           image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+          is_pinned: Boolean(post.is_pinned),
           reactions: {
             like: post.like_count || 0,
             love: post.love_count || 0,
@@ -101,7 +103,7 @@ export const getAllPosts = (req, res) => {
         // Lấy ảnh từ post_images, nếu không có thì fallback về image cũ (backward compatible)
         images: imagesByPost[post.id] || (post.image ? [`http://localhost:5000/uploads/${post.image}`] : []),
         image: imagesByPost[post.id]?.[0] || (post.image ? `http://localhost:5000/uploads/${post.image}` : null), // Giữ lại cho backward compatible
-
+        is_pinned: Boolean(post.is_pinned),
         // gộp các reaction vào object
         reactions: {
           like: post.like_count,
@@ -264,6 +266,24 @@ export const deletePost = (req, res) => {
       if (err) return res.status(500).json({ message: "Lỗi xóa bài viết" });
       res.json({ message: "Đã xóa bài viết và ảnh" });
     });
+  });
+};
+
+export const pinPost = (req, res) => {
+  const { id } = req.params;
+  db.query("UPDATE posts SET is_pinned = 1 WHERE id = ?", [id], (err, result) => {
+    if (err) return res.status(500).json({ message: "Không thể ghim bài viết" });
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+    res.json({ message: "Đã ghim bài viết" });
+  });
+};
+
+export const unpinPost = (req, res) => {
+  const { id } = req.params;
+  db.query("UPDATE posts SET is_pinned = 0 WHERE id = ?", [id], (err, result) => {
+    if (err) return res.status(500).json({ message: "Không thể gỡ ghim bài viết" });
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+    res.json({ message: "Đã gỡ ghim bài viết" });
   });
 };
 

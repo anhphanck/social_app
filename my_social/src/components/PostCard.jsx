@@ -300,7 +300,7 @@ function CommentList({ postId, showInput }) {
 
 // ========================== PostCard ==========================
 // ========================== PostCard ==========================
-export default function PostCard({ post, onEdit, onDelete }) {
+export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const { user } = useContext(UserContext);
   const [reaction, setReaction] = useState(post.user_reaction || null);
   const [counts, setCounts] = useState(post.reactions || { like: 0, love: 0, haha: 0, sad: 0 });
@@ -376,14 +376,29 @@ export default function PostCard({ post, onEdit, onDelete }) {
             <div className="text-xs text-gray-400">{post.created_at ? new Date(post.created_at).toLocaleString() : ""}</div>
           </div>
         </div>
-        {user && post.user_id === user.id && (
-          <div className="space-x-3 text-sm">
-            <button onClick={() => onEdit(post)} className="text-sky-600 hover:underline">Sửa</button>
-            <button onClick={() => onDelete(post.id)} className="text-red-600 hover:underline">Xoá</button>
-          </div>
-        )}
+        <div className="space-x-3 text-sm flex items-center gap-3">
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => onTogglePin && onTogglePin(!post.is_pinned)}
+              className={`px-3 py-1 rounded-full text-xs ${post.is_pinned ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}
+            >
+              {post.is_pinned ? 'Gỡ ghim' : 'Ghim bài'}
+            </button>
+          )}
+          {user && post.user_id === user.id && (
+            <>
+              <button onClick={() => onEdit(post)} className="text-sky-600 hover:underline">Sửa</button>
+              <button onClick={() => onDelete(post.id)} className="text-red-600 hover:underline">Xoá</button>
+            </>
+          )}
+        </div>
       </div>
 
+      {post.is_pinned && (
+        <div className="flex items-center gap-2 text-amber-600 text-xs font-semibold uppercase">
+          📌 Đã ghim bởi admin
+        </div>
+      )}
       <div className="mt-2 text-gray-800">
         {post.content}
         

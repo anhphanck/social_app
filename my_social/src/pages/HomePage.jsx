@@ -101,6 +101,33 @@ export default function HomePage() {
     }
   };
 
+  const handleTogglePin = async (postId, shouldPin) => {
+    if (!user || user.role !== 'admin') {
+      alert('Chỉ admin mới được ghim bài viết');
+      return;
+    }
+    if (!token) return;
+    if (!shouldPin) {
+      const confirmed = window.confirm('Bạn có chắc muốn gỡ ghim bài viết này?');
+      if (!confirmed) return;
+    }
+    try {
+      await axios.post(
+        `${API_URL}/posts/${postId}/${shouldPin ? 'pin' : 'unpin'}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchPosts();
+    } catch (err) {
+      console.error('Lỗi cập nhật trạng thái ghim:', err);
+      alert(err.response?.data?.message || 'Không thể cập nhật trạng thái ghim');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xoá bài viết này không?")) return;
     try {
@@ -251,6 +278,7 @@ export default function HomePage() {
                   handleCancelEdit={handleCancelEdit}
                   handleStartEdit={handleStartEdit}
                   handleDelete={handleDelete}
+                handleTogglePin={handleTogglePin}
                 />
               ))}
             </div>
@@ -258,7 +286,11 @@ export default function HomePage() {
         </main>
 
         <div className="bg-gray-50 fixed right-0">
-          <Rightbar users={users} />
+          <Rightbar
+            users={users}
+            pinnedPosts={posts.filter((p) => p.is_pinned)}
+            onUnpin={(postId) => handleTogglePin(postId, false)}
+          />
         </div>
       </div>
     </div>
