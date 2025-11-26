@@ -276,3 +276,38 @@ export const markNotifsRead = async (req, res) => {
   }
 };
 
+export const deleteTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user && req.user.id;
+    const [rows] = await db.promise().execute("SELECT created_by, status FROM tasks WHERE id=?", [id]);
+    if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy nhiệm vụ" });
+    const t = rows[0];
+    if (String(t.created_by) !== String(userId)) return res.status(403).json({ message: "Chỉ người giao mới được xóa" });
+    if (t.status !== 'closed') return res.status(400).json({ message: "Chỉ xóa nhiệm vụ đã hoàn thành" });
+
+    const [fileRows] = await db.promise().execute("SELECT filename FROM task_files WHERE task_id=?", [id]);
+    const [subRows] = await db.promise().execute("SELECT filename FROM task_submissions WHERE task_id=?", [id]);
+    const names = [...(fileRows || []).map((r) => r.filename), ...(subRows || []).map((r) => r.filename)];
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      for (const n of names) {
+        if (!n) continue;
+        const p = path.join(process.cwd(), 'uploads', n);
+        try { fs.unlinkSync(p); } catch {}
+      }
+    } catch {}
+
+    await db.promise().execute("DELETE FROM task_files WHERE task_id=?", [id]);
+    await db.promise().execute("DELETE FROM task_submissions WHERE task_id=?", [id]);
+    await db.promise().execute("DELETE FROM task_assignments WHERE task_id=?", [id]);
+    await db.promise().execute("DELETE FROM task_comments WHERE task_id=?", [id]);
+    await db.promise().execute("DELETE FROM task_notifications WHERE task_id=?", [id]);
+    await db.promise().execute("DELETE FROM tasks WHERE id=?", [id]);
+    res.json({ message: "Đã xóa nhiệm vụ" });
+  } catch (e) {
+    res.status(500).json({ message: "Lỗi xóa nhiệm vụ" });
+  }
+};
+

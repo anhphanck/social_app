@@ -115,6 +115,18 @@ export default function TasksPage() {
     }
   };
 
+  const deleteTask = async (id) => {
+    try {
+      if (!confirm('Xóa nhiệm vụ này?')) return;
+      await axios.delete(`${API_URL}/tasks/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } });
+      setTasks(res.data || []);
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Không thể xóa nhiệm vụ';
+      alert(msg);
+    }
+  };
+
   
 
   const toggleAssignee = (uid) => {
@@ -251,6 +263,7 @@ export default function TasksPage() {
                     {user?.role === 'admin' && (
                       <>
                         {t.status === 'pending_review' && <button onClick={() => changeStatus(t.id, 'closed')} className="px-3 py-1 border rounded">Duyệt</button>}
+                        {t.status === 'closed' && <button onClick={() => deleteTask(t.id)} className="px-3 py-1 border rounded text-red-700">Xóa</button>}
                       </>
                     )}
                   </div>

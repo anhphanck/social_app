@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken, verifyAdmin } from "../middleware/authMiddleware.js";
-import { ensureTaskSchema, createTask, listTasks, updateTask, changeStatus, addComment, getTaskDetail, unreadNotifCount, markNotifsRead } from "../controllers/taskController.js";
+import { ensureTaskSchema, createTask, listTasks, updateTask, changeStatus, addComment, getTaskDetail, unreadNotifCount, markNotifsRead, deleteTask } from "../controllers/taskController.js";
 import { upload } from "../controllers/postController.js";
 
 const router = express.Router();
@@ -15,5 +15,6 @@ router.post("/:id/status", verifyToken, upload.array("evidence", 10), changeStat
 router.post("/:id/comment", verifyToken, addComment);
 router.get("/notifications/unread-count", verifyToken, unreadNotifCount);
 router.post("/notifications/mark-read", verifyToken, markNotifsRead);
+router.delete("/:id", verifyAdmin, deleteTask);
 
 export default router;
