@@ -15,6 +15,7 @@ export const UserProvider = ({ children }) => {
   const [unreadCounts, setUnreadCounts] = useState({});
   // store online user ids as a Set for quick lookup
   const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [taskNotifCount, setTaskNotifCount] = useState(0);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -93,6 +94,10 @@ export const UserProvider = ({ children }) => {
       }
     });
 
+    socket.on('task_notification', () => {
+      setTaskNotifCount((c) => c + 1);
+    });
+
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
@@ -115,6 +120,20 @@ export const UserProvider = ({ children }) => {
       }
     };
     fetchUnreads();
+  }, [user, token]);
+
+  useEffect(() => {
+    const fetchTaskNotif = async () => {
+      try {
+        if (!user || !token) return;
+        const res = await axios.get('http://localhost:5000/api/tasks/notifications/unread-count', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const n = (res && res.data && res.data.count) ? res.data.count : 0;
+        setTaskNotifCount(n);
+      } catch { console.warn(''); }
+    };
+    fetchTaskNotif();
   }, [user, token]);
 
   useEffect(() => {
@@ -144,7 +163,7 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, token, setToken, logout, loadingUser, socket: socketInstance, socketConnected, currentChatId, setCurrentChatId, unreadCounts, setUnreadCounts, onlineUsers, setOnlineUsers }}>
+    <UserContext.Provider value={{ user, setUser, token, setToken, logout, loadingUser, socket: socketInstance, socketConnected, currentChatId, setCurrentChatId, unreadCounts, setUnreadCounts, onlineUsers, setOnlineUsers, taskNotifCount, setTaskNotifCount }}>
       {children}
     </UserContext.Provider>
   );

@@ -27,7 +27,17 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
   </div>
   <div className="flex items-center space-x-4 text-sky-800 z-10">
     <button>💬</button>
-    <button>🔔</button>
+    {(() => {
+      const c = ctx?.taskNotifCount || 0;
+      return (
+        <div className="relative">
+          <button onClick={() => navigate('/tasks')}>🔔</button>
+          {c > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 rounded-full">{c}</span>
+          )}
+        </div>
+      );
+    })()}
     <div
       className="flex items-center space-x-2 cursor-pointer"
       onClick={() => navigate('/profile')}
