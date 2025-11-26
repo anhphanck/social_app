@@ -11,6 +11,7 @@ export default function TasksPage() {
           <h1 className="text-xl font-semibold text-sky-700">Quản lý Task dự án</h1>
           <div className="mt-4 text-gray-700">Trang dành cho admin tạo dự án, thêm nhiệm vụ và gán người phụ trách.</div>
         </div>
+        <div className="w-72"></div>
       </div>
     </div>
   );

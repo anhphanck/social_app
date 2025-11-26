@@ -65,13 +65,11 @@ export const UserProvider = ({ children }) => {
         console.warn('Failed to request presence', e);
       }
       // fetch unread counts when user comes online
-      try {
-        if (token) {
-          axios.get('http://localhost:5000/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
-            .then((res) => setUnreadCounts(res.data || {}))
-            .catch(() => {});
-        }
-      } catch (_ERR) {}
+      if (token) {
+        axios.get('http://localhost:5000/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
+          .then((res) => setUnreadCounts(res.data || {}))
+          .catch(() => {});
+      }
     });
     socket.on("disconnect", () => setSocketConnected(false));
     socket.on("connect_error", (err) => console.error('Socket connect_error', err));

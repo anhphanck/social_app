@@ -11,6 +11,7 @@ export default function MeetingPage() {
           <h1 className="text-xl font-semibold text-sky-700">Cuộc họp nhóm</h1>
           <div className="mt-4 text-gray-700">Trang họp nhóm và chia sẻ màn hình.</div>
         </div>
+        <div className="w-72"></div>
       </div>
     </div>
   );

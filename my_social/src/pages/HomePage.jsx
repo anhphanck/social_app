@@ -226,71 +226,69 @@ export default function HomePage() {
     return () => clearTimeout(delay);
   }, [searchQuery]);
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* NAV */}
-      <div className="fixed top-0 left-0 w-full z-50">
+    <div className="min-h-screen bg-gray-100">
+      <div className="sticky top-0 z-50">
         <Navbar
-         user={user} 
-         onLogout={handleLogout} 
-         searchQuery={searchQuery}
-         setSearchQuery={setSearchQuery}
-         />
-         
+          user={user}
+          onLogout={handleLogout}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
       </div>
 
-      <div className="flex flex-1 mt-16">
-        <div className="w-64 fixed left-0">
-          <Sidebar />
+      <div className="flex gap-4 p-4">
+        <div className="w-64">
+          <div className="sticky top-16">
+            <Sidebar />
+          </div>
         </div>
 
-        <main className="flex-1 p-6 pt-1 bg-gray-50 overflow-y-auto">
-          <div className="max-w-4xl mx-auto">
-            <Midbar />
-            <CreatePost
-              newPost={newPost}
-              setNewPost={setNewPost}
-              onSubmit={handleAddPost}
-              loading={loading}
-              files={files}
-              setFiles={setFiles}
-            />
+        <main className="flex-1 bg-white p-6 rounded-md shadow-sm h-[calc(100vh-4rem)] overflow-y-auto">
+          <Midbar />
+          <CreatePost
+            newPost={newPost}
+            setNewPost={setNewPost}
+            onSubmit={handleAddPost}
+            loading={loading}
+            files={files}
+            setFiles={setFiles}
+          />
 
-            <div className="mt-4">
-              {posts.length === 0 && (
-                <p className="text-center text-gray-500">
-                  Chưa có bài viết nào.
-                </p>
-              )}
+          <div className="mt-4">
+            {posts.length === 0 && (
+              <p className="text-center text-gray-500">Chưa có bài viết nào.</p>
+            )}
 
-              {posts.map((p) => (
-                <EditablePost
-                  key={p.id}
-                  post={p}
-                  editingPost={editingPost}
-                  editContent={editContent}
-                  editFiles={editFiles}
-                  setEditFiles={setEditFiles}
-                  keepImages={keepImages}
-                  setKeepImages={setKeepImages}
-                  setEditContent={setEditContent}
-                  setEditingPost={setEditingPost}
-                  handleSaveEdit={handleSaveEdit}
-                  handleCancelEdit={handleCancelEdit}
-                  handleStartEdit={handleStartEdit}
-                  handleDelete={handleDelete}
+            {posts.map((p) => (
+              <EditablePost
+                key={p.id}
+                post={p}
+                editingPost={editingPost}
+                editContent={editContent}
+                editFiles={editFiles}
+                setEditFiles={setEditFiles}
+                keepImages={keepImages}
+                setKeepImages={setKeepImages}
+                setEditContent={setEditContent}
+                setEditingPost={setEditingPost}
+                handleSaveEdit={handleSaveEdit}
+                handleCancelEdit={handleCancelEdit}
+                handleStartEdit={handleStartEdit}
+                handleDelete={handleDelete}
                 handleTogglePin={handleTogglePin}
-                />
-              ))}
-            </div>
+              />
+            ))}
           </div>
         </main>
 
-        <div className="bg-gray-50 fixed right-0">
-          <Rightbar
-            users={users}
-            pinnedPosts={posts.filter((p) => p.is_pinned)}
-            onUnpin={(postId) => handleTogglePin(postId, false)}
-          />
+        <div className="w-72">
+          <div className="sticky top-16">
+            <Rightbar
+              users={users}
+              pinnedPosts={posts.filter((p) => p.is_pinned)}
+              onUnpin={(postId) => handleTogglePin(postId, false)}
+            />
+          </div>
         </div>
       </div>
     </div>

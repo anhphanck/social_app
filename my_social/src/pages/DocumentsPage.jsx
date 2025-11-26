@@ -11,6 +11,7 @@ export default function DocumentsPage() {
           <h1 className="text-xl font-semibold text-sky-700">Chia sẻ tài liệu dự án</h1>
           <div className="mt-4 text-gray-700">Trang dành cho người dùng chia sẻ và quản lý tài liệu dự án.</div>
         </div>
+        <div className="w-72"></div>
       </div>
     </div>
   );
