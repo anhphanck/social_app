@@ -60,7 +60,7 @@ export default function AuthPage() {
           email: formData.email,
           password: formData.password,
         });
-        setMessage("Đăng ký thành công! Vui lòng đăng nhập.");
+        setMessage("Đăng ký thành công! Tài khoản đang chờ duyệt bởi admin.");
         setIsLogin(true);
         setMessageType("success");
       }

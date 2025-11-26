@@ -15,6 +15,12 @@ async function ensureUserProfileColumns() {
     if (!names.has("bio")) {
       await db.promise().query("ALTER TABLE users ADD COLUMN bio TEXT NULL");
     }
+    if (!names.has("is_approved")) {
+      await db.promise().query("ALTER TABLE users ADD COLUMN is_approved TINYINT(1) NOT NULL DEFAULT 0");
+      try {
+        await db.promise().query("UPDATE users SET is_approved = 1");
+      } catch {}
+    }
   } catch (e) {
     console.warn("Failed to ensure user profile columns", e);
   }
@@ -56,6 +62,9 @@ export const loginUser = (req, res) => {
       return res.status(400).json({ message: "Không tìm thấy tài khoản" });
 
     const user = data[0];
+    if (!user.is_approved) {
+      return res.status(403).json({ message: "Tài khoản chưa được duyệt bởi admin" });
+    }
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) return res.status(401).json({ message: "Sai mật khẩu" });
@@ -77,7 +86,7 @@ export const loginUser = (req, res) => {
 };
 
 export const getAllUsers = (req, res) => {
-  const q = "SELECT id, username, email, COALESCE(role, 'user') as role, avatar, created_at FROM users ORDER BY id DESC";
+  const q = "SELECT id, username, email, COALESCE(role, 'user') as role, avatar, created_at, COALESCE(is_approved,0) AS is_approved FROM users ORDER BY id DESC";
   db.query(q, (err, results) => {
     if (err) {
       console.error("Lỗi lấy users:", err);
@@ -105,6 +114,21 @@ export const updateUserRole = (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy user" });
     }
     res.json({ message: `Đã ${role === 'admin' ? 'thăng cấp' : 'hạ cấp'} user thành công`, role });
+  });
+};
+
+export const approveUser = (req, res) => {
+  const { userId } = req.params;
+  const q = "UPDATE users SET is_approved = 1 WHERE id = ?";
+  db.query(q, [userId], (err, result) => {
+    if (err) {
+      console.error("Lỗi duyệt user:", err);
+      return res.status(500).json({ message: "Lỗi khi duyệt user" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Không tìm thấy user" });
+    }
+    res.json({ message: "Đã duyệt user" });
   });
 };
 

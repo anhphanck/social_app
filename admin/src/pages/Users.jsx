@@ -10,6 +10,7 @@ export default function Users() {
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
   const [query, setQuery] = useState('')
+  const [approvingId, setApprovingId] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -65,6 +66,21 @@ export default function Users() {
       fetchUsers()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể cập nhật role')
+    }
+  }
+
+  const handleApprove = async (userId) => {
+    try {
+      setApprovingId(userId)
+      const token = localStorage.getItem('adminToken')
+      await axios.put(`http://localhost:5000/api/admin/users/${userId}/approve`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_approved: 1 } : u))
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể duyệt user')
+    } finally {
+      setApprovingId(null)
     }
   }
 
@@ -178,6 +194,9 @@ export default function Users() {
                       Role
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Trạng thái
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ngày tạo
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -215,10 +234,16 @@ export default function Users() {
                             {u.role === 'admin' ? 'Admin' : 'User'}
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${u.is_approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {u.is_approved ? 'Đã duyệt' : 'Chờ duyệt'}
+                          </span>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {u.created_at ? new Date(u.created_at).toLocaleDateString('vi-VN') : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <div className="flex gap-2 items-center">
                           {u.role === 'admin' ? (
                             <button
                               onClick={() => handleUpdateRole(u.id, 'user')}
@@ -234,6 +259,16 @@ export default function Users() {
                               Thăng cấp
                             </button>
                           )}
+                          {!u.is_approved && (
+                            <button
+                              onClick={() => handleApprove(u.id)}
+                              disabled={approvingId === u.id}
+                              className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-xs font-medium disabled:opacity-50"
+                            >
+                              {approvingId === u.id ? 'Đang duyệt...' : 'Duyệt'}
+                            </button>
+                          )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -253,4 +288,3 @@ export default function Users() {
     </div>
   )
 }
-
