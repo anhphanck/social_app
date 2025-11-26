@@ -9,6 +9,7 @@ export default function Posts() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
+  const [query, setQuery] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -19,6 +20,26 @@ export default function Posts() {
 
     fetchPosts()
   }, [])
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!query.trim()) {
+        fetchPosts()
+        return
+      }
+      setLoading(true)
+      setError('')
+      try {
+        const res = await axios.get(`${API_URL}/search`, { params: { q: query } })
+        setPosts(res.data)
+      } catch (err) {
+        setError(err.response?.data?.message || 'Không thể tìm kiếm bài viết')
+      } finally {
+        setLoading(false)
+      }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [query])
 
   const fetchPosts = async () => {
     setLoading(true)
@@ -121,6 +142,16 @@ export default function Posts() {
           >
             Làm mới
           </button>
+        </div>
+
+        <div className="mb-4">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Tìm theo nội dung hoặc tên người dùng"
+            className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm"
+          />
         </div>
 
         {error && (

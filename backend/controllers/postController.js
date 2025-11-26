@@ -307,12 +307,43 @@ export const searchPosts = (req, res) => {
       return res.status(500).json({ message: "Lỗi server khi tìm kiếm" });
     }
 
-    const updated = data.map((post) => ({
-      ...post,
-      image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
-    }));
+    const postIds = data.map(p => p.id);
+    if (postIds.length === 0) {
+      return res.json(data.map((post) => ({
+        ...post,
+        images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
+        image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+        is_pinned: Boolean(post.is_pinned)
+      })));
+    }
 
-    res.json(updated);
+    const imageQuery = `SELECT post_id, image FROM post_images WHERE post_id IN (${postIds.join(',')}) ORDER BY id ASC`;
+    db.query(imageQuery, (imgErr, images) => {
+      if (imgErr) {
+        const updated = data.map((post) => ({
+          ...post,
+          images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
+          image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+          is_pinned: Boolean(post.is_pinned)
+        }));
+        return res.json(updated);
+      }
+
+      const imagesByPost = {};
+      images.forEach(img => {
+        if (!imagesByPost[img.post_id]) imagesByPost[img.post_id] = [];
+        imagesByPost[img.post_id].push(`http://localhost:5000/uploads/${img.image}`);
+      });
+
+      const updated = data.map((post) => ({
+        ...post,
+        images: imagesByPost[post.id] || (post.image ? [`http://localhost:5000/uploads/${post.image}`] : []),
+        image: imagesByPost[post.id]?.[0] || (post.image ? `http://localhost:5000/uploads/${post.image}` : null),
+        is_pinned: Boolean(post.is_pinned)
+      }));
+
+      res.json(updated);
+    });
   });
 };
 

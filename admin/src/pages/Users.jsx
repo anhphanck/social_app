@@ -9,6 +9,7 @@ export default function Users() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
+  const [query, setQuery] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -145,6 +146,15 @@ export default function Users() {
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="p-4 border-b">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Tìm theo Username"
+                className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm"
+              />
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -177,7 +187,9 @@ export default function Users() {
                       </td>
                     </tr>
                   ) : (
-                    users.map((u) => (
+                    users
+                      .filter((u) => !query.trim() || String(u.username || '').toLowerCase().includes(query.toLowerCase()))
+                      .map((u) => (
                       <tr key={u.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {u.id}

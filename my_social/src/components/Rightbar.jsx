@@ -57,7 +57,15 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                   <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">{unreadCounts[String(u.id)]}</span>
                 )}
               </div>
-              <button onClick={() => { setCurrentChatId(u.id); try { setUnreadCounts((prev) => ({ ...prev, [String(u.id)]: 0 })); } catch(e){} }} className="text-xs text-sky-600">Chat</button>
+              <button
+                onClick={() => {
+                  setCurrentChatId(u.id);
+                  setUnreadCounts((prev) => ({ ...prev, [String(u.id)]: 0 }));
+                }}
+                className="text-xs text-sky-600"
+              >
+                Chat
+              </button>
             </div>
           ));
         })()}

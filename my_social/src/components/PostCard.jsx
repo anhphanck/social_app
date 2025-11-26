@@ -307,6 +307,8 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [holdTimer, setHoldTimer] = useState(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   const icons = { like: "👍", love: "❤️", haha: "😂", sad: "😢" };
 
@@ -422,6 +424,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
                     minHeight: post.images.length === 1 ? '400px' : 
                               post.images.length === 2 ? '300px' : '200px'
                   }}
+                  onClick={() => { setViewerIndex(idx); setViewerOpen(true); }}
                 />
                 {idx === 3 && post.images.length > 4 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-2xl font-bold">
@@ -437,6 +440,34 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
           <img src={post.image} alt="post" className="rounded-md mt-2 max-h-80 w-full object-cover" />
         )}
       </div>
+
+      {viewerOpen && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+          <button
+            className="absolute top-4 right-4 text-white text-2xl"
+            onClick={() => setViewerOpen(false)}
+          >
+            ✕
+          </button>
+          <button
+            className="absolute left-4 text-white text-3xl"
+            onClick={() => setViewerIndex((i) => (i - 1 + post.images.length) % post.images.length)}
+          >
+            ‹
+          </button>
+          <img
+            src={post.images[viewerIndex]}
+            alt={`viewer-${viewerIndex}`}
+            className="max-w-[90vw] max-h-[80vh] object-contain rounded-md"
+          />
+          <button
+            className="absolute right-4 text-white text-3xl"
+            onClick={() => setViewerIndex((i) => (i + 1) % post.images.length)}
+          >
+            ›
+          </button>
+        </div>
+      )}
 
       {renderReactions()}
 
