@@ -5,7 +5,7 @@ import Sidebar from "../components/Sidebar";
 import { UserContext } from "../context/UserContext";
 
 export default function TasksPage() {
-  const { user, token, setTaskNotifCount } = useContext(UserContext);
+  const { user, token, setTaskNotifCount, socket } = useContext(UserContext);
   const [users, setUsers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [details, setDetails] = useState({});
@@ -17,6 +17,11 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
   const API_URL = "http://localhost:5000/api";
+  const [editTaskId, setEditTaskId] = useState(null);
+  const [editPriority, setEditPriority] = useState("medium");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [editAssignees, setEditAssignees] = useState([]);
+  const [editDescription, setEditDescription] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -24,7 +29,7 @@ export default function TasksPage() {
         if (!token) return;
         await axios.post(`${API_URL}/tasks/notifications/mark-read`, {}, { headers: { Authorization: `Bearer ${token}` } });
         setTaskNotifCount(0);
-      } catch { console.warn(''); }
+      } catch { /* ignore */ }
     };
     init();
   }, [token, setTaskNotifCount]);
@@ -50,6 +55,27 @@ export default function TasksPage() {
     };
     run();
   }, [token]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (payload) => {
+      try {
+        if (!payload || !payload.type) return;
+        if (['task_updated','assigned','status_changed','ack'].includes(payload.type)) {
+          axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } })
+            .then((res) => setTasks(res.data || []))
+            .catch(() => {});
+          if (payload.task_id) {
+            axios.get(`${API_URL}/tasks/${payload.task_id}`, { headers: { Authorization: `Bearer ${token}` } })
+              .then((det) => setDetails((prev) => ({ ...prev, [payload.task_id]: det.data })))
+              .catch(() => {});
+          }
+        }
+      } catch { void 0; }
+    };
+    socket.on('task_notification', handler);
+    return () => { try { socket.off('task_notification', handler); } catch { void 0; } };
+  }, [socket, token]);
 
   const createTask = async () => {
     try {
@@ -132,6 +158,39 @@ export default function TasksPage() {
   const toggleAssignee = (uid) => {
     setAssignees((prev) => prev.includes(uid) ? prev.filter((i) => i !== uid) : [...prev, uid]);
   };
+  const toggleEditAssignee = (uid) => {
+    setEditAssignees((prev) => prev.includes(uid) ? prev.filter((i) => i !== uid) : [...prev, uid]);
+  };
+  const openEdit = (t) => {
+    setEditTaskId(t.id);
+    setEditPriority(t.priority || 'medium');
+    const dl = t.deadline ? new Date(t.deadline) : null;
+    const local = dl ? new Date(dl.getTime() - dl.getTimezoneOffset()*60000).toISOString().slice(0,16) : "";
+    setEditDeadline(local);
+    const ids = (t.assignees ? String(t.assignees).split(',').map((x) => Number(x)).filter(Boolean) : []);
+    setEditAssignees(ids);
+    setEditDescription(t.description || "");
+  };
+  const cancelEdit = () => {
+    setEditTaskId(null);
+    setEditPriority('medium');
+    setEditDeadline("");
+    setEditAssignees([]);
+    setEditDescription("");
+  };
+  const saveEdit = async () => {
+    try {
+      if (!editTaskId) return;
+      await axios.put(`${API_URL}/tasks/${editTaskId}`, { priority: editPriority, deadline: editDeadline || null, assignees: editAssignees, description: editDescription }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } });
+      setTasks(res.data || []);
+      try {
+        const det = await axios.get(`${API_URL}/tasks/${editTaskId}`, { headers: { Authorization: `Bearer ${token}` } });
+        setDetails((prev) => ({ ...prev, [editTaskId]: det.data }));
+      } catch { void 0; }
+      cancelEdit();
+    } catch { alert('Không thể cập nhật nhiệm vụ'); }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -196,6 +255,9 @@ export default function TasksPage() {
                     </div>
                     {details[t.id] && (
                       <div className="mt-2 space-y-2">
+                        {details[t.id].task?.description && (
+                          <div className="text-sm">Mô tả: {details[t.id].task.description}</div>
+                        )}
                         {details[t.id].creator && (
                           <div className="text-sm">Giao bởi: <span className="font-medium">{details[t.id].creator.username}</span></div>
                         )}
@@ -263,10 +325,36 @@ export default function TasksPage() {
                     {user?.role === 'admin' && (
                       <>
                         {t.status === 'pending_review' && <button onClick={() => changeStatus(t.id, 'closed')} className="px-3 py-1 border rounded">Duyệt</button>}
-                        {t.status === 'closed' && <button onClick={() => deleteTask(t.id)} className="px-3 py-1 border rounded text-red-700">Xóa</button>}
+                        <button onClick={() => deleteTask(t.id)} className="px-3 py-1 border rounded text-red-700">Xóa</button>
+                        <button onClick={() => openEdit(t)} className="px-3 py-1 border rounded">Sửa</button>
                       </>
                     )}
                   </div>
+                  {user?.role === 'admin' && editTaskId === t.id && (
+                    <div className="mt-2 p-2 border rounded">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <select value={editPriority} onChange={(e) => setEditPriority(e.target.value)} className="border rounded px-3 py-2">
+                          <option value="low">Thấp</option>
+                          <option value="medium">Trung bình</option>
+                          <option value="high">Cao</option>
+                          <option value="urgent">Gấp</option>
+                        </select>
+                        <input value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} type="datetime-local" className="border rounded px-3 py-2" />
+                        <div className="flex flex-wrap gap-2">
+                          {users.map((u) => (
+                            <button key={u.id} type="button" onClick={() => toggleEditAssignee(u.id)} className={`px-3 py-1 rounded border ${editAssignees.includes(u.id) ? 'bg-sky-600 text-white' : 'bg-white'}`}>
+                              {u.username}
+                            </button>
+                          ))}
+                        </div>
+                        <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Mô tả" className="border rounded px-3 py-2 md:col-span-3" />
+                      </div>
+                      <div className="mt-2 flex gap-2">
+                        <button onClick={saveEdit} className="px-3 py-1 bg-sky-600 text-white rounded">Lưu</button>
+                        <button onClick={cancelEdit} className="px-3 py-1 border rounded">Hủy</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               {tasks.length === 0 && <div className="text-gray-500 text-sm">Chưa có nhiệm vụ</div>}

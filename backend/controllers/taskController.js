@@ -112,16 +112,25 @@ export const listTasks = async (req, res) => {
 export const updateTask = async (req, res) => {
   try {
     const { id } = req.params;
-    const { deadline, priority, assignees } = req.body;
+    const { deadline, priority, assignees, description } = req.body;
     const fields = [];
     const params = [];
     if (deadline !== undefined) {
+      let dl = deadline || null;
+      if (typeof dl === "string" && dl.includes("T")) {
+        const base = dl.replace("T", " ");
+        dl = base.length === 16 ? base + ":00" : base;
+      }
       fields.push("deadline = ?");
-      params.push(deadline || null);
+      params.push(dl);
     }
     if (priority) {
       fields.push("priority = ?");
       params.push(priority);
+    }
+    if (description !== undefined) {
+      fields.push("description = ?");
+      params.push(description || null);
     }
     if (fields.length > 0) {
       params.push(id);
@@ -134,6 +143,25 @@ export const updateTask = async (req, res) => {
         await db.promise().query("INSERT INTO task_assignments (task_id, user_id) VALUES ?", [values]);
       }
     }
+    try {
+      const [assRows] = await db.promise().execute("SELECT user_id FROM task_assignments WHERE task_id=?", [id]);
+      for (const r of assRows || []) {
+        await db.promise().execute(
+          "INSERT INTO task_notifications (user_id, task_id, type, message) VALUES (?, ?, 'task_updated', ?)",
+          [r.user_id, id, "Nhiệm vụ đã được cập nhật"]
+        );
+      }
+      const io = req.app.get("io");
+      const online = req.app.get("onlineUsers");
+      for (const r of assRows || []) {
+        const set = online && online.get && online.get(String(r.user_id));
+        if (set && set.size > 0) {
+          for (const sid of set.values()) {
+            io.to(sid).emit("task_notification", { type: "task_updated", task_id: id });
+          }
+        }
+      }
+    } catch {}
     res.json({ message: "Đã cập nhật nhiệm vụ" });
   } catch (e) {
     res.status(500).json({ message: "Lỗi cập nhật nhiệm vụ" });
@@ -284,7 +312,7 @@ export const deleteTask = async (req, res) => {
     if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy nhiệm vụ" });
     const t = rows[0];
     if (String(t.created_by) !== String(userId)) return res.status(403).json({ message: "Chỉ người giao mới được xóa" });
-    if (t.status !== 'closed') return res.status(400).json({ message: "Chỉ xóa nhiệm vụ đã hoàn thành" });
+    // allow delete at any status
 
     const [fileRows] = await db.promise().execute("SELECT filename FROM task_files WHERE task_id=?", [id]);
     const [subRows] = await db.promise().execute("SELECT filename FROM task_submissions WHERE task_id=?", [id]);
@@ -310,4 +338,5 @@ export const deleteTask = async (req, res) => {
     res.status(500).json({ message: "Lỗi xóa nhiệm vụ" });
   }
 };
+
 
