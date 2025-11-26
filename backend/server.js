@@ -10,6 +10,7 @@ import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
+import docRoutes from "./routes/docRoutes.js";
 import chatController from "./controllers/chatController.js";
 import { verifyTokenSocket } from "./middleware/authMiddleware.js";
 
@@ -24,6 +25,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/comments", commentRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/documents", docRoutes);
 
 app.get('/api/files/:filename', (req, res) => {
   try {
