@@ -117,6 +117,24 @@ export const UserProvider = ({ children }) => {
     fetchUnreads();
   }, [user, token]);
 
+  useEffect(() => {
+    const refreshProfile = async () => {
+      try {
+        if (!user || !token) return;
+        if (user.avatar) return;
+        const res = await axios.get(`http://localhost:5000/api/users/${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const merged = { ...user, ...(res.data?.user || {}) };
+        setUser(merged);
+        try { localStorage.setItem('user', JSON.stringify(merged)); } catch (err) { console.warn('Persist user failed', err); }
+      } catch (e) {
+        console.warn('Failed to refresh user profile', e);
+      }
+    };
+    refreshProfile();
+  }, [user, token]);
+
   const logout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');

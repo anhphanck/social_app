@@ -39,10 +39,19 @@ export default function AuthPage() {
           email: formData.email,
           password: formData.password,
         });
-        localStorage.setItem("user", JSON.stringify(res.data.user));
         localStorage.setItem("token", res.data.token);
-        setUser(res.data.user);
         setToken(res.data.token);
+        try {
+          const full = await axios.get(`${API_URL}/${res.data.user.id}`, {
+            headers: { Authorization: `Bearer ${res.data.token}` }
+          });
+          const mergedUser = { ...res.data.user, ...(full.data?.user || {}) };
+          localStorage.setItem("user", JSON.stringify(mergedUser));
+          setUser(mergedUser);
+        } catch {
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+          setUser(res.data.user);
+        }
         setMessage("Đăng nhập thành công!");
         navigate("/");  
       } else {

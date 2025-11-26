@@ -64,12 +64,14 @@ export const loginUser = (req, res) => {
     res.json({
       message: "Đăng nhập thành công",
       token,
-      user: { 
-        id: user.id, 
-        username: user.username, 
+      user: {
+        id: user.id,
+        username: user.username,
         email: user.email,
-        role: user.role || 'user'
+        role: user.role || 'user',
+        avatar: user.avatar || null
       },
+      avatar_url: user && user.avatar ? `http://localhost:5000/uploads/${user.avatar}` : null
     });
   });
 };
@@ -114,12 +116,18 @@ export const updateProfile = async (req, res) => {
     const avatarFile = req.file || null;
     const bio = typeof req.body.bio === 'string' ? req.body.bio : null;
 
-    // check if 'bio' column exists
     let bioColumnExists = false;
     try {
       const [cols] = await db.promise().query("SHOW COLUMNS FROM users LIKE 'bio'");
       bioColumnExists = Array.isArray(cols) && cols.length > 0;
     } catch {}
+
+    if (bio && !bioColumnExists) {
+      try {
+        await db.promise().query("ALTER TABLE users ADD COLUMN bio TEXT NULL");
+        bioColumnExists = true;
+      } catch {}
+    }
 
     const fields = [];
     const params = [];
