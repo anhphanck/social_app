@@ -10,6 +10,7 @@ export default function Users() {
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
   const [query, setQuery] = useState('')
+  const [unapprovingId, setUnapprovingId] = useState(null)
   const [approvingId, setApprovingId] = useState(null)
   const navigate = useNavigate()
 
@@ -81,6 +82,21 @@ export default function Users() {
       setError(err.response?.data?.message || 'Không thể duyệt user')
     } finally {
       setApprovingId(null)
+    }
+  }
+
+  const handleUnapprove = async (userId) => {
+    try {
+      setUnapprovingId(userId)
+      const token = localStorage.getItem('adminToken')
+      await axios.put(`http://localhost:5000/api/admin/users/${userId}/unapprove`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_approved: 0 } : u))
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể bỏ duyệt user')
+    } finally {
+      setUnapprovingId(null)
     }
   }
 
@@ -266,6 +282,15 @@ export default function Users() {
                               className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-xs font-medium disabled:opacity-50"
                             >
                               {approvingId === u.id ? 'Đang duyệt...' : 'Duyệt'}
+                            </button>
+                          )}
+                          {u.is_approved && (
+                            <button
+                              onClick={() => handleUnapprove(u.id)}
+                              disabled={unapprovingId === u.id}
+                              className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition text-xs font-medium disabled:opacity-50"
+                            >
+                              {unapprovingId === u.id ? 'Đang bỏ duyệt...' : 'Bỏ duyệt'}
                             </button>
                           )}
                           </div>

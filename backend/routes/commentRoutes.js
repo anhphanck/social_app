@@ -6,13 +6,14 @@ import {
   removeReactComment,
   deleteComment
 } from "../controllers/commentController.js";
+import { verifyToken, optionalVerifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/:postId", getCommentsByPost);
-router.post("/", createComment);
-router.delete("/:id", deleteComment);
-router.post("/react", reactComment);
-router.post("/remove-react", removeReactComment);
+router.get("/:postId", optionalVerifyToken, getCommentsByPost);
+router.post("/", verifyToken, createComment);
+router.delete("/:id", verifyToken, deleteComment);
+router.post("/react", verifyToken, reactComment);
+router.post("/remove-react", verifyToken, removeReactComment);
 
 export default router;

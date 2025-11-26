@@ -120,18 +120,19 @@ export const getAllPosts = (req, res) => {
 
 
 export const createPost = (req, res) => {
-  const { user_id, content } = req.body;
+  const authUserId = req.user && req.user.id;
+  const { content } = req.body;
   const files = req.files || [];
   const images = files.map(f => f.filename);
 
-  if (!user_id || (!content && images.length === 0))
+  if (!authUserId || (!content && images.length === 0))
     return res.status(400).json({ message: "Thiếu nội dung hoặc ảnh" });
 
   // Tạo post
   const q = "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)";
   const firstImage = images.length > 0 ? images[0] : null; // Giữ lại image cho backward compatible
   
-  db.query(q, [user_id, content, firstImage], (err, result) => {
+  db.query(q, [authUserId, content, firstImage], (err, result) => {
     if (err) {
       console.error("Lỗi khi thêm bài viết:", err);
       return res.status(500).json({ message: "Không thể đăng bài" });
@@ -154,7 +155,7 @@ export const createPost = (req, res) => {
           message: "Đăng bài thành công",
           post: {
             id: postId,
-            user_id,
+            user_id: authUserId,
             content,
             images: images.map(img => `http://localhost:5000/uploads/${img}`),
             image: images[0] ? `http://localhost:5000/uploads/${images[0]}` : null,
@@ -166,7 +167,7 @@ export const createPost = (req, res) => {
         message: "Đăng bài thành công",
         post: {
           id: postId,
-          user_id,
+          user_id: authUserId,
           content,
           images: [],
           image: null,
@@ -179,12 +180,17 @@ export const createPost = (req, res) => {
 export const updatePost = (req, res) => {
   const { id } = req.params;
   const { content, removeImages, keepImages } = req.body;
+  const authUserId = req.user && req.user.id;
   const newFiles = req.files || [];
   const newImages = newFiles.map(f => f.filename);
 
-  db.query("SELECT image FROM posts WHERE id=?", [id], (err, result) => {
+  db.query("SELECT user_id, image FROM posts WHERE id=?", [id], (err, result) => {
     if (err) return res.status(500).json({ message: "Lỗi lấy bài viết" });
     if (result.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+    const ownerId = result[0].user_id;
+    if (!authUserId || String(ownerId) !== String(authUserId)) {
+      return res.status(403).json({ message: "Không có quyền sửa bài viết" });
+    }
 
     // Xóa ảnh cũ nếu cần
     if (removeImages === "true" || (Array.isArray(keepImages) && keepImages.length === 0 && newImages.length > 0)) {
@@ -349,7 +355,8 @@ export const searchPosts = (req, res) => {
 
 //Like bài viết
 export const reactPost = (req, res) => {
-  const { post_id, user_id, reaction } = req.body;
+  const { post_id, reaction } = req.body;
+  const user_id = req.user && req.user.id;
 
   const sql = `
     INSERT INTO post_reactions (post_id, user_id, reaction)
@@ -366,7 +373,8 @@ export const reactPost = (req, res) => {
 
 // Bỏ like
 export const removeReact = (req, res) => {
-  const { post_id, user_id } = req.body;
+  const { post_id } = req.body;
+  const user_id = req.user && req.user.id;
 
   db.query(
     "DELETE FROM post_reactions WHERE post_id=? AND user_id=?",

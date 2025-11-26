@@ -13,6 +13,7 @@ import taskRoutes from "./routes/taskRoutes.js";
 import docRoutes from "./routes/docRoutes.js";
 import chatController from "./controllers/chatController.js";
 import { verifyTokenSocket } from "./middleware/authMiddleware.js";
+import db from "./config/db.js";
 
 const app = express();
 app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
@@ -73,31 +74,46 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-	console.log('Socket connected', socket.id);
-	const token = socket.handshake.auth && socket.handshake.auth.token;
-	let socketUserId = null;
-	if (token) {
-		try {
-			const payload = verifyTokenSocket(token);
-			socketUserId = payload.id;
-			const key = String(socketUserId);
-			const set = onlineUsers.get(key) || new Set();
-			set.add(socket.id);
-			onlineUsers.set(key, set);
-			socket.user = payload;
-			console.log('User connected:', socketUserId, '=>', socket.id, 'connections=', set.size);
-				// broadcast presence update (list of online user ids)
-				try {
-					io.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
-				} catch (e) {
-					console.warn('Failed to emit presence_update', e);
-				}
-		} catch (err) {
-			console.warn('Socket authentication failed:', err.message);
-			socket.emit('error', 'Authentication error');
-			socket.disconnect(true);
-			return;
-		}
+  console.log('Socket connected', socket.id);
+  const token = socket.handshake.auth && socket.handshake.auth.token;
+  let socketUserId = null;
+  if (token) {
+    try {
+      const payload = verifyTokenSocket(token);
+      socketUserId = payload.id;
+      db.query("SELECT COALESCE(token_version,0) AS token_version, COALESCE(is_approved,1) AS is_approved FROM users WHERE id = ?", [socketUserId], (err, rows) => {
+        if (err) {
+          console.warn('Socket DB verify failed', err);
+          socket.disconnect(true);
+          return;
+        }
+        if (!rows || rows.length === 0) {
+          socket.disconnect(true);
+          return;
+        }
+        const row = rows[0];
+        if ((payload.ver ?? 0) !== (row.token_version ?? 0) || (row.is_approved ?? 1) === 0) {
+          socket.disconnect(true);
+          return;
+        }
+        const key = String(socketUserId);
+        const set = onlineUsers.get(key) || new Set();
+        set.add(socket.id);
+        onlineUsers.set(key, set);
+        socket.user = payload;
+        console.log('User connected:', socketUserId, '=>', socket.id, 'connections=', set.size);
+        try {
+          io.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
+        } catch (e) {
+          console.warn('Failed to emit presence_update', e);
+        }
+      });
+    	} catch (err) {
+      console.warn('Socket authentication failed:', err.message);
+      socket.emit('error', 'Authentication error');
+      socket.disconnect(true);
+      return;
+    	}
 	}
 
 	socket.on('private_message', (payload, callback) => {

@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllUsers, updateUserRole, approveUser } from "../controllers/userController.js";
+import { getAllUsers, updateUserRole, approveUser, unapproveUser } from "../controllers/userController.js";
 import { verifyAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -8,6 +8,7 @@ const router = express.Router();
 router.get("/users", verifyAdmin, getAllUsers);
 router.put("/users/:userId/role", verifyAdmin, updateUserRole);
 router.put("/users/:userId/approve", verifyAdmin, approveUser);
+router.put("/users/:userId/unapprove", verifyAdmin, unapproveUser);
 
 export default router;
 

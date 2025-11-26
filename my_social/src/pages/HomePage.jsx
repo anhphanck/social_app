@@ -84,7 +84,6 @@ export default function HomePage() {
 
     try {
       const formData = new FormData();
-      formData.append("user_id", user.id);
       formData.append("content", newPost);
       if (filesToUpload && filesToUpload.length > 0) {
         filesToUpload.forEach((file) => {
@@ -139,7 +138,7 @@ export default function HomePage() {
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xoá bài viết này không?")) return;
     try {
-      await axios.delete(`${API_URL}/posts/${id}`);
+      await axios.delete(`${API_URL}/posts/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       await new Promise(resolve => setTimeout(resolve, 1000));
       fetchPosts(); 
     } catch (err) {

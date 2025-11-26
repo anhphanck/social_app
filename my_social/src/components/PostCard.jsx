@@ -15,6 +15,7 @@ function CommentCard({ comment, onReply, onDelete }) {
   const [showMenu, setShowMenu] = useState(false);
   const [holdTimer, setHoldTimer] = useState(null);
   const [showReplies, setShowReplies] = useState(false);
+  const token = localStorage.getItem('token');
 
   const icons = { like: "👍", love: "❤️", haha: "😂", sad: "😢" };
 
@@ -23,9 +24,8 @@ function CommentCard({ comment, onReply, onDelete }) {
     try {
       await axios.post(`${API_URL}/comments/react`, {
         comment_id: comment.id,
-        user_id: user.id,
         reaction: type,
-      });
+      }, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
 
       const updated = { ...counts };
       if (reaction) updated[reaction] = Math.max(0, updated[reaction] - 1);
@@ -214,10 +214,9 @@ function CommentList({ postId, showInput }) {
     try {
       await axios.post(`${API_URL}/comments`, {
         post_id: postId,
-        user_id: user.id,
         content: trimmed,
         parent_id: replyTo || null,
-      });
+      }, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
 
       setNewContent("");
       setReplyTo(null);
@@ -232,12 +231,8 @@ function CommentList({ postId, showInput }) {
     if (!window.confirm("Bạn có chắc muốn xóa bình luận này?")) return;
 
     try {
-      // 1. Dùng axios.delete và truyền ID vào URL (cho req.params.id)
       await axios.delete(`${API_URL}/comments/${commentId}`, {
-        // 2. Truyền user_id vào body. Với axios.delete, bạn phải dùng thuộc tính 'data'
-        data: {
-          user_id: user.id, // Giá trị này sẽ đi vào req.body.user_id ở backend
-        },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       await loadComments();
@@ -334,7 +329,8 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const sendReaction = async (type) => {
     if (!user) return;
     try {
-      await axios.post(`${API_URL}/posts/react`, { post_id: post.id, user_id: user.id, reaction: type });
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/posts/react`, { post_id: post.id, reaction: type }, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const updated = { ...counts };
       if (reaction) updated[reaction] = Math.max(0, (updated[reaction] || 0) - 1);
       updated[type] = (updated[type] || 0) + 1;
@@ -347,7 +343,8 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const removeReaction = async () => {
     if (!user || !reaction) return;
     try {
-      await axios.post(`${API_URL}/posts/remove-react`, { post_id: post.id, user_id: user.id });
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/posts/remove-react`, { post_id: post.id }, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const updated = { ...counts };
       updated[reaction] = Math.max(0, (updated[reaction] || 0) - 1);
       setCounts(updated);

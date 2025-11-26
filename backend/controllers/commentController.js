@@ -2,7 +2,7 @@ import db from "../config/db.js";
 
 export const getCommentsByPost = (req, res) => {
   const postId = req.params.postId;
-  const userId = req.query.user_id || 0;
+  const userId = (req.user && req.user.id) || req.query.user_id || 0;
 
   // Lấy comment + reaction counts + reaction của user
   const sql = `
@@ -36,7 +36,9 @@ export const getCommentsByPost = (req, res) => {
 };
 
 export const createComment = (req, res) => {
-  const { post_id, parent_id, user_id, content } = req.body;
+  const { post_id, parent_id, content } = req.body;
+  const user_id = req.user && req.user.id;
+  if (!user_id) return res.status(401).json({ message: "Unauthenticated" });
   const sql = "INSERT INTO comments (post_id, parent_id, user_id, content) VALUES (?, ?, ?, ?)";
   db.query(sql, [post_id, parent_id || null, user_id, content], (err, result) => {
     if (err) return res.status(500).json({ message: "Lỗi tạo comment" });
@@ -49,7 +51,7 @@ export const deleteComment = (req, res) => {
   const { id } = req.params; 
   // 2. Lấy user_id từ body (hoặc thông qua token/session - cách an toàn hơn)
   // Giả sử bạn truyền user_id qua body như trong code FE của bạn
-  const { user_id } = req.body; 
+  const user_id = req.user && req.user.id; 
 
   // 3. Cập nhật SQL: Chỉ xóa khi ID khớp VÀ user_id khớp
   const sql = "DELETE FROM comments WHERE id = ? AND user_id = ?";
@@ -73,7 +75,8 @@ export const deleteComment = (req, res) => {
 
 
 export const reactComment = (req, res) => {
-  const { comment_id, user_id, reaction } = req.body;
+  const { comment_id, reaction } = req.body;
+  const user_id = req.user && req.user.id;
 
   const sql = `
     INSERT INTO comment_reactions (comment_id, user_id, reaction)
@@ -89,7 +92,8 @@ export const reactComment = (req, res) => {
 
 
 export const removeReactComment = (req, res) => {
-  const { comment_id, user_id } = req.body;
+  const { comment_id } = req.body;
+  const user_id = req.user && req.user.id;
 
   const sql = "DELETE FROM comment_reactions WHERE comment_id=? AND user_id=?";
   db.query(sql, [comment_id, user_id], (err) => {

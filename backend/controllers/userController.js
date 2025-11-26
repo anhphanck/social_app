@@ -21,6 +21,9 @@ async function ensureUserProfileColumns() {
         await db.promise().query("UPDATE users SET is_approved = 1");
       } catch {}
     }
+    if (!names.has("token_version")) {
+      await db.promise().query("ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0");
+    }
   } catch (e) {
     console.warn("Failed to ensure user profile columns", e);
   }
@@ -69,7 +72,7 @@ export const loginUser = (req, res) => {
 
     if (!match) return res.status(401).json({ message: "Sai mật khẩu" });
 
-    const token = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: "7d" });
+    const token = jwt.sign({ id: user.id, ver: user.token_version || 0 }, SECRET_KEY, { expiresIn: "7d" });
     res.json({
       message: "Đăng nhập thành công",
       token,
@@ -129,6 +132,21 @@ export const approveUser = (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy user" });
     }
     res.json({ message: "Đã duyệt user" });
+  });
+};
+
+export const unapproveUser = (req, res) => {
+  const { userId } = req.params;
+  const q = "UPDATE users SET is_approved = 0, token_version = COALESCE(token_version,0) + 1 WHERE id = ?";
+  db.query(q, [userId], (err, result) => {
+    if (err) {
+      console.error("Lỗi bỏ duyệt user:", err);
+      return res.status(500).json({ message: "Lỗi khi bỏ duyệt user" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Không tìm thấy user" });
+    }
+    res.json({ message: "Đã bỏ duyệt user" });
   });
 };
 
