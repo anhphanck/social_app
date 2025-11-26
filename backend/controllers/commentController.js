@@ -6,7 +6,7 @@ export const getCommentsByPost = (req, res) => {
 
   // Lấy comment + reaction counts + reaction của user
   const sql = `
-    SELECT c.*, u.username,
+    SELECT c.*, u.username, u.avatar,
       COALESCE(rc.like_count, 0) AS like_count,
       COALESCE(rc.love_count, 0) AS love_count,
       COALESCE(rc.haha_count, 0) AS haha_count,

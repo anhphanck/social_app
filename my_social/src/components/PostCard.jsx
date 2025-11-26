@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
 
@@ -8,6 +9,7 @@ const API_URL = "http://localhost:5000/api";
 // ========================== CommentCard ==========================
 function CommentCard({ comment, onReply, onDelete }) {
   const { user } = useContext(UserContext);
+  const navigate = useNavigate();
   const [reaction, setReaction] = useState(comment.user_reaction || null);
   const [counts, setCounts] = useState(comment.reactions || { like: 0, love: 0, haha: 0, sad: 0 });
   const [showMenu, setShowMenu] = useState(false);
@@ -86,7 +88,22 @@ function CommentCard({ comment, onReply, onDelete }) {
   return (
     <div className="pl-4 border-l border-gray-300 mt-2 relative">
       <div className="flex gap-2 items-center">
-        <strong>{comment.username}</strong>
+        <div className="cursor-pointer" onClick={() => navigate(`/profile/${comment.user_id}`)}>
+          {comment.avatar ? (
+            <img
+              src={`http://localhost:5000/uploads/${comment.avatar}`}
+              alt="avatar"
+              className="w-7 h-7 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs">
+              {comment.username?.charAt(0)?.toUpperCase() || "U"}
+            </div>
+          )}
+        </div>
+        <div className="cursor-pointer" onClick={() => navigate(`/profile/${comment.user_id}`)}>
+          <strong>{comment.username}</strong>
+        </div>
         <span className="text-gray-400 text-xs">
           {comment.created_at ? new Date(comment.created_at).toLocaleString() : ""}
         </span>
@@ -302,6 +319,7 @@ function CommentList({ postId, showInput }) {
 // ========================== PostCard ==========================
 export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const { user } = useContext(UserContext);
+  const navigate = useNavigate();
   const [reaction, setReaction] = useState(post.user_reaction || null);
   const [counts, setCounts] = useState(post.reactions || { like: 0, love: 0, haha: 0, sad: 0 });
   const [showMenu, setShowMenu] = useState(false);
@@ -309,6 +327,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const [holdTimer, setHoldTimer] = useState(null);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
 
   const icons = { like: "👍", love: "❤️", haha: "😂", sad: "😢" };
 
@@ -366,14 +385,49 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
     );
   };
 
+  const buildPostUrl = () => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('postId', String(post.id));
+      return `${url.origin}${url.pathname}?${url.searchParams.toString()}`;
+    } catch {
+      return `${window.location.origin}${window.location.pathname}?postId=${post.id}`;
+    }
+  };
+  const shareToFacebook = () => {
+    const u = buildPostUrl();
+    const q = encodeURIComponent(post.content || '');
+    const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}&quote=${q}`;
+    window.open(fb, '_blank', 'width=600,height=500');
+  };
+  const copyLink = async () => {
+    const u = buildPostUrl();
+    try {
+      await navigator.clipboard.writeText(u);
+      alert('Đã sao chép liên kết bài viết');
+    } catch {
+      alert(u);
+    }
+  };
+
   return (
-    <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-4 hover:shadow-md transition-shadow">
+    <div id={`post-${post.id}`} className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-4 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white">
-            {post.username?.charAt(0)?.toUpperCase() || "U"}
+          <div className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
+            {post.avatar ? (
+              <img
+                src={`http://localhost:5000/uploads/${post.avatar}`}
+                alt="avatar"
+                className="w-9 h-9 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white">
+                {post.username?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+            )}
           </div>
-          <div>
+          <div className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
             <h3 className="font-semibold text-sky-700">{post.username}</h3>
             <div className="text-xs text-gray-400">{post.created_at ? new Date(post.created_at).toLocaleString() : ""}</div>
           </div>
@@ -494,10 +548,21 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
             <span className="text-lg">💬</span>
             <span>Bình luận</span>
           </button>
-          <button className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors">
-            <span className="text-lg">↗️</span>
-            <span>Chia sẻ</span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShareMenuOpen(s => !s)}
+              className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <span className="text-lg">↗️</span>
+              <span>Chia sẻ</span>
+            </button>
+            {shareMenuOpen && (
+              <div className="absolute bg-white border shadow-lg rounded-xl p-2 flex flex-col gap-1 z-20 right-0">
+                <button onClick={shareToFacebook} className="text-sm px-2 py-1 hover:bg-gray-100 rounded">Chia sẻ Facebook</button>
+                <button onClick={copyLink} className="text-sm px-2 py-1 hover:bg-gray-100 rounded">Sao chép liên kết</button>
+              </div>
+            )}
+          </div>
 
           {showMenu && (
             <div className="absolute bg-white border shadow-lg rounded-xl p-3 flex gap-3 bottom-10 left-0 z-20 animate-fade-in" onMouseLeave={() => setShowMenu(false)}>

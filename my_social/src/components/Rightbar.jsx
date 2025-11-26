@@ -1,9 +1,39 @@
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import Chat from "./Chat";
+import axios from "axios";
 
 export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
+  const navigate = useNavigate();
   const { setCurrentChatId, unreadCounts, onlineUsers, setUnreadCounts, user } = useContext(UserContext);
+  const [avatarUrls, setAvatarUrls] = useState({});
+  const API_URL = "http://localhost:5000/api";
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!Array.isArray(users) || users.length === 0) return;
+      const next = {};
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      for (const u of users) {
+        if (!u) continue;
+        if (u.avatar) {
+          next[u.id] = `http://localhost:5000/uploads/${u.avatar}`;
+          continue;
+        }
+        try {
+          const res = await axios.get(`${API_URL}/users/${u.id}`, { headers });
+          const url = res?.data?.avatar_url || null;
+          if (url) next[u.id] = url;
+        } catch { /* ignore */ }
+      }
+      if (!cancelled) setAvatarUrls(next);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [users]);
   const scrollToPost = (id) => {
     const el = document.getElementById(`post-${id}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -52,6 +82,23 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
           return onlineList.slice(0, 4).map((u) => (
             <div key={u.id} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                <div
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/profile/${u.id}`)}
+                  title={u.username}
+                >
+                  {(avatarUrls[u.id] || u.avatar) ? (
+                    <img
+                      src={avatarUrls[u.id] || `http://localhost:5000/uploads/${u.avatar}`}
+                      alt="avatar"
+                      className="w-7 h-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs">
+                      {u.username?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                  )}
+                </div>
                 <div className="text-sm">🟢 {u.username}</div>
                 {unreadCounts && unreadCounts[String(u.id)] > 0 && (
                   <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">{unreadCounts[String(u.id)]}</span>
@@ -75,7 +122,26 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
         <h3 className="font-semibold text-sky-700 mb-2">👥 Tất cả người dùng</h3>
         {users.map((u) => (
           <div key={u.id} className="flex items-center justify-between mb-1">
-            <div className="text-sm text-gray-800">• {u.username}</div>
+            <div className="flex items-center gap-2">
+              <div
+                className="cursor-pointer"
+                onClick={() => navigate(`/profile/${u.id}`)}
+                title={u.username}
+              >
+                {(avatarUrls[u.id] || u.avatar) ? (
+                  <img
+                    src={avatarUrls[u.id] || `http://localhost:5000/uploads/${u.avatar}`}
+                    alt="avatar"
+                    className="w-7 h-7 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs">
+                    {u.username?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                )}
+              </div>
+              <div className="text-sm text-gray-800">{u.username}</div>
+            </div>
             <div className="flex items-center gap-2">
               {unreadCounts[String(u.id)] > 0 && (
                 <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">{unreadCounts[String(u.id)]}</span>

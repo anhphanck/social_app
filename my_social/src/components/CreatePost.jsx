@@ -3,6 +3,7 @@ import { UserContext } from "../context/UserContext";
 
 export default function CreatePost({ newPost, setNewPost, onSubmit, loading, files, setFiles }) {
   const { user } = useContext(UserContext);
+  const [expanded, setExpanded] = useState(false);
   
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -14,17 +15,55 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
     setFiles(newFiles);
   };
 
+  if (!expanded) {
+    return (
+      <div className="bg-gray-100 rounded-md shadow-sm p-4 mb-4 border border-gray-300">
+        <div className="flex items-center gap-3">
+          <div
+            className="cursor-pointer"
+            onClick={() => setExpanded(true)}
+            title={user?.username}
+          >
+            {user?.avatar ? (
+              <img
+                src={`http://localhost:5000/uploads/${user.avatar}`}
+                alt="avatar"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-sky-600 flex items-center justify-center text-white font-semibold">
+                {user?.username?.[0]?.toUpperCase() || "U"}
+              </div>
+            )}
+          </div>
+          <div
+            className="flex-1 bg-white border border-gray-200 rounded-full py-2 px-4 text-gray-500 cursor-text"
+            onClick={() => setExpanded(true)}
+          >
+            Bạn đang nghĩ gì thế?
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-100 rounded-md shadow-sm p-4 mb-4 border border-gray-300">
-      {/* Hàng đầu: Ảnh đại diện + Tên người dùng */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-sky-600 flex items-center justify-center text-white font-semibold">
-          {user?.username?.[0]?.toUpperCase() || "U"}
-        </div>
+        {user?.avatar ? (
+          <img
+            src={`http://localhost:5000/uploads/${user.avatar}`}
+            alt="avatar"
+            className="w-10 h-10 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-sky-600 flex items-center justify-center text-white font-semibold">
+            {user?.username?.[0]?.toUpperCase() || "U"}
+          </div>
+        )}
         <h3 className="font-semibold text-sky-700">{user?.username}</h3>
       </div>
 
-      {/* Ô nhập nội dung */}
       <textarea
         rows="2"
         placeholder="Bạn đang nghĩ gì?"
@@ -80,13 +119,22 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
           </button>
         </div>
 
-        <button
-          onClick={(e) => onSubmit(e, files)}
-          disabled={loading || (!newPost.trim() && (!files || files.length === 0))}
-          className="bg-sky-600 text-white px-4 py-1.5 rounded-md hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? "Đang đăng..." : "Chia sẻ"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+          >
+            Đóng
+          </button>
+          <button
+            onClick={(e) => onSubmit(e, files)}
+            disabled={loading || (!newPost.trim() && (!files || files.length === 0))}
+            className="bg-sky-600 text-white px-4 py-1.5 rounded-md hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Đang đăng..." : "Chia sẻ"}
+          </button>
+        </div>
       </div>
     </div>
   );

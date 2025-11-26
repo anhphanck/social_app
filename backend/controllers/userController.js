@@ -1,6 +1,25 @@
 import db from "../config/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { upload } from "./postController.js";
+import path from "path";
+
+// Ensure optional columns exist for profile features (avatar, bio)
+async function ensureUserProfileColumns() {
+  try {
+    const [cols] = await db.promise().query("SHOW COLUMNS FROM users");
+    const names = new Set((cols || []).map((c) => c.Field));
+    if (!names.has("avatar")) {
+      await db.promise().query("ALTER TABLE users ADD COLUMN avatar VARCHAR(255) NULL");
+    }
+    if (!names.has("bio")) {
+      await db.promise().query("ALTER TABLE users ADD COLUMN bio TEXT NULL");
+    }
+  } catch (e) {
+    console.warn("Failed to ensure user profile columns", e);
+  }
+}
+ensureUserProfileColumns();
 
 const SECRET_KEY = "secret_key_demo";
 
@@ -56,7 +75,7 @@ export const loginUser = (req, res) => {
 };
 
 export const getAllUsers = (req, res) => {
-  const q = "SELECT id, username, email, COALESCE(role, 'user') as role, created_at FROM users ORDER BY id DESC";
+  const q = "SELECT id, username, email, COALESCE(role, 'user') as role, avatar, created_at FROM users ORDER BY id DESC";
   db.query(q, (err, results) => {
     if (err) {
       console.error("Lỗi lấy users:", err);
@@ -85,4 +104,77 @@ export const updateUserRole = (req, res) => {
     }
     res.json({ message: `Đã ${role === 'admin' ? 'thăng cấp' : 'hạ cấp'} user thành công`, role });
   });
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    if (!userId) return res.status(401).json({ message: "Unauthenticated" });
+
+    const avatarFile = req.file || null;
+    const bio = typeof req.body.bio === 'string' ? req.body.bio : null;
+
+    // check if 'bio' column exists
+    let bioColumnExists = false;
+    try {
+      const [cols] = await db.promise().query("SHOW COLUMNS FROM users LIKE 'bio'");
+      bioColumnExists = Array.isArray(cols) && cols.length > 0;
+    } catch {}
+
+    const fields = [];
+    const params = [];
+    if (avatarFile) {
+      fields.push('avatar = ?');
+      params.push(avatarFile.filename);
+    }
+    if (bio && bioColumnExists) {
+      fields.push('bio = ?');
+      params.push(bio);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ message: 'No data to update' });
+    }
+
+    params.push(userId);
+    const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+    await db.promise().execute(sql, params);
+
+    const [rows] = await db.promise().execute('SELECT id, username, email, role, avatar' + (bioColumnExists ? ', bio' : '') + ' FROM users WHERE id = ?', [userId]);
+    const updated = rows && rows[0];
+    res.json({
+      message: 'Profile updated',
+      user: updated,
+      avatar_url: updated && updated.avatar ? `http://localhost:5000/uploads/${updated.avatar}` : null
+    });
+  } catch (err) {
+    console.error('Failed to update profile:', err);
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (!userId) return res.status(400).json({ message: 'Missing user id' });
+
+    // detect optional bio column
+    let bioColumnExists = false;
+    try {
+      const [cols] = await db.promise().query("SHOW COLUMNS FROM users LIKE 'bio'");
+      bioColumnExists = Array.isArray(cols) && cols.length > 0;
+    } catch {}
+
+    const select = 'id, username, email, role, avatar' + (bioColumnExists ? ', bio' : '');
+    const [rows] = await db.promise().execute(`SELECT ${select} FROM users WHERE id = ?`, [userId]);
+    if (!rows || rows.length === 0) return res.status(404).json({ message: 'User not found' });
+    const u = rows[0];
+    res.json({
+      user: u,
+      avatar_url: u && u.avatar ? `http://localhost:5000/uploads/${u.avatar}` : null
+    });
+  } catch (err) {
+    console.error('Failed to fetch user by id:', err);
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
 };

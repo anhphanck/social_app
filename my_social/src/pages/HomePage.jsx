@@ -35,6 +35,14 @@ export default function HomePage() {
       fetchUsers();
     }
   }, [user]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get('postId');
+    if (!pid) return;
+    const el = document.getElementById(`post-${pid}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [posts]);
   
    
   const fetchPosts = async () => {

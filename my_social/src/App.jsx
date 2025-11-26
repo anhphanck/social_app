@@ -6,6 +6,7 @@ import HomePage from "./pages/HomePage";
 import DocumentsPage from "./pages/DocumentsPage";
 import TasksPage from "./pages/TasksPage";
 import MeetingPage from "./pages/MeetingPage";
+import ProfilePage from "./pages/ProfilePage";
 
 export default function App() {
   const { user, loadingUser } = useContext(UserContext);
@@ -20,6 +21,8 @@ export default function App() {
         <Route path="/documents" element={user ? <DocumentsPage /> : <Navigate to="/auth" replace />} />
         <Route path="/meeting" element={user ? <MeetingPage /> : <Navigate to="/auth" replace />} />
         <Route path="/tasks" element={user ? (user.role === 'admin' ? <TasksPage /> : <Navigate to="/" replace />) : <Navigate to="/auth" replace />} />
+        <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/auth" replace />} />
+        <Route path="/profile/:id" element={user ? <ProfilePage /> : <Navigate to="/auth" replace />} />
       </Routes>
     </BrowserRouter>
   );
