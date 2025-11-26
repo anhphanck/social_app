@@ -119,11 +119,17 @@ export default function Posts() {
             >
               Quản lý Users
             </button>
+          <button
+            onClick={() => navigate('/posts')}
+            className="border-b-2 border-indigo-600 text-indigo-600 py-4 px-1 text-sm font-medium"
+          >
+            Quản lý Bài viết
+          </button>
             <button
-              onClick={() => navigate('/posts')}
-              className="border-b-2 border-indigo-600 text-indigo-600 py-4 px-1 text-sm font-medium"
+              onClick={() => navigate('/files')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
             >
-              Quản lý Bài viết
+              Quản lý Tài liệu
             </button>
           </div>
         </div>
@@ -166,7 +172,7 @@ export default function Posts() {
             <p className="mt-4 text-gray-600">Đang tải...</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className={`space-y-4 transition-opacity duration-200 ${loading ? 'opacity-50' : 'opacity-100'}`}>
             {posts.length === 0 ? (
               <div className="bg-white rounded-lg shadow p-12 text-center">
                 <p className="text-gray-500">Không có bài viết nào</p>

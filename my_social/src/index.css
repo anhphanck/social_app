@@ -1,1 +1,4 @@
 @import "tailwindcss";
+html { scrollbar-gutter: stable; }
+body { overflow-y: scroll; }
+html, body { overflow-x: hidden; }

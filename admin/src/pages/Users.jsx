@@ -108,11 +108,17 @@ export default function Users() {
             >
               Quản lý Users
             </button>
+          <button
+            onClick={() => navigate('/posts')}
+            className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+          >
+            Quản lý Bài viết
+          </button>
             <button
-              onClick={() => navigate('/posts')}
+              onClick={() => navigate('/files')}
               className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
             >
-              Quản lý Bài viết
+              Quản lý Tài liệu
             </button>
           </div>
         </div>
@@ -145,7 +151,7 @@ export default function Users() {
             <p className="mt-4 text-gray-600">Đang tải...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className={`bg-white rounded-lg shadow overflow-hidden transition-opacity duration-200 ${loading ? 'opacity-50' : 'opacity-100'}`}>
             <div className="p-4 border-b">
               <input
                 type="text"

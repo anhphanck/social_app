@@ -1,4 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+html { scrollbar-gutter: stable; }
+body { overflow-y: scroll; }
+html, body { overflow-x: hidden; }
 

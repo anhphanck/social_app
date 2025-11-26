@@ -33,3 +33,21 @@ export const listDocuments = async (req, res) => {
   }
 };
 
+export const deleteDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await db.promise().execute("SELECT filename FROM project_documents WHERE id=?", [id]);
+    if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy tài liệu" });
+    const fname = rows[0].filename;
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const p = path.join(process.cwd(), 'uploads', fname);
+      try { fs.unlinkSync(p); } catch {}
+    } catch {}
+    await db.promise().execute("DELETE FROM project_documents WHERE id=?", [id]);
+    res.json({ message: "Đã xóa tài liệu" });
+  } catch (e) {
+    res.status(500).json({ message: "Lỗi xóa tài liệu" });
+  }
+};

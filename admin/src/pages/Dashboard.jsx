@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalPosts: 0,
+    totalDocs: 0,
     loading: true
   })
   const navigate = useNavigate()
@@ -37,6 +38,13 @@ export default function Dashboard() {
         console.error('Error fetching users:', err)
         setStats(s => ({ ...s, loading: false }))
       })
+      axios.get('http://localhost:5000/api/documents', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => {
+        setStats(s => ({ ...s, totalDocs: Array.isArray(res.data) ? res.data.length : 0 }))
+      })
+      .catch(() => {})
     }
 
     axios.get('http://localhost:5000/api/posts')
@@ -98,6 +106,12 @@ export default function Dashboard() {
             >
               Quản lý Bài viết
             </button>
+            <button
+              onClick={() => navigate('/files')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Quản lý Tài liệu
+            </button>
           </div>
         </div>
       </nav>
@@ -145,12 +159,12 @@ export default function Dashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
                 <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
                 </svg>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Phiên bản</p>
-                <p className="text-2xl font-bold text-gray-900">v1.0</p>
+                <p className="text-sm font-medium text-gray-600">Tổng số Tài liệu</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.loading ? '...' : stats.totalDocs}</p>
               </div>
             </div>
           </div>
@@ -173,6 +187,13 @@ export default function Dashboard() {
             >
               <div className="font-medium text-gray-900">Quản lý Bài viết</div>
               <div className="text-sm text-gray-600 mt-1">Xem và quản lý tất cả bài viết</div>
+            </button>
+            <button
+              onClick={() => navigate('/files')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left"
+            >
+              <div className="font-medium text-gray-900">Quản lý Tài liệu</div>
+              <div className="text-sm text-gray-600 mt-1">Xem và xóa các file người dùng tải lên</div>
             </button>
           </div>
         </div>
