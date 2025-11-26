@@ -64,6 +64,14 @@ export const UserProvider = ({ children }) => {
       } catch (e) {
         console.warn('Failed to request presence', e);
       }
+      // fetch unread counts when user comes online
+      try {
+        if (token) {
+          axios.get('http://localhost:5000/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
+            .then((res) => setUnreadCounts(res.data || {}))
+            .catch(() => {});
+        }
+      } catch (_ERR) {}
     });
     socket.on("disconnect", () => setSocketConnected(false));
     socket.on("connect_error", (err) => console.error('Socket connect_error', err));
@@ -95,6 +103,21 @@ export const UserProvider = ({ children }) => {
       }
     };
   }, [token, user, currentChatId]);
+
+  useEffect(() => {
+    const fetchUnreads = async () => {
+      try {
+        if (!user || !token) return;
+        const res = await axios.get('http://localhost:5000/api/chats/unreads', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUnreadCounts(res.data || {});
+      } catch (e) {
+        console.error('Failed to fetch unread counts', e);
+      }
+    };
+    fetchUnreads();
+  }, [user, token]);
 
   const logout = () => {
     localStorage.removeItem('user');

@@ -1,11 +1,12 @@
+import { useNavigate } from "react-router-dom";
+
 export default function Sidebar() {
+  const navigate = useNavigate();
   const items = [
-    { icon: "📄", label: "Tài liệu" },
-    { icon: "🎬", label: "Video" },
-    { icon: "📷", label: "Ảnh" },
-    { icon: "👥", label: "Nhóm" },
-    { icon: "📅", label: "Sự kiện" },
-    { icon: "💼", label: "Cuộc họp" },
+    { icon: "🏠", label: "Trang chủ", path: "/" },
+    { icon: "📄", label: "Tài liệu dự án", path: "/documents" },
+    { icon: "📝", label: "Task", path: "/tasks" },
+    { icon: "💼", label: "Cuộc họp", path: "/meeting" }
   ];
 
   return (
@@ -15,6 +16,7 @@ export default function Sidebar() {
           <li
             key={i}
             className="flex items-center space-x-3 cursor-pointer hover:bg-sky-100 p-2 rounded-md"
+            onClick={() => navigate(item.path)}
           >
             <span>{item.icon}</span>
             <span className="text-sm font-medium">{item.label}</span>

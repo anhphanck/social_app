@@ -21,7 +21,7 @@ export default function Chat({ users = [] }) {
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     return () => {
-      try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ }
+      try { URL.revokeObjectURL(url); } catch (_ERR) { console.warn('revokeObjectURL failed', _ERR); }
     };
   }, [file]);
 
@@ -34,6 +34,13 @@ export default function Chat({ users = [] }) {
       try {
         const res = await axios.get(`${API_URL}/chats/conversation/${user.id}/${currentChatId}`);
         if (!cancelled) setMessages(res.data || []);
+        if (token) {
+          try {
+            await axios.post(`${API_URL}/chats/mark-read`, { otherId: currentChatId }, { headers: { Authorization: `Bearer ${token}` } });
+          } catch (_ERR) {
+            console.warn('Failed to mark conversation read', _ERR);
+          }
+        }
       } catch (e) {
         console.error('Failed to load conversation', e);
       }

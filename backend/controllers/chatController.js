@@ -58,6 +58,42 @@ export async function getConversation(req, res) {
   }
 }
 
+export async function getUnreadCounts(req, res) {
+  try {
+    const userId = req.user && req.user.id;
+    if (!userId) return res.status(401).json({ message: 'Unauthenticated' });
+    const [rows] = await db.promise().execute(
+      'SELECT sender_id, COUNT(*) AS count FROM messages WHERE receiver_id = ? AND is_read = 0 AND is_deleted = 0 GROUP BY sender_id',
+      [userId]
+    );
+    const result = {};
+    for (const r of rows) {
+      result[String(r.sender_id)] = Number(r.count) || 0;
+    }
+    res.json(result);
+  } catch (err) {
+    console.error('Failed to fetch unread counts:', err);
+    res.status(500).json({ message: 'Failed to fetch unread counts' });
+  }
+}
+
+export async function markConversationRead(req, res) {
+  try {
+    const userId = req.user && req.user.id;
+    const { otherId } = req.body || {};
+    if (!userId) return res.status(401).json({ message: 'Unauthenticated' });
+    if (!otherId) return res.status(400).json({ message: 'Missing otherId' });
+    const [result] = await db.promise().execute(
+      'UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND sender_id = ? AND is_read = 0',
+      [userId, otherId]
+    );
+    res.json({ updated: result.affectedRows || 0 });
+  } catch (err) {
+    console.error('Failed to mark conversation read:', err);
+    res.status(500).json({ message: 'Failed to mark conversation read' });
+  }
+}
+
 // Soft-delete a message (only sender can delete)
 export async function deleteMessage(req, res) {
   const messageId = req.params.id;
@@ -94,4 +130,4 @@ export async function deleteMessage(req, res) {
   }
 }
 
-export default { addMessage, getConversation, deleteMessage };
+export default { addMessage, getConversation, getUnreadCounts, markConversationRead, deleteMessage };
