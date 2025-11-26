@@ -169,16 +169,17 @@ export default function Posts() {
                     <p className="text-gray-700 mb-4 whitespace-pre-wrap">{post.content}</p>
                   )}
                   
-                  {post.image && (
-                    <div className="mb-4">
-                      <img 
-                        src={post.image} 
-                        alt="Post" 
-                        className="max-w-full h-auto rounded-lg"
-                        onError={(e) => {
-                          e.target.style.display = 'none'
-                        }}
-                      />
+                  {post.images && post.images.length > 0 && (
+                    <div className="mb-4 grid grid-cols-2 gap-2">
+                      {post.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Post-${idx}`}
+                          className="w-full h-auto rounded-lg object-cover"
+                          onError={(e) => { e.target.style.display = 'none' }}
+                        />
+                      ))}
                     </div>
                   )}
 

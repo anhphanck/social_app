@@ -4,6 +4,10 @@ import Chat from "./Chat";
 
 export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
   const { setCurrentChatId, unreadCounts, onlineUsers, setUnreadCounts, user } = useContext(UserContext);
+  const scrollToPost = (id) => {
+    const el = document.getElementById(`post-${id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="w-72 p-4 space-y-4 flex-1 bg-white mt-2 ">
@@ -14,7 +18,11 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
           <div className="text-sm text-gray-500">Chưa có bài viết nào được ghim</div>
         )}
         {pinnedPosts.map((post) => (
-          <div key={post.id} className="border border-gray-100 rounded-md p-2 mb-2 text-sm">
+          <div
+            key={post.id}
+            className="border border-gray-100 rounded-md p-2 mb-2 text-sm cursor-pointer hover:bg-gray-50"
+            onClick={() => scrollToPost(post.id)}
+          >
             <div className="font-semibold text-gray-800 line-clamp-1">{post.username}</div>
             <div className="text-gray-600 mt-1 line-clamp-2">{post.content || 'Không có nội dung'}</div>
             <div className="flex justify-between items-center mt-2 text-xs text-gray-500">

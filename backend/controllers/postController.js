@@ -44,7 +44,7 @@ export const getAllPosts = (req, res) => {
 
     FROM posts
     JOIN users ON posts.user_id = users.id
-    ORDER BY posts.is_pinned DESC, posts.created_at DESC
+    ORDER BY posts.created_at DESC
   `;
 
   db.query(q, [userId], (err, data) => {
