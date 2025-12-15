@@ -87,6 +87,7 @@ export const createTask = async (req, res) => {
           }
         }
       }
+      try { io.emit("task_notification", { type: "assigned", task_id: taskId, title }); } catch {}
     } catch {}
     res.json({ message: "Đã tạo nhiệm vụ", id: taskId });
   } catch (e) {
@@ -170,6 +171,7 @@ export const updateTask = async (req, res) => {
           }
         }
       }
+      try { io.emit("task_notification", { type: "task_updated", task_id: id }); } catch {}
     } catch {}
     res.json({ message: "Đã cập nhật nhiệm vụ" });
   } catch (e) {
@@ -236,6 +238,7 @@ export const changeStatus = async (req, res) => {
             }
           }
         }
+        try { io.emit("task_notification", { type: "status_changed", task_id: id, status }); } catch {}
       } catch {}
     } else {
       const [creator] = await db.promise().execute("SELECT created_by FROM tasks WHERE id=?", [id]);

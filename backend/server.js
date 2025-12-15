@@ -134,18 +134,19 @@ io.on('connection', (socket) => {
 				if (typeof callback === 'function') callback({ success: false, error: e.message || String(e) });
 			});
 
-			// respond to presence queries from clients
-			socket.on('get_presence', () => {
-				try {
-					socket.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
-				} catch (e) {
-					console.warn('Failed to respond to get_presence', e);
-				}
-			});
 		} else {
 			const toSet = onlineUsers.get(String(payload.to));
 			if (toSet && toSet.size > 0) for (const sid of toSet) io.to(sid).emit('private_message', msg);
 			if (typeof callback === 'function') callback({ success: true, message: msg });
+		}
+	});
+
+	// presence query should be available immediately after connection
+	socket.on('get_presence', () => {
+		try {
+			socket.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
+		} catch (e) {
+			console.warn('Failed to respond to get_presence', e);
 		}
 	});
 
