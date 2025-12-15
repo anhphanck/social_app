@@ -1,30 +1,31 @@
 import db from "../config/db.js";
+import cloudinary from "../config/cloudinary.js";
+
 
 export async function ensureTaskSchema() {
   try {
     await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS tasks (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL, description TEXT NULL, priority VARCHAR(20) DEFAULT 'medium', deadline DATETIME NULL, status VARCHAR(30) DEFAULT 'new', created_by INT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS tasks (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL, description TEXT NULL, priority VARCHAR(20) DEFAULT 'medium', deadline DATETIME NULL, status VARCHAR(30) DEFAULT 'new', created_by INT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_assignments (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, UNIQUE KEY uniq_task_user (task_id, user_id))"
+      "CREATE TABLE IF NOT EXISTS task_assignments (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, UNIQUE KEY uniq_task_user (task_id, user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_comments (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, content TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS task_comments (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, content TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_notifications (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, task_id INT NOT NULL, type VARCHAR(30) NOT NULL, message VARCHAR(255) NULL, is_read TINYINT(1) DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS task_notifications (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, task_id INT NOT NULL, type VARCHAR(30) NOT NULL, message VARCHAR(255) NULL, is_read TINYINT(1) DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_files (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, filename VARCHAR(255) NOT NULL, uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS task_files (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, filename VARCHAR(255) NOT NULL, uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_submissions (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, filename VARCHAR(255) NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS task_submissions (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, filename VARCHAR(255) NOT NULL, note TEXT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
-    try {
-      await db.promise().query("ALTER TABLE task_submissions ADD COLUMN note TEXT NULL");
-    } catch {}
   } catch {}
 }
+
+
 
 export const createTask = async (req, res) => {
   try {
@@ -57,7 +58,15 @@ export const createTask = async (req, res) => {
     await db.promise().query("INSERT INTO task_assignments (task_id, user_id) VALUES ?", [values]);
     const files = req.files || [];
     if (files.length > 0) {
-      const fvals = files.map((f) => [taskId, f.filename]);
+      const uploads = files.map((f) => new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({ resource_type: "auto", folder: "social_app/tasks/attachments" }, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+        import("stream").then(({ Readable }) => Readable.from(f.buffer).pipe(stream));
+      }));
+      const results = await Promise.all(uploads);
+      const fvals = results.map((r) => [taskId, r.public_id]);
       await db.promise().query("INSERT INTO task_files (task_id, filename) VALUES ?", [fvals]);
     }
     const msg = `Nhiệm vụ mới: ${title}`;
@@ -194,7 +203,15 @@ export const changeStatus = async (req, res) => {
         return res.status(400).json({ message: "Yêu cầu đính kèm minh chứng" });
       }
       const note = typeof req.body.note === 'string' ? req.body.note : null;
-      const vals = files.map((f) => [id, userId, f.filename, note]);
+      const uploads = files.map((f) => new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({ resource_type: "auto", folder: "social_app/tasks/submissions" }, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+        import("stream").then(({ Readable }) => Readable.from(f.buffer).pipe(stream));
+      }));
+      const results = await Promise.all(uploads);
+      const vals = results.map((r) => [id, userId, r.public_id, note]);
       await db.promise().query("INSERT INTO task_submissions (task_id, user_id, filename, note) VALUES ?", [vals]);
     }
     await db.promise().execute("UPDATE tasks SET status=? WHERE id=?", [status, id]);
@@ -274,8 +291,8 @@ export const getTaskDetail = async (req, res) => {
       const [cRows] = await db.promise().execute("SELECT u.id, u.username FROM users u WHERE u.id = ?", [task.created_by]);
       creator = (cRows && cRows[0]) || null;
     } catch {}
-    const attachments = (fileRows || []).map((f) => ({ filename: f.filename, url: `http://localhost:5000/uploads/${f.filename}` }));
-    const submissions = (subRows || []).map((s) => ({ user_id: s.user_id, filename: s.filename, url: `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null }));
+    const attachments = (fileRows || []).map((f) => ({ filename: f.filename, url: f.filename && String(f.filename).includes('/') ? cloudinary.url(f.filename, { secure: true }) : `http://localhost:5000/uploads/${f.filename}` }));
+    const submissions = (subRows || []).map((s) => ({ user_id: s.user_id, filename: s.filename, url: s.filename && String(s.filename).includes('/') ? cloudinary.url(s.filename, { secure: true }) : `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null }));
     const assignees = (assRows || []).map((r) => ({ id: r.user_id, username: r.username }));
     res.json({ task, creator, assignees, comments: comRows || [], attachments, submissions });
   } catch (e) {
@@ -317,15 +334,19 @@ export const deleteTask = async (req, res) => {
     const [fileRows] = await db.promise().execute("SELECT filename FROM task_files WHERE task_id=?", [id]);
     const [subRows] = await db.promise().execute("SELECT filename FROM task_submissions WHERE task_id=?", [id]);
     const names = [...(fileRows || []).map((r) => r.filename), ...(subRows || []).map((r) => r.filename)];
-    try {
-      const fs = await import('fs');
-      const path = await import('path');
-      for (const n of names) {
-        if (!n) continue;
-        const p = path.join(process.cwd(), 'uploads', n);
-        try { fs.unlinkSync(p); } catch {}
+    for (const n of names) {
+      if (!n) continue;
+      if (String(n).includes('/')) {
+        try { await cloudinary.uploader.destroy(n, { resource_type: 'auto' }); } catch {}
+      } else {
+        try {
+          const fs = await import('fs');
+          const path = await import('path');
+          const p = path.join(process.cwd(), 'uploads', n);
+          try { fs.unlinkSync(p); } catch {}
+        } catch {}
       }
-    } catch {}
+    }
 
     await db.promise().execute("DELETE FROM task_files WHERE task_id=?", [id]);
     await db.promise().execute("DELETE FROM task_submissions WHERE task_id=?", [id]);

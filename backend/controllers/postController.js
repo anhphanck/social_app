@@ -3,24 +3,29 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import cloudinary from "../config/cloudinary.js";
+import { Readable } from "stream";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../uploads")); 
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueName + path.extname(file.originalname));
-  },
-});
+const storage = multer.memoryStorage();
 
 export const upload = multer({ 
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB per file
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
+
+function uploadBufferToCloudinary(file, options = {}) {
+  return new Promise((resolve, reject) => {
+    const uploadOptions = { resource_type: "image", folder: "social_app", ...options };
+    const stream = cloudinary.uploader.upload_stream(uploadOptions, (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
+    });
+    Readable.from(file.buffer).pipe(stream);
+  });
+}
 
 export const getAllPosts = (req, res) => {
   const userId = req.query.user_id || null;
@@ -56,8 +61,8 @@ export const getAllPosts = (req, res) => {
       // Nếu không có posts, trả về mảng rỗng với format đúng
       return res.json(data.map((post) => ({
         ...post,
-        images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
-        image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+        images: post.image ? [post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`] : [],
+        image: post.image ? (post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`) : null,
         is_pinned: Boolean(post.is_pinned),
         reactions: {
           like: post.like_count || 0,
@@ -76,12 +81,12 @@ export const getAllPosts = (req, res) => {
         console.warn("Bảng post_images chưa tồn tại hoặc lỗi:", imgErr.message);
         const updated = data.map((post) => ({
           ...post,
-          images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
-          image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+          images: post.image ? [post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`] : [],
+          image: post.image ? (post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`) : null,
           is_pinned: Boolean(post.is_pinned),
           reactions: {
             like: post.like_count || 0,
-            love: post.love_count || 0,
+            love: post.like_count || 0,
             haha: post.haha_count || 0,
             sad: post.sad_count || 0
           }
@@ -95,14 +100,16 @@ export const getAllPosts = (req, res) => {
         if (!imagesByPost[img.post_id]) {
           imagesByPost[img.post_id] = [];
         }
-        imagesByPost[img.post_id].push(`http://localhost:5000/uploads/${img.image}`);
+        const val = img.image;
+        const url = val && val.includes('/') ? cloudinary.url(val, { secure: true }) : `http://localhost:5000/uploads/${val}`;
+        imagesByPost[img.post_id].push(url);
       });
 
       const updated = data.map((post) => ({
         ...post,
         // Lấy ảnh từ post_images, nếu không có thì fallback về image cũ (backward compatible)
-        images: imagesByPost[post.id] || (post.image ? [`http://localhost:5000/uploads/${post.image}`] : []),
-        image: imagesByPost[post.id]?.[0] || (post.image ? `http://localhost:5000/uploads/${post.image}` : null), // Giữ lại cho backward compatible
+        images: imagesByPost[post.id] || (post.image ? [post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`] : []),
+        image: imagesByPost[post.id]?.[0] || (post.image ? (post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`) : null),
         is_pinned: Boolean(post.is_pinned),
         // gộp các reaction vào object
         reactions: {
@@ -119,62 +126,58 @@ export const getAllPosts = (req, res) => {
 };
 
 
-export const createPost = (req, res) => {
+export const createPost = async (req, res) => {
   const authUserId = req.user && req.user.id;
   const { content } = req.body;
   const files = req.files || [];
-  const images = files.map(f => f.filename);
-
-  if (!authUserId || (!content && images.length === 0))
+  
+  if (!authUserId || (!content && files.length === 0))
     return res.status(400).json({ message: "Thiếu nội dung hoặc ảnh" });
 
   // Tạo post
-  const q = "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)";
-  const firstImage = images.length > 0 ? images[0] : null; // Giữ lại image cho backward compatible
-  
-  db.query(q, [authUserId, content, firstImage], (err, result) => {
-    if (err) {
-      console.error("Lỗi khi thêm bài viết:", err);
-      return res.status(500).json({ message: "Không thể đăng bài" });
+  try {
+    const uploads = [];
+    for (const f of files) {
+      uploads.push(uploadBufferToCloudinary(f));
     }
+    const results = await Promise.all(uploads);
+    const publicIds = results.map(r => r.public_id);
+    const urls = results.map(r => r.secure_url);
 
-    const postId = result.insertId;
+    const q = "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)";
+    const firstPublicId = publicIds.length > 0 ? publicIds[0] : null;
 
-    // Lưu nhiều ảnh vào bảng post_images
-    if (images.length > 0) {
-      const imageValues = images.map(img => [postId, img]);
-      const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
-      
-      db.query(insertImagesQuery, [imageValues], (imgErr) => {
-        if (imgErr) {
-          console.error("Lỗi khi lưu ảnh:", imgErr);
-          // Vẫn trả về success nhưng log lỗi
-        }
+    db.query(q, [authUserId, content, firstPublicId], (err, result) => {
+      if (err) {
+        console.error("Lỗi khi thêm bài viết:", err);
+        return res.status(500).json({ message: "Không thể đăng bài" });
+      }
 
-        res.json({
-          message: "Đăng bài thành công",
-          post: {
-            id: postId,
-            user_id: authUserId,
-            content,
-            images: images.map(img => `http://localhost:5000/uploads/${img}`),
-            image: images[0] ? `http://localhost:5000/uploads/${images[0]}` : null,
-          },
+      const postId = result.insertId;
+
+      if (publicIds.length > 0) {
+        const imageValues = publicIds.map(pid => [postId, pid]);
+        const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
+        db.query(insertImagesQuery, [imageValues], (imgErr) => {
+          if (imgErr) console.error("Lỗi khi lưu ảnh:", imgErr);
         });
-      });
-    } else {
+      }
+
       res.json({
         message: "Đăng bài thành công",
         post: {
           id: postId,
           user_id: authUserId,
           content,
-          images: [],
-          image: null,
+          images: urls,
+          image: urls[0] || null,
         },
       });
-    }
-  });
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Không thể đăng bài" });
+  }
 };
 
 export const updatePost = (req, res) => {
@@ -182,9 +185,8 @@ export const updatePost = (req, res) => {
   const { content, removeImages, keepImages } = req.body;
   const authUserId = req.user && req.user.id;
   const newFiles = req.files || [];
-  const newImages = newFiles.map(f => f.filename);
-
-  db.query("SELECT user_id, image FROM posts WHERE id=?", [id], (err, result) => {
+  
+  db.query("SELECT user_id, image FROM posts WHERE id= ?", [id], (err, result) => {
     if (err) return res.status(500).json({ message: "Lỗi lấy bài viết" });
     if (result.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
     const ownerId = result[0].user_id;
@@ -192,28 +194,51 @@ export const updatePost = (req, res) => {
       return res.status(403).json({ message: "Không có quyền sửa bài viết" });
     }
 
+    // Xử lý danh sách ảnh giữ lại
+    let keepList = [];
+    if (keepImages !== undefined) {
+      const raw = Array.isArray(keepImages) ? keepImages : [keepImages];
+      keepList = raw.filter(Boolean).map((val) => {
+        const s = String(val);
+        if (s.includes("/uploads/")) return s.split("/uploads/")[1];
+        if (s.includes("res.cloudinary.com")) {
+          const m = s.match(/\/upload\/(?:v\d+\/)?(.+?)(\.[^\/]+)?$/);
+          return m && m[1] ? m[1] : s;
+        }
+        return s;
+      });
+    }
+
     // Xóa ảnh cũ nếu cần
-    if (removeImages === "true" || (Array.isArray(keepImages) && keepImages.length === 0 && newImages.length > 0)) {
+    if (removeImages === "true" || (Array.isArray(keepList) && keepList.length === 0 && newFiles.length > 0)) {
       // Lấy tất cả ảnh cũ
-      db.query("SELECT image FROM post_images WHERE post_id=?", [id], (imgErr, oldImages) => {
+      db.query("SELECT image FROM post_images WHERE post_id= ?", [id], (imgErr, oldImages) => {
         if (!imgErr && oldImages) {
           oldImages.forEach(img => {
-            const filePath = path.join(__dirname, "../uploads", img.image);
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            if (String(img.image).includes('/')) {
+              cloudinary.uploader.destroy(img.image).catch(() => {});
+            } else {
+              const filePath = path.join(__dirname, "../uploads", img.image);
+              if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            }
           });
         }
         // Xóa tất cả ảnh cũ
-        db.query("DELETE FROM post_images WHERE post_id=?", [id]);
+        db.query("DELETE FROM post_images WHERE post_id= ?", [id]);
       });
-    } else if (Array.isArray(keepImages) && keepImages.length > 0) {
+    } else if (Array.isArray(keepList) && keepList.length > 0) {
       // Xóa ảnh không được giữ lại
-      db.query("SELECT image FROM post_images WHERE post_id=?", [id], (imgErr, oldImages) => {
+      db.query("SELECT image FROM post_images WHERE post_id= ?", [id], (imgErr, oldImages) => {
         if (!imgErr && oldImages) {
           oldImages.forEach(img => {
-            if (!keepImages.includes(img.image)) {
-              const filePath = path.join(__dirname, "../uploads", img.image);
-              if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-              db.query("DELETE FROM post_images WHERE post_id=? AND image=?", [id, img.image]);
+            if (!keepList.includes(img.image)) {
+              if (String(img.image).includes('/')) {
+                cloudinary.uploader.destroy(img.image).catch(() => {});
+              } else {
+                const filePath = path.join(__dirname, "../uploads", img.image);
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+              }
+              db.query("DELETE FROM post_images WHERE post_id= ? AND image= ?", [id, img.image]);
             }
           });
         }
@@ -225,9 +250,9 @@ export const updatePost = (req, res) => {
     const params = [content];
 
     // Cập nhật image đầu tiên cho backward compatible
-    if (newImages.length > 0) {
+    if (newFiles.length > 0) {
       q += ", image=?";
-      params.push(newImages[0]);
+      params.push(null);
     } else if (removeImages === "true") {
       q += ", image=NULL";
     }
@@ -238,14 +263,26 @@ export const updatePost = (req, res) => {
     db.query(q, params, (err) => {
       if (err) return res.status(500).json({ message: "Không thể cập nhật" });
 
-      // Thêm ảnh mới
-      if (newImages.length > 0) {
-        const imageValues = newImages.map(img => [id, img]);
-        const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
-        db.query(insertImagesQuery, [imageValues], (imgErr) => {
-          if (imgErr) console.error("Lỗi khi lưu ảnh mới:", imgErr);
-        });
-      }
+      // Thêm ảnh mới lên Cloudinary
+      (async () => {
+        if (newFiles.length > 0) {
+          try {
+            const results = await Promise.all(newFiles.map((f) => uploadBufferToCloudinary(f)));
+            const publicIds = results.map(r => r.public_id);
+            if (publicIds.length > 0) {
+              const imageValues = publicIds.map(pid => [id, pid]);
+              const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
+              db.query(insertImagesQuery, [imageValues], (imgErr) => {
+                if (imgErr) console.error("Lỗi khi lưu ảnh mới:", imgErr);
+              });
+              // cập nhật image đầu tiên cho backward compatible
+              db.query("UPDATE posts SET image=? WHERE id=?", [publicIds[0], id]);
+            }
+          } catch (e) {
+            console.error("Upload ảnh mới thất bại", e);
+          }
+        }
+      })();
 
       res.json({ message: "Cập nhật thành công" });
     });
@@ -256,13 +293,16 @@ export const deletePost = (req, res) => {
   const postId = req.params.id;
 
   // Xóa tất cả ảnh từ post_images
-  db.query("SELECT image FROM post_images WHERE post_id=?", [postId], (imgErr, images) => {
+  db.query("SELECT image FROM post_images WHERE post_id= ?", [postId], (imgErr, images) => {
     if (!imgErr && images) {
       images.forEach(img => {
-        const filePath = path.join(__dirname, "../uploads", img.image);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-          console.log("🗑 Đã xóa ảnh:", img.image);
+        if (String(img.image).includes('/')) {
+          cloudinary.uploader.destroy(img.image).catch(() => {});
+        } else {
+          const filePath = path.join(__dirname, "../uploads", img.image);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         }
       });
     }
@@ -317,8 +357,8 @@ export const searchPosts = (req, res) => {
     if (postIds.length === 0) {
       return res.json(data.map((post) => ({
         ...post,
-        images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
-        image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+        images: post.image ? [post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`] : [],
+        image: post.image ? (post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`) : null,
         is_pinned: Boolean(post.is_pinned)
       })));
     }
@@ -328,8 +368,8 @@ export const searchPosts = (req, res) => {
       if (imgErr) {
         const updated = data.map((post) => ({
           ...post,
-          images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
-          image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
+          images: post.image ? [post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`] : [],
+          image: post.image ? (post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`) : null,
           is_pinned: Boolean(post.is_pinned)
         }));
         return res.json(updated);
@@ -338,13 +378,15 @@ export const searchPosts = (req, res) => {
       const imagesByPost = {};
       images.forEach(img => {
         if (!imagesByPost[img.post_id]) imagesByPost[img.post_id] = [];
-        imagesByPost[img.post_id].push(`http://localhost:5000/uploads/${img.image}`);
+        const val = img.image;
+        const url = val && val.includes('/') ? cloudinary.url(val, { secure: true }) : `http://localhost:5000/uploads/${val}`;
+        imagesByPost[img.post_id].push(url);
       });
 
       const updated = data.map((post) => ({
         ...post,
-        images: imagesByPost[post.id] || (post.image ? [`http://localhost:5000/uploads/${post.image}`] : []),
-        image: imagesByPost[post.id]?.[0] || (post.image ? `http://localhost:5000/uploads/${post.image}` : null),
+        images: imagesByPost[post.id] || (post.image ? [post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`] : []),
+        image: imagesByPost[post.id]?.[0] || (post.image ? (post.image.includes('/') ? cloudinary.url(post.image, { secure: true }) : `http://localhost:5000/uploads/${post.image}`) : null),
         is_pinned: Boolean(post.is_pinned)
       }));
 

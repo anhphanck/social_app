@@ -4,6 +4,27 @@ import jwt from "jsonwebtoken";
 import { upload } from "./postController.js";
 import path from "path";
 
+async function ensureUserSchema() {
+  try {
+    await db.promise().query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'user',
+        avatar VARCHAR(255) NULL,
+        bio TEXT NULL,
+        is_approved TINYINT(1) NOT NULL DEFAULT 0,
+        token_version INT NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+  } catch (e) {
+    console.warn("Failed to ensure users table", e);
+  }
+}
+
 // Ensure optional columns exist for profile features (avatar, bio)
 async function ensureUserProfileColumns() {
   try {
@@ -28,6 +49,7 @@ async function ensureUserProfileColumns() {
     console.warn("Failed to ensure user profile columns", e);
   }
 }
+ensureUserSchema();
 ensureUserProfileColumns();
 
 const SECRET_KEY = "secret_key_demo";

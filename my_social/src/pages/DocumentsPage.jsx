@@ -67,7 +67,7 @@ export default function DocumentsPage() {
                     </div>
                     <div className="flex gap-2">
                       <a href={d.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">Xem</a>
-                      <a href={`${API_URL}/files/${encodeURIComponent(d.filename)}`} className="text-xs text-gray-700 underline">Tải</a>
+                      <a href={d.url} className="text-xs text-gray-700 underline">Tải</a>
                     </div>
                   </div>
                 ))}

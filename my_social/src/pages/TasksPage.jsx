@@ -271,7 +271,7 @@ export default function TasksPage() {
                               {details[t.id].attachments.map((f, idx) => (
                                 <div key={idx} className="flex items-center gap-2">
                                   <a href={f.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">{f.filename}</a>
-                                  <a href={`${API_URL}/files/${encodeURIComponent(f.filename)}`} className="text-xs text-gray-700 underline">Tải</a>
+                                  <a href={f.url} className="text-xs text-gray-700 underline">Tải</a>
                                 </div>
                               ))}
                             </div>
@@ -287,7 +287,7 @@ export default function TasksPage() {
                               {details[t.id].submissions.map((s, idx) => (
                                 <div key={idx} className="flex items-center gap-2">
                                   <a href={s.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">{s.filename}</a>
-                                  <a href={`${API_URL}/files/${encodeURIComponent(s.filename)}`} className="text-xs text-gray-700 underline">Tải</a>
+                                  <a href={s.url} className="text-xs text-gray-700 underline">Tải</a>
                                 </div>
                               ))}
                             </div>

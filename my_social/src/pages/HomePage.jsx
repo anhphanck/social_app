@@ -174,10 +174,8 @@ export default function HomePage() {
     if (editingPost.removeImages) {
       formData.append("removeImages", "true");
     } else if (keepImages && keepImages.length > 0) {
-      // Gửi danh sách ảnh muốn giữ lại (chỉ tên file, không phải full URL)
       keepImages.forEach(img => {
-        const filename = img.includes('/uploads/') ? img.split('/uploads/')[1] : img;
-        formData.append("keepImages", filename);
+        formData.append("keepImages", img);
       });
     }
 
