@@ -91,7 +91,7 @@ function CommentCard({ comment, onReply, onDelete }) {
         <div className="cursor-pointer" onClick={() => navigate(`/profile/${comment.user_id}`)}>
           {comment.avatar ? (
             <img
-              src={`http://localhost:5000/uploads/${comment.avatar}`}
+              src={comment.avatar.startsWith('http') ? comment.avatar : `http://localhost:5000/uploads/${comment.avatar}`}
               alt="avatar"
               className="w-7 h-7 rounded-full object-cover"
             />
@@ -414,7 +414,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
           <div className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
             {post.avatar ? (
               <img
-                src={`http://localhost:5000/uploads/${post.avatar}`}
+                src={post.avatar.startsWith('http') ? post.avatar : `http://localhost:5000/uploads/${post.avatar}`}
                 alt="avatar"
                 className="w-9 h-9 rounded-full object-cover"
               />

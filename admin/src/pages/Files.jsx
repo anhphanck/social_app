@@ -48,6 +48,14 @@ export default function Files() {
     navigate('/login')
   }
 
+  const getDownloadUrl = (url) => {
+    if (!url) return '#';
+    if (url.includes('cloudinary.com') && !url.includes('fl_attachment')) {
+      return url.replace(/\/upload\//, '/upload/fl_attachment/');
+    }
+    return url;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -115,7 +123,7 @@ export default function Files() {
                     </div>
                     <div className="flex gap-2">
                       <a href={d.url} target="_blank" rel="noreferrer" className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-xs font-medium">Xem</a>
-                      <a href={d.url} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs font-medium">Tải</a>
+                      <a href={getDownloadUrl(d.url)} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs font-medium">Tải</a>
                       <button onClick={() => handleDeleteDoc(d.id)} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-xs font-medium">Xóa</button>
                     </div>
                   </div>

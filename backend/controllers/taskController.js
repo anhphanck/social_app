@@ -1,6 +1,19 @@
 import db from "../config/db.js";
 import cloudinary from "../config/cloudinary.js";
 
+const getCloudinaryUrl = (publicId, originalName) => {
+  if (!publicId) return null;
+  let isRaw = /\.(zip|docx|doc|xlsx|xls|pptx|ppt|txt|csv|rar)$/i.test(publicId);
+  const isVideo = /\.(mp4|mov|avi|mkv)$/i.test(publicId);
+
+  if (!isRaw && !isVideo && originalName) {
+    isRaw = /\.(zip|docx|doc|xlsx|xls|pptx|ppt|txt|csv|rar)$/i.test(originalName);
+  }
+
+  if (isRaw) return cloudinary.url(publicId, { resource_type: "raw", secure: true });
+  if (isVideo) return cloudinary.url(publicId, { resource_type: "video", secure: true });
+  return cloudinary.url(publicId, { secure: true });
+};
 
 export async function ensureTaskSchema() {
   try {
@@ -22,6 +35,11 @@ export async function ensureTaskSchema() {
     await db.promise().query(
       "CREATE TABLE IF NOT EXISTS task_submissions (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, filename VARCHAR(255) NOT NULL, note TEXT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+    
+    // Add original_name column if missing
+    try { await db.promise().query("ALTER TABLE task_files ADD COLUMN original_name VARCHAR(255) NULL"); } catch {}
+    try { await db.promise().query("ALTER TABLE task_submissions ADD COLUMN original_name VARCHAR(255) NULL"); } catch {}
+
   } catch {}
 }
 
@@ -66,8 +84,8 @@ export const createTask = async (req, res) => {
         import("stream").then(({ Readable }) => Readable.from(f.buffer).pipe(stream));
       }));
       const results = await Promise.all(uploads);
-      const fvals = results.map((r) => [taskId, r.public_id]);
-      await db.promise().query("INSERT INTO task_files (task_id, filename) VALUES ?", [fvals]);
+      const fvals = results.map((r, idx) => [taskId, r.public_id, files[idx].originalname || null]);
+      await db.promise().query("INSERT INTO task_files (task_id, filename, original_name) VALUES ?", [fvals]);
     }
     const msg = `Nhiệm vụ mới: ${title}`;
     for (const uid of assignees) {
@@ -199,6 +217,7 @@ export const changeStatus = async (req, res) => {
     } else {
       if (!allowedUser.includes(status)) return res.status(400).json({ message: "Trạng thái không hợp lệ" });
     }
+    let newStatus = status;
     if (role !== "admin" && status === "pending_review") {
       const files = req.files || [];
       if (!files || files.length === 0) {
@@ -213,10 +232,11 @@ export const changeStatus = async (req, res) => {
         import("stream").then(({ Readable }) => Readable.from(f.buffer).pipe(stream));
       }));
       const results = await Promise.all(uploads);
-      const vals = results.map((r) => [id, userId, r.public_id, note]);
-      await db.promise().query("INSERT INTO task_submissions (task_id, user_id, filename, note) VALUES ?", [vals]);
+      const vals = results.map((r, idx) => [id, userId, r.public_id, note, files[idx].originalname || null]);
+      await db.promise().query("INSERT INTO task_submissions (task_id, user_id, filename, note, original_name) VALUES ?", [vals]);
+      newStatus = "closed";
     }
-    await db.promise().execute("UPDATE tasks SET status=? WHERE id=?", [status, id]);
+    await db.promise().execute("UPDATE tasks SET status=? WHERE id=?", [newStatus, id]);
     const [taskRows] = await db.promise().execute("SELECT title FROM tasks WHERE id=?", [id]);
     const title = taskRows && taskRows[0] && taskRows[0].title;
     if (role === "admin") {
@@ -224,7 +244,7 @@ export const changeStatus = async (req, res) => {
       for (const r of assRows || []) {
         await db.promise().execute(
           "INSERT INTO task_notifications (user_id, task_id, type, message) VALUES (?, ?, 'status_changed', ?)",
-          [r.user_id, id, `Trạng thái nhiệm vụ cập nhật: ${status}`]
+          [r.user_id, id, `Trạng thái nhiệm vụ cập nhật: ${newStatus}`]
         );
       }
       try {
@@ -234,11 +254,11 @@ export const changeStatus = async (req, res) => {
           const set = online && online.get && online.get(String(r.user_id));
           if (set && set.size > 0) {
             for (const sid of set.values()) {
-              io.to(sid).emit("task_notification", { type: "status_changed", task_id: id, status });
+              io.to(sid).emit("task_notification", { type: "status_changed", task_id: id, status: newStatus });
             }
           }
         }
-        try { io.emit("task_notification", { type: "status_changed", task_id: id, status }); } catch {}
+        try { io.emit("task_notification", { type: "status_changed", task_id: id, status: newStatus }); } catch {}
       } catch {}
     } else {
       const [creator] = await db.promise().execute("SELECT created_by FROM tasks WHERE id=?", [id]);
@@ -257,10 +277,11 @@ export const changeStatus = async (req, res) => {
               io.to(sid).emit("task_notification", { type: "ack", task_id: id, status });
             }
           }
+          try { io.emit("task_notification", { type: "status_changed", task_id: id, status: newStatus }); } catch {}
         } catch {}
       }
     }
-    res.json({ message: "Đã đổi trạng thái" });
+    res.json({ message: "Đã đổi trạng thái", status: newStatus });
   } catch (e) {
     res.status(500).json({ message: "Lỗi đổi trạng thái" });
   }
@@ -287,15 +308,15 @@ export const getTaskDetail = async (req, res) => {
     const task = rows[0];
     const [assRows] = await db.promise().execute("SELECT u.id AS user_id, u.username FROM task_assignments a JOIN users u ON a.user_id = u.id WHERE a.task_id=?", [id]);
     const [comRows] = await db.promise().execute("SELECT * FROM task_comments WHERE task_id=? ORDER BY created_at ASC", [id]);
-    const [fileRows] = await db.promise().execute("SELECT filename FROM task_files WHERE task_id=? ORDER BY id ASC", [id]);
-    const [subRows] = await db.promise().execute("SELECT user_id, filename, created_at, note FROM task_submissions WHERE task_id=? ORDER BY id ASC", [id]);
+    const [fileRows] = await db.promise().execute("SELECT filename, original_name FROM task_files WHERE task_id=? ORDER BY id ASC", [id]);
+    const [subRows] = await db.promise().execute("SELECT user_id, filename, original_name, created_at, note FROM task_submissions WHERE task_id=? ORDER BY id ASC", [id]);
     let creator = null;
     try {
       const [cRows] = await db.promise().execute("SELECT u.id, u.username FROM users u WHERE u.id = ?", [task.created_by]);
       creator = (cRows && cRows[0]) || null;
     } catch {}
-    const attachments = (fileRows || []).map((f) => ({ filename: f.filename, url: f.filename && String(f.filename).includes('/') ? cloudinary.url(f.filename, { secure: true }) : `http://localhost:5000/uploads/${f.filename}` }));
-    const submissions = (subRows || []).map((s) => ({ user_id: s.user_id, filename: s.filename, url: s.filename && String(s.filename).includes('/') ? cloudinary.url(s.filename, { secure: true }) : `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null }));
+    const attachments = (fileRows || []).map((f) => ({ filename: f.filename, url: f.filename && String(f.filename).includes('/') ? getCloudinaryUrl(f.filename, f.original_name) : `http://localhost:5000/uploads/${f.filename}` }));
+    const submissions = (subRows || []).map((s) => ({ user_id: s.user_id, filename: s.filename, url: s.filename && String(s.filename).includes('/') ? getCloudinaryUrl(s.filename, s.original_name) : `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null }));
     const assignees = (assRows || []).map((r) => ({ id: r.user_id, username: r.username }));
     res.json({ task, creator, assignees, comments: comRows || [], attachments, submissions });
   } catch (e) {

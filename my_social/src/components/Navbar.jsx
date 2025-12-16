@@ -1,7 +1,6 @@
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
-import axios from "axios";
 
 export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) {
   const navigate = useNavigate();
@@ -28,33 +27,13 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
   </div>
   <div className="flex items-center space-x-4 text-sky-800 z-10">
     <button>💬</button>
-    {(() => {
-      const c = ctx?.taskNotifCount || 0;
-      return (
-        <div className="relative">
-          <button onClick={async () => {
-            try {
-              const token = ctx?.token;
-              if (token) {
-                await axios.post('http://localhost:5000/api/tasks/notifications/mark-read', {}, { headers: { Authorization: `Bearer ${token}` } });
-                ctx?.setTaskNotifCount && ctx.setTaskNotifCount(0);
-              }
-            } catch { void 0; }
-            navigate('/tasks');
-          }}>🔔</button>
-          {c > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 rounded-full">{c}</span>
-          )}
-        </div>
-      );
-    })()}
     <div
       className="flex items-center space-x-2 cursor-pointer"
       onClick={() => navigate('/profile')}
     >
       {u?.avatar ? (
         <img
-          src={`http://localhost:5000/uploads/${u.avatar}`}
+          src={u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`}
           alt="avatar"
           className="w-8 h-8 rounded-full object-cover"
         />

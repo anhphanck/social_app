@@ -58,7 +58,7 @@ export default function ProfilePage() {
   };
 
   const avatarUrl = isSelf
-    ? (user?.avatar ? `http://localhost:5000/uploads/${user.avatar}` : null)
+    ? (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/${user.avatar}`) : null)
     : null;
   const [otherAvatarUrl, setOtherAvatarUrl] = useState(null);
   useEffect(() => {

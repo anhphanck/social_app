@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { upload } from "./postController.js";
 import path from "path";
+import cloudinary from "../config/cloudinary.js";
+import { Readable } from "stream";
 
 async function ensureUserSchema() {
   try {
@@ -105,7 +107,7 @@ export const loginUser = (req, res) => {
         role: user.role || 'user',
         avatar: user.avatar || null
       },
-      avatar_url: user && user.avatar ? `http://localhost:5000/uploads/${user.avatar}` : null
+      avatar_url: user && user.avatar ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/${user.avatar}`) : null
     });
   });
 };
@@ -196,8 +198,20 @@ export const updateProfile = async (req, res) => {
     const fields = [];
     const params = [];
     if (avatarFile) {
-      fields.push('avatar = ?');
-      params.push(avatarFile.filename);
+      try {
+        const uploadResult = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream({ resource_type: "image", folder: "social_app/avatars" }, (err, result) => {
+            if (err) return reject(err);
+            resolve(result);
+          });
+          Readable.from(avatarFile.buffer).pipe(stream);
+        });
+        fields.push('avatar = ?');
+        params.push(uploadResult.secure_url);
+      } catch (uploadErr) {
+        console.error("Cloudinary upload failed", uploadErr);
+        return res.status(500).json({ message: "Upload avatar failed" });
+      }
     }
     if (bio && bioColumnExists) {
       fields.push('bio = ?');
@@ -217,7 +231,7 @@ export const updateProfile = async (req, res) => {
     res.json({
       message: 'Profile updated',
       user: updated,
-      avatar_url: updated && updated.avatar ? `http://localhost:5000/uploads/${updated.avatar}` : null
+      avatar_url: updated && updated.avatar ? (updated.avatar.startsWith('http') ? updated.avatar : `http://localhost:5000/uploads/${updated.avatar}`) : null
     });
   } catch (err) {
     console.error('Failed to update profile:', err);
@@ -243,7 +257,7 @@ export const getUserById = async (req, res) => {
     const u = rows[0];
     res.json({
       user: u,
-      avatar_url: u && u.avatar ? `http://localhost:5000/uploads/${u.avatar}` : null
+      avatar_url: u && u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`) : null
     });
   } catch (err) {
     console.error('Failed to fetch user by id:', err);

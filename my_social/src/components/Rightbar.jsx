@@ -20,7 +20,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
       for (const u of users) {
         if (!u) continue;
         if (u.avatar) {
-          next[u.id] = `http://localhost:5000/uploads/${u.avatar}`;
+          next[u.id] = u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`;
           continue;
         }
         try {
@@ -89,7 +89,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                 >
                   {(avatarUrls[u.id] || u.avatar) ? (
                     <img
-                      src={avatarUrls[u.id] || `http://localhost:5000/uploads/${u.avatar}`}
+                      src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`)}
                       alt="avatar"
                       className="w-7 h-7 rounded-full object-cover"
                     />
@@ -130,7 +130,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
               >
                 {(avatarUrls[u.id] || u.avatar) ? (
                   <img
-                    src={avatarUrls[u.id] || `http://localhost:5000/uploads/${u.avatar}`}
+                    src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`)}
                     alt="avatar"
                     className="w-7 h-7 rounded-full object-cover"
                   />

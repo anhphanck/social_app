@@ -22,6 +22,23 @@ export default function TasksPage() {
   const [editDeadline, setEditDeadline] = useState("");
   const [editAssignees, setEditAssignees] = useState([]);
   const [editDescription, setEditDescription] = useState("");
+  const [newAssignedTaskIds, setNewAssignedTaskIds] = useState(new Set());
+  const [ackUpdates, setAckUpdates] = useState({});
+  const [lastStatus, setLastStatus] = useState({});
+  const statusText = {
+    new: "Mới",
+    in_progress: "Đang thực hiện",
+    pending_review: "Chờ duyệt",
+    closed: "Đã hoàn thành"
+  };
+
+  const getDownloadUrl = (url) => {
+    if (!url) return '#';
+    if (url.includes('cloudinary.com') && !url.includes('fl_attachment')) {
+      return url.replace(/\/upload\//, '/upload/fl_attachment/');
+    }
+    return url;
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -62,6 +79,19 @@ export default function TasksPage() {
       try {
         if (!payload || !payload.type) return;
         if (['task_updated','assigned','status_changed','ack'].includes(payload.type)) {
+          if (payload.type === 'assigned' && payload.task_id) {
+            setNewAssignedTaskIds((prev) => {
+              const next = new Set(Array.from(prev));
+              next.add(Number(payload.task_id));
+              return next;
+            });
+          }
+          if (payload.type === 'ack' && payload.task_id && payload.status) {
+            setAckUpdates((prev) => ({ ...prev, [Number(payload.task_id)]: String(payload.status) }));
+          }
+          if (payload.type === 'status_changed' && payload.task_id && payload.status) {
+            setLastStatus((prev) => ({ ...prev, [Number(payload.task_id)]: String(payload.status) }));
+          }
           axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } })
             .then((res) => setTasks(res.data || []))
             .catch(() => {});
@@ -113,6 +143,15 @@ export default function TasksPage() {
     try {
       const res = await axios.get(`${API_URL}/tasks/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       setDetails((prev) => ({ ...prev, [id]: res.data }));
+      setNewAssignedTaskIds((prev) => {
+        const next = new Set(Array.from(prev));
+        next.delete(Number(id));
+        return next;
+      });
+      setAckUpdates((prev) => {
+        const { [Number(id)]: _, ...rest } = prev;
+        return rest;
+      });
     } catch {
       alert('Không tải được chi tiết nhiệm vụ');
     }
@@ -127,9 +166,19 @@ export default function TasksPage() {
         const files = submissionFiles[id] || [];
         if (!files || files.length === 0) { alert('Vui lòng đính kèm minh chứng'); return; }
         for (const f of files) fd.append('evidence', f);
-        await axios.post(`${API_URL}/tasks/${id}/status`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+        const resp = await axios.post(`${API_URL}/tasks/${id}/status`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+        const newStatus = (resp && resp.data && resp.data.status) ? resp.data.status : null;
+        if (newStatus) {
+          setTasks((prev) => prev.map((t) => t.id === id ? { ...t, status: newStatus } : t));
+          setLastStatus((prev) => ({ ...prev, [Number(id)]: String(newStatus) }));
+        }
       } else {
-        await axios.post(`${API_URL}/tasks/${id}/status`, { status }, { headers: { Authorization: `Bearer ${token}` } });
+        const resp = await axios.post(`${API_URL}/tasks/${id}/status`, { status }, { headers: { Authorization: `Bearer ${token}` } });
+        const newStatus = (resp && resp.data && resp.data.status) ? resp.data.status : null;
+        if (newStatus) {
+          setTasks((prev) => prev.map((t) => t.id === id ? { ...t, status: newStatus } : t));
+          setLastStatus((prev) => ({ ...prev, [Number(id)]: String(newStatus) }));
+        }
       }
       try {
         const res = await axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } });
@@ -242,10 +291,16 @@ export default function TasksPage() {
             <div className="text-sm font-semibold mb-2">{user?.role === 'admin' ? 'Tất cả nhiệm vụ' : 'Nhiệm vụ của tôi'}</div>
             <div className="space-y-3">
               {tasks.map((t) => (
-                <div key={t.id} className="border rounded p-3 flex items-center justify-between">
+                <div key={t.id} className="relative border rounded p-3 flex items-center justify-between">
+                  {newAssignedTaskIds.has(Number(t.id)) && (
+                    <span className="absolute -top-2 -left-2 bg-red-500 text-white text-xs px-1.5 rounded">Mới giao</span>
+                  )}
+                  {user?.id === t.created_by && ackUpdates[Number(t.id)] && (
+                    <span className="absolute -top-2 left-16 bg-yellow-500 text-white text-xs px-1.5 rounded">Cập nhật: {ackUpdates[Number(t.id)]}</span>
+                  )}
                   <div>
                     <div className="font-semibold">{t.title}</div>
-                    <div className="text-sm text-gray-600">Trạng thái: {t.status}</div>
+                    <div className="text-sm text-gray-600">Trạng thái: {statusText[lastStatus[Number(t.id)] || t.status] || lastStatus[Number(t.id)] || t.status || "Đã hoàn thành"}</div>
                     {t.assignees_usernames && (
                       <div className="text-sm text-gray-600">Giao cho: {String(t.assignees_usernames)}</div>
                     )}
@@ -271,7 +326,7 @@ export default function TasksPage() {
                               {details[t.id].attachments.map((f, idx) => (
                                 <div key={idx} className="flex items-center gap-2">
                                   <a href={f.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">{f.filename}</a>
-                                  <a href={f.url} className="text-xs text-gray-700 underline">Tải</a>
+                                  <a href={getDownloadUrl(f.url)} className="text-xs text-gray-700 underline">Tải</a>
                                 </div>
                               ))}
                             </div>
@@ -287,7 +342,7 @@ export default function TasksPage() {
                               {details[t.id].submissions.map((s, idx) => (
                                 <div key={idx} className="flex items-center gap-2">
                                   <a href={s.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">{s.filename}</a>
-                                  <a href={s.url} className="text-xs text-gray-700 underline">Tải</a>
+                                  <a href={getDownloadUrl(s.url)} className="text-xs text-gray-700 underline">Tải</a>
                                 </div>
                               ))}
                             </div>

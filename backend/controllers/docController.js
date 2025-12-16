@@ -31,12 +31,36 @@ export const uploadDocuments = async (req, res) => {
   }
 };
 
+const getCloudinaryUrl = (publicId, originalName) => {
+  if (!publicId) return null;
+  // Cloudinary raw files (zip, docx, etc) usually have extension in public_id
+  let isRaw = /\.(zip|docx|doc|xlsx|xls|pptx|ppt|txt|csv|rar)$/i.test(publicId);
+  const isVideo = /\.(mp4|mov|avi|mkv)$/i.test(publicId);
+
+  // Fallback: check originalName if publicId doesn't tell us
+  if (!isRaw && !isVideo && originalName) {
+     isRaw = /\.(zip|docx|doc|xlsx|xls|pptx|ppt|txt|csv|rar)$/i.test(originalName);
+  }
+
+  if (isRaw) return cloudinary.url(publicId, { resource_type: "raw", secure: true });
+  if (isVideo) return cloudinary.url(publicId, { resource_type: "video", secure: true });
+  return cloudinary.url(publicId, { secure: true });
+};
+
 export const listDocuments = async (req, res) => {
   try {
     const [rows] = await db.promise().query(
       "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id ORDER BY d.id DESC"
     );
-    const docs = (rows || []).map((r) => ({ id: r.id, user_id: r.user_id, username: r.username || null, filename: r.filename, original_name: r.original_name || r.filename, created_at: r.created_at, url: r.filename && r.filename.includes('/') ? cloudinary.url(r.filename, { secure: true }) : `http://localhost:5000/uploads/${r.filename}` }));
+    const docs = (rows || []).map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      username: r.username || null,
+      filename: r.filename,
+      original_name: r.original_name || r.filename,
+      created_at: r.created_at,
+      url: r.filename && r.filename.includes('/') ? getCloudinaryUrl(r.filename, r.original_name) : `http://localhost:5000/uploads/${r.filename}`
+    }));
     res.json(docs);
   } catch (e) {
     res.status(500).json({ message: "Lỗi lấy danh sách" });

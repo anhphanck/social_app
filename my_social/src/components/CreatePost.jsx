@@ -25,12 +25,12 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
             title={user?.username}
           >
             {user?.avatar ? (
-              <img
-                src={`http://localhost:5000/uploads/${user.avatar}`}
-                alt="avatar"
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
+            <img
+              src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/${user.avatar}`}
+              alt="avatar"
+              className="w-10 h-10 rounded-full object-cover"
+            />
+          ) : (
               <div className="w-10 h-10 rounded-full bg-sky-600 flex items-center justify-center text-white font-semibold">
                 {user?.username?.[0]?.toUpperCase() || "U"}
               </div>
@@ -52,7 +52,7 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
       <div className="flex items-center gap-3 mb-3">
         {user?.avatar ? (
           <img
-            src={`http://localhost:5000/uploads/${user.avatar}`}
+            src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/${user.avatar}`}
             alt="avatar"
             className="w-10 h-10 rounded-full object-cover"
           />

@@ -1,7 +1,10 @@
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { UserContext } from "../context/UserContext";
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const { taskNotifCount } = useContext(UserContext);
   const items = [
     { icon: "🏠", label: "Trang chủ", path: "/" },
     { icon: "📄", label: "Tài liệu dự án", path: "/documents" },
@@ -15,11 +18,16 @@ export default function Sidebar() {
         {items.map((item, i) => (
           <li
             key={i}
-            className="flex items-center space-x-3 cursor-pointer hover:bg-sky-100 p-2 rounded-md"
+            className="flex items-center justify-between cursor-pointer hover:bg-sky-100 p-2 rounded-md"
             onClick={() => navigate(item.path)}
           >
-            <span>{item.icon}</span>
-            <span className="text-sm font-medium">{item.label}</span>
+            <div className="flex items-center space-x-3">
+              <span>{item.icon}</span>
+              <span className="text-sm font-medium">{item.label}</span>
+            </div>
+            {item.path === "/tasks" && (taskNotifCount || 0) > 0 && (
+              <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">{taskNotifCount}</span>
+            )}
           </li>
         ))}
       </ul>
