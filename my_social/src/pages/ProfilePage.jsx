@@ -74,11 +74,15 @@ export default function ProfilePage() {
   }, [isSelf, viewingId, token]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="flex gap-4 p-4">
-        <Sidebar />
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm">
+    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+      <div className="z-50 shrink-0">
+        <Navbar />
+      </div>
+      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+        <div className="w-64 shrink-0 overflow-y-auto hidden md:block">
+            <Sidebar />
+        </div>
+        <div className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
           <h1 className="text-xl font-semibold text-sky-700">Trang cá nhân</h1>
           <div className="mt-6 flex items-start gap-6">
             <div>
@@ -118,7 +122,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-        <div className="w-72"></div>
+        <div className="w-72 shrink-0 hidden lg:block"></div>
       </div>
     </div>
   );

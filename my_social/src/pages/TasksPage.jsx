@@ -242,12 +242,18 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="flex gap-4 p-4">
-        <Sidebar />
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm">
-          <h1 className="text-xl font-semibold text-sky-700">Quản lý Task</h1>
+    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+      <div className="z-50 shrink-0">
+        <Navbar />
+      </div>
+      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+        <div className="w-64 shrink-0 overflow-y-auto">
+          <Sidebar />
+        </div>
+        <div className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-xl font-semibold text-sky-700">Quản lý Task</h1>
+          </div>
 
           {user?.role === "admin" && (
             <div className="mt-4 p-4 border rounded-md">
@@ -416,7 +422,7 @@ export default function TasksPage() {
             </div>
           </div>
         </div>
-        <div className="w-72"></div>
+        <div className="w-72 shrink-0"></div>
       </div>
     </div>
   );

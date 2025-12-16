@@ -231,8 +231,8 @@ export default function HomePage() {
     return () => clearTimeout(delay);
   }, [searchQuery]);
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="sticky top-0 z-50">
+    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+      <div className="z-50 shrink-0">
         <Navbar
           user={user}
           onLogout={handleLogout}
@@ -241,14 +241,12 @@ export default function HomePage() {
         />
       </div>
 
-      <div className="flex gap-4 p-4">
-        <div className="w-64">
-          <div className="sticky top-16">
+      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+        <div className="w-64 shrink-0 overflow-y-auto hidden md:block">
             <Sidebar />
-          </div>
         </div>
 
-        <main className="flex-1 bg-white p-6 rounded-md shadow-sm h-[calc(100vh-4rem)] overflow-y-auto">
+        <main className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
           <Midbar />
           <CreatePost
             newPost={newPost}
@@ -286,14 +284,12 @@ export default function HomePage() {
           </div>
         </main>
 
-        <div className="w-72">
-          <div className="sticky top-16">
+        <div className="w-72 shrink-0 overflow-y-auto hidden lg:block">
             <Rightbar
               users={users}
               pinnedPosts={posts.filter((p) => p.is_pinned)}
               onUnpin={(postId) => handleTogglePin(postId, false)}
             />
-          </div>
         </div>
       </div>
     </div>

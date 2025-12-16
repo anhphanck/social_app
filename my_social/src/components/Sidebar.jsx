@@ -13,7 +13,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="w-68 bg-white shadow-md h-screen p-4">
+    <div className="w-full bg-white shadow-md h-full p-4">
       <ul className="space-y-3">
         {items.map((item, i) => (
           <li

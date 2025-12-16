@@ -37,11 +37,15 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="flex gap-4 p-4">
-        <Sidebar />
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm">
+    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+      <div className="z-50 shrink-0">
+        <Navbar />
+      </div>
+      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+        <div className="w-64 shrink-0 overflow-y-auto">
+            <Sidebar />
+        </div>
+        <div className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
           <h1 className="text-xl font-semibold text-sky-700">Chia sẻ tài liệu dự án</h1>
           <div className="mt-4">
             <div className="p-4 border rounded-md">
@@ -76,7 +80,7 @@ export default function DocumentsPage() {
             </div>
           </div>
         </div>
-        <div className="w-72"></div>
+        <div className="w-72 shrink-0"></div>
       </div>
     </div>
   );
