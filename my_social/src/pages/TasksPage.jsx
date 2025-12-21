@@ -32,9 +32,18 @@ export default function TasksPage() {
     closed: "Đã hoàn thành"
   };
 
+  const handleDownload = async (e, file, type = 'attachment') => {
+    e.preventDefault();
+    if (file.id) {
+      window.location.href = `http://localhost:5000/api/tasks/download/${file.id}?type=${type}`;
+    } else {
+      window.open(file.url, '_blank');
+    }
+  };
+
   const getDownloadUrl = (url) => {
     if (!url) return '#';
-    if (url.includes('cloudinary.com') && !url.includes('fl_attachment')) {
+    if (url.includes('cloudinary.com') && !url.includes('fl_attachment') && !url.includes('/raw/')) {
       return url.replace(/\/upload\//, '/upload/fl_attachment/');
     }
     return url;
@@ -332,7 +341,7 @@ export default function TasksPage() {
                               {details[t.id].attachments.map((f, idx) => (
                                 <div key={idx} className="flex items-center gap-2">
                                   <a href={f.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">{f.filename}</a>
-                                  <a href={getDownloadUrl(f.url)} className="text-xs text-gray-700 underline">Tải</a>
+                                  <a href="#" onClick={(e) => handleDownload(e, f)} className="text-xs text-gray-700 underline">Tải</a>
                                 </div>
                               ))}
                             </div>
@@ -348,7 +357,7 @@ export default function TasksPage() {
                               {details[t.id].submissions.map((s, idx) => (
                                 <div key={idx} className="flex items-center gap-2">
                                   <a href={s.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">{s.filename}</a>
-                                  <a href={getDownloadUrl(s.url)} className="text-xs text-gray-700 underline">Tải</a>
+                                  <a href="#" onClick={(e) => handleDownload(e, s, 'submission')} className="text-xs text-gray-700 underline">Tải</a>
                                 </div>
                               ))}
                             </div>

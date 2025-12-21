@@ -19,6 +19,17 @@ export default function DocumentsPage() {
     } catch { setDocs([]); }
   };
 
+  const handleDownload = async (e, doc) => {
+    e.preventDefault();
+    // Use backend proxy for download to ensure correct filename and avoid CORS
+    window.location.href = `http://localhost:5000/api/documents/download/${doc.id}`;
+  };
+
+  const getDownloadUrl = (url) => {
+    // Legacy fallback, but UI should use handleDownload
+    return url;
+  }
+
   useEffect(() => { loadDocs(); }, [token]);
 
   const uploadDocs = async () => {
@@ -71,7 +82,7 @@ export default function DocumentsPage() {
                     </div>
                     <div className="flex gap-2">
                       <a href={d.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">Xem</a>
-                      <a href={d.url} className="text-xs text-gray-700 underline">Tải</a>
+                      <a href="#" onClick={(e) => handleDownload(e, d)} className="text-xs text-gray-700 underline">Tải</a>
                     </div>
                   </div>
                 ))}

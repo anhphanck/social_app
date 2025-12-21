@@ -1,18 +1,46 @@
 import db from "../config/db.js";
 import cloudinary from "../config/cloudinary.js";
+import https from "https";
+import fs from "fs";
+import { Readable } from "stream";
 
 const getCloudinaryUrl = (publicId, originalName) => {
   if (!publicId) return null;
-  let isRaw = /\.(zip|docx|doc|xlsx|xls|pptx|ppt|txt|csv|rar)$/i.test(publicId);
-  const isVideo = /\.(mp4|mov|avi|mkv)$/i.test(publicId);
-
-  if (!isRaw && !isVideo && originalName) {
-    isRaw = /\.(zip|docx|doc|xlsx|xls|pptx|ppt|txt|csv|rar)$/i.test(originalName);
+  
+  // Extract extension
+  let ext = "";
+  // Check publicId first
+  const match = publicId.match(/\.([a-zA-Z0-9]+)$/);
+  if (match) {
+    ext = match[1].toLowerCase();
+  } else if (originalName) {
+    // Fallback to originalName
+    const match2 = originalName.match(/\.([a-zA-Z0-9]+)$/);
+    if (match2) {
+      ext = match2[1].toLowerCase();
+    }
   }
 
-  if (isRaw) return cloudinary.url(publicId, { resource_type: "raw", secure: true });
-  if (isVideo) return cloudinary.url(publicId, { resource_type: "video", secure: true });
-  return cloudinary.url(publicId, { secure: true });
+  // Determine resource type
+  // PDF is tricky, often 'image' but can be downloaded. 
+  // Determine resource type
+  const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "svg", "heic", "ico", "pdf", "eps", "psd"];
+  const videoExts = ["mp4", "mov", "avi", "mkv", "webm", "wmv", "flv", "mpeg", "3gp"];
+  
+  let resourceType = "image"; // Default for no extension
+  if (ext) {
+    if (videoExts.includes(ext)) resourceType = "video";
+    else if (imageExts.includes(ext)) resourceType = "image";
+    else resourceType = "raw";
+  }
+
+  // Options for download
+  const options = { 
+    secure: true, 
+    resource_type: resourceType,
+  };
+
+  return cloudinary.url(publicId, options);
 };
 
 export async function ensureTaskSchema() {
@@ -78,10 +106,17 @@ export const createTask = async (req, res) => {
     if (files.length > 0) {
       const uploads = files.map((f) => new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream({ resource_type: "auto", folder: "social_app/tasks/attachments" }, (err, result) => {
+          if (f.path) { try { fs.unlinkSync(f.path); } catch(e) {} }
           if (err) return reject(err);
           resolve(result);
         });
-        import("stream").then(({ Readable }) => Readable.from(f.buffer).pipe(stream));
+        if (f.buffer) {
+          Readable.from(f.buffer).pipe(stream);
+        } else if (f.path) {
+          fs.createReadStream(f.path).pipe(stream);
+        } else {
+          reject(new Error("File content missing"));
+        }
       }));
       const results = await Promise.all(uploads);
       const fvals = results.map((r, idx) => [taskId, r.public_id, files[idx].originalname || null]);
@@ -226,10 +261,17 @@ export const changeStatus = async (req, res) => {
       const note = typeof req.body.note === 'string' ? req.body.note : null;
       const uploads = files.map((f) => new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream({ resource_type: "auto", folder: "social_app/tasks/submissions" }, (err, result) => {
+          if (f.path) { try { fs.unlinkSync(f.path); } catch(e) {} }
           if (err) return reject(err);
           resolve(result);
         });
-        import("stream").then(({ Readable }) => Readable.from(f.buffer).pipe(stream));
+        if (f.buffer) {
+          Readable.from(f.buffer).pipe(stream);
+        } else if (f.path) {
+          fs.createReadStream(f.path).pipe(stream);
+        } else {
+          reject(new Error("File content missing"));
+        }
       }));
       const results = await Promise.all(uploads);
       const vals = results.map((r, idx) => [id, userId, r.public_id, note, files[idx].originalname || null]);
@@ -308,15 +350,15 @@ export const getTaskDetail = async (req, res) => {
     const task = rows[0];
     const [assRows] = await db.promise().execute("SELECT u.id AS user_id, u.username FROM task_assignments a JOIN users u ON a.user_id = u.id WHERE a.task_id=?", [id]);
     const [comRows] = await db.promise().execute("SELECT * FROM task_comments WHERE task_id=? ORDER BY created_at ASC", [id]);
-    const [fileRows] = await db.promise().execute("SELECT filename, original_name FROM task_files WHERE task_id=? ORDER BY id ASC", [id]);
-    const [subRows] = await db.promise().execute("SELECT user_id, filename, original_name, created_at, note FROM task_submissions WHERE task_id=? ORDER BY id ASC", [id]);
+    const [fileRows] = await db.promise().execute("SELECT id, filename, original_name FROM task_files WHERE task_id=? ORDER BY id ASC", [id]);
+    const [subRows] = await db.promise().execute("SELECT id, user_id, filename, original_name, created_at, note FROM task_submissions WHERE task_id=? ORDER BY id ASC", [id]);
     let creator = null;
     try {
       const [cRows] = await db.promise().execute("SELECT u.id, u.username FROM users u WHERE u.id = ?", [task.created_by]);
       creator = (cRows && cRows[0]) || null;
     } catch {}
-    const attachments = (fileRows || []).map((f) => ({ filename: f.filename, url: f.filename && String(f.filename).includes('/') ? getCloudinaryUrl(f.filename, f.original_name) : `http://localhost:5000/uploads/${f.filename}` }));
-    const submissions = (subRows || []).map((s) => ({ user_id: s.user_id, filename: s.filename, url: s.filename && String(s.filename).includes('/') ? getCloudinaryUrl(s.filename, s.original_name) : `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null }));
+    const attachments = (fileRows || []).map((f) => ({ id: f.id, filename: f.filename, original_name: f.original_name, url: f.filename && String(f.filename).includes('/') ? getCloudinaryUrl(f.filename, f.original_name) : `http://localhost:5000/uploads/${f.filename}` }));
+    const submissions = (subRows || []).map((s) => ({ id: s.id, user_id: s.user_id, filename: s.filename, original_name: s.original_name, url: s.filename && String(s.filename).includes('/') ? getCloudinaryUrl(s.filename, s.original_name) : `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null }));
     const assignees = (assRows || []).map((r) => ({ id: r.user_id, username: r.username }));
     res.json({ task, creator, assignees, comments: comRows || [], attachments, submissions });
   } catch (e) {
@@ -381,6 +423,44 @@ export const deleteTask = async (req, res) => {
     res.json({ message: "Đã xóa nhiệm vụ" });
   } catch (e) {
     res.status(500).json({ message: "Lỗi xóa nhiệm vụ" });
+  }
+};
+
+export const downloadTaskFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.query; // 'attachment' or 'submission'
+    
+    let table = "task_files";
+    if (type === "submission") table = "task_submissions";
+    
+    // Validate table name to prevent SQL injection (though we use logic selection)
+    
+    const [rows] = await db.promise().execute(`SELECT filename, original_name FROM ${type === "submission" ? "task_submissions" : "task_files"} WHERE id=?`, [id]);
+    
+    if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy file" });
+    
+    const { filename: publicId, original_name } = rows[0];
+
+    if (!publicId || !publicId.includes('/')) {
+       return res.redirect(`http://localhost:5000/uploads/${publicId}`);
+    }
+
+    const url = getCloudinaryUrl(publicId, original_name);
+    
+    https.get(url, (stream) => {
+      if (stream.statusCode !== 200) {
+        return res.status(stream.statusCode).send("Failed to fetch file");
+      }
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(original_name || 'download')}"`);
+      res.setHeader('Content-Type', stream.headers['content-type'] || 'application/octet-stream');
+      stream.pipe(res);
+    }).on('error', (e) => {
+      res.status(500).send("Error fetching file");
+    });
+
+  } catch (e) {
+    res.status(500).json({ message: "Lỗi tải file" });
   }
 };
 

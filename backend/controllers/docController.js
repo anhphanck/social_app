@@ -1,12 +1,17 @@
 import db from "../config/db.js";
 import cloudinary from "../config/cloudinary.js";
 import { Readable } from "stream";
+import https from "https";
+import fs from "fs";
 
 export async function ensureDocSchema() {
   try {
     await db.promise().query(
       "CREATE TABLE IF NOT EXISTS project_documents (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, filename VARCHAR(255) NOT NULL, original_name VARCHAR(255) NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
     );
+    try {
+      await db.promise().query("ALTER TABLE project_documents ADD COLUMN original_name VARCHAR(255) NULL");
+    } catch {}
   } catch {}
 }
 
@@ -17,10 +22,19 @@ export const uploadDocuments = async (req, res) => {
     if (!files || files.length === 0) return res.status(400).json({ message: "Không có file" });
     const uploads = files.map((f) => new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream({ resource_type: "auto", folder: "social_app/documents" }, (err, result) => {
+        if (f.path) {
+          try { fs.unlinkSync(f.path); } catch (e) {}
+        }
         if (err) return reject(err);
         resolve(result);
       });
-      Readable.from(f.buffer).pipe(stream);
+      if (f.buffer) {
+        Readable.from(f.buffer).pipe(stream);
+      } else if (f.path) {
+        fs.createReadStream(f.path).pipe(stream);
+      } else {
+        reject(new Error("File content missing"));
+      }
     }));
     const results = await Promise.all(uploads);
     const values = results.map((r, idx) => [userId, r.public_id, files[idx].originalname || null]);
@@ -33,18 +47,80 @@ export const uploadDocuments = async (req, res) => {
 
 const getCloudinaryUrl = (publicId, originalName) => {
   if (!publicId) return null;
-  // Cloudinary raw files (zip, docx, etc) usually have extension in public_id
-  let isRaw = /\.(zip|docx|doc|xlsx|xls|pptx|ppt|txt|csv|rar)$/i.test(publicId);
-  const isVideo = /\.(mp4|mov|avi|mkv)$/i.test(publicId);
-
-  // Fallback: check originalName if publicId doesn't tell us
-  if (!isRaw && !isVideo && originalName) {
-     isRaw = /\.(zip|docx|doc|xlsx|xls|pptx|ppt|txt|csv|rar)$/i.test(originalName);
+  
+  // Extract extension
+  let ext = "";
+  // Check publicId first
+  const match = publicId.match(/\.([a-zA-Z0-9]+)$/);
+  if (match) {
+    ext = match[1].toLowerCase();
+  } else if (originalName) {
+    // Fallback to originalName
+    const match2 = originalName.match(/\.([a-zA-Z0-9]+)$/);
+    if (match2) {
+      ext = match2[1].toLowerCase();
+    }
   }
 
-  if (isRaw) return cloudinary.url(publicId, { resource_type: "raw", secure: true });
-  if (isVideo) return cloudinary.url(publicId, { resource_type: "video", secure: true });
-  return cloudinary.url(publicId, { secure: true });
+  // Determine resource type
+  // Default to raw for unknown types (safest for download)
+  const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "svg", "heic", "ico", "pdf", "eps", "psd"];
+  const videoExts = ["mp4", "mov", "avi", "mkv", "webm", "wmv", "flv", "mpeg", "3gp"];
+  
+  let resourceType = "image"; // Default for no extension (legacy fallback)
+  if (ext) {
+    if (videoExts.includes(ext)) resourceType = "video";
+    else if (imageExts.includes(ext)) resourceType = "image";
+    else resourceType = "raw";
+  }
+
+  // Options for download
+  const options = { 
+    secure: true, 
+    resource_type: resourceType,
+  };
+
+  return cloudinary.url(publicId, options);
+};
+
+export const downloadDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await db.promise().execute("SELECT filename, original_name FROM project_documents WHERE id=?", [id]);
+    if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy tài liệu" });
+    
+    const { filename: publicId, original_name } = rows[0];
+
+    if (!publicId || !publicId.includes('/')) {
+       // Local file, redirect to static path (or stream it)
+       // Assuming local uploads are handled by static middleware or we can just redirect
+       return res.redirect(`http://localhost:5000/uploads/${publicId}`);
+    }
+
+    // It's a cloudinary file
+    const url = getCloudinaryUrl(publicId, original_name);
+    
+    // Fetch and pipe
+    https.get(url, (stream) => {
+      if (stream.statusCode !== 200) {
+        return res.status(stream.statusCode).send("Failed to fetch file from storage");
+      }
+      
+      // Determine content type if possible, or default to generic
+      // We can try to guess from original_name
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(original_name || 'download')}"`);
+      res.setHeader('Content-Type', stream.headers['content-type'] || 'application/octet-stream');
+      
+      stream.pipe(res);
+    }).on('error', (e) => {
+      console.error("Cloudinary fetch error", e);
+      res.status(500).send("Error fetching file");
+    });
+
+  } catch (e) {
+    console.error("Download error", e);
+    res.status(500).json({ message: "Lỗi tải tài liệu" });
+  }
 };
 
 export const listDocuments = async (req, res) => {
