@@ -20,7 +20,7 @@ export default function AuthPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("error");
 
-  const API_URL = "http://localhost:5000/api/users";
+  const API_URL = "http://backend:5000/api/users";
   const navigate = useNavigate();
   const transition = { duration: 0.6, ease: "easeInOut" };
 

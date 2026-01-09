@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
 import { createServer } from "http";
 import { Server as IOServer } from "socket.io";
 import path from "path";
@@ -16,8 +15,32 @@ import { verifyTokenSocket } from "./middleware/authMiddleware.js";
 import db from "./config/db.js";
 
 const app = express();
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
-app.use(bodyParser.json());
+
+// CORS configuration - allow Docker container origins and localhost for development
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://frontend:80",
+  "http://admin:80"
+];
+
+app.use(cors({ 
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins in development - restrict in production
+    }
+  },
+  credentials: true 
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/users", userRoutes); // Cho user thường
 app.use("/api/admin", adminRoutes); // Cho admin panel
@@ -46,7 +69,17 @@ app.get('/api/files/:filename', (req, res) => {
 // create HTTP server and attach Socket.IO
 const httpServer = createServer(app);
 const io = new IOServer(httpServer, {
-	cors: { origin: ["http://localhost:5173", "http://localhost:5174"], methods: ["GET", "POST"], credentials: true },
+	cors: { 
+		origin: function (origin, callback) {
+			if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+				callback(null, true);
+			} else {
+				callback(null, true); // Allow all in development
+			}
+		},
+		methods: ["GET", "POST"], 
+		credentials: true 
+	},
 });
 
 // expose io so controllers/routes can emit
@@ -170,5 +203,10 @@ io.on('connection', (socket) => {
 	});
 });
 
-const PORT = 5000;
-httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// const PORT = 5000;
+// httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 5000;
+
+httpServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -13,7 +13,7 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "http://backend:5000/api";
 
   useEffect(() => {
     if (isSelf) {
@@ -58,7 +58,7 @@ export default function ProfilePage() {
   };
 
   const avatarUrl = isSelf
-    ? (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/${user.avatar}`) : null)
+    ? (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `http://backend:5000/uploads/${user.avatar}`) : null)
     : null;
   const [otherAvatarUrl, setOtherAvatarUrl] = useState(null);
   useEffect(() => {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:5000/api/documents'
+const API_URL = 'http://backend:5000/api/documents'
 
 export default function Files() {
   const [docs, setDocs] = useState([])
@@ -50,7 +50,7 @@ export default function Files() {
 
   const handleDownload = async (e, doc) => {
     e.preventDefault();
-    window.location.href = `http://localhost:5000/api/documents/download/${doc.id}`;
+    window.location.href = `http://backend:5000/api/documents/download/${doc.id}`;
   };
 
   return (

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:5000/api/admin/users'
+const API_URL = 'http://backend:5000/api/admin/users'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
@@ -38,7 +38,7 @@ export default function Dashboard() {
         console.error('Error fetching users:', err)
         setStats(s => ({ ...s, loading: false }))
       })
-      axios.get('http://localhost:5000/api/documents', {
+      axios.get('http://backend:5000/api/documents', {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => {
@@ -47,7 +47,7 @@ export default function Dashboard() {
       .catch(() => {})
     }
 
-    axios.get('http://localhost:5000/api/posts')
+    axios.get('http://backend:5000/api/posts')
       .then(res => {
         setStats(s => ({ ...s, totalPosts: Array.isArray(res.data) ? res.data.length : 0 }))
       })

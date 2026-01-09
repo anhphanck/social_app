@@ -6,7 +6,7 @@ import { UserContext } from "../context/UserContext";
 
 export default function DocumentsPage() {
   const { token } = useContext(UserContext);
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "http://backend:5000/api";
   const [files, setFiles] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ export default function DocumentsPage() {
   const handleDownload = async (e, doc) => {
     e.preventDefault();
     // Use backend proxy for download to ensure correct filename and avoid CORS
-    window.location.href = `http://localhost:5000/api/documents/download/${doc.id}`;
+    window.location.href = `http://backend:5000/api/documents/download/${doc.id}`;
   };
 
   const getDownloadUrl = (url) => {

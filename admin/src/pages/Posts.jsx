@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:5000/api/posts'
+const API_URL = 'http://backend:5000/api/posts'
 
 export default function Posts() {
   const [posts, setPosts] = useState([])
