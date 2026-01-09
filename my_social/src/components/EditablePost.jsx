@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
 import React from "react";
 import PostCard from "../components/PostCard";
@@ -12,7 +12,6 @@ export default function EditablePost({
   keepImages,
   setKeepImages,
   setEditContent,
-  setEditingPost,
   handleSaveEdit,
   handleCancelEdit,
   handleStartEdit,
@@ -20,7 +19,6 @@ export default function EditablePost({
   handleTogglePin,
 }) {
   const { user } = useContext(UserContext);
-  const [removingImageIndex, setRemovingImageIndex] = useState(null);
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);

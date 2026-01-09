@@ -296,9 +296,26 @@ export const unpinPost = (req, res) => {
 export const searchPosts = (req, res) => {
   const { q } = req.query; 
   if (!q) return res.status(400).json({ message: "Thiếu từ khóa tìm kiếm" });
+  
+  const userId = req.query.user_id || 0;
 
   const sql = `
-    SELECT posts.*, users.username, users.avatar
+    SELECT 
+      posts.*, 
+      users.username, 
+      users.avatar,
+      
+      -- cảm xúc của người dùng hiện tại
+      (SELECT reaction 
+         FROM post_reactions 
+         WHERE post_id = posts.id AND user_id = ?) AS user_reaction,
+
+      -- đếm theo từng loại reaction
+      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'like') AS like_count,
+      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'love') AS love_count,
+      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'haha') AS haha_count,
+      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'sad') AS sad_count
+
     FROM posts
     JOIN users ON posts.user_id = users.id
     WHERE posts.content LIKE ? OR users.username LIKE ?
@@ -307,7 +324,7 @@ export const searchPosts = (req, res) => {
 
   const keyword = `%${q}%`;
 
-  db.query(sql, [keyword, keyword], (err, data) => {
+  db.query(sql, [userId, keyword, keyword], (err, data) => {
     if (err) {
       console.error("Lỗi tìm kiếm:", err);
       return res.status(500).json({ message: "Lỗi server khi tìm kiếm" });
@@ -319,7 +336,13 @@ export const searchPosts = (req, res) => {
         ...post,
         images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
         image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
-        is_pinned: Boolean(post.is_pinned)
+        is_pinned: Boolean(post.is_pinned),
+        reactions: {
+          like: post.like_count || 0,
+          love: post.love_count || 0,
+          haha: post.haha_count || 0,
+          sad: post.sad_count || 0
+        }
       })));
     }
 
@@ -330,7 +353,13 @@ export const searchPosts = (req, res) => {
           ...post,
           images: post.image ? [`http://localhost:5000/uploads/${post.image}`] : [],
           image: post.image ? `http://localhost:5000/uploads/${post.image}` : null,
-          is_pinned: Boolean(post.is_pinned)
+          is_pinned: Boolean(post.is_pinned),
+          reactions: {
+            like: post.like_count || 0,
+            love: post.love_count || 0,
+            haha: post.haha_count || 0,
+            sad: post.sad_count || 0
+          }
         }));
         return res.json(updated);
       }
@@ -345,7 +374,13 @@ export const searchPosts = (req, res) => {
         ...post,
         images: imagesByPost[post.id] || (post.image ? [`http://localhost:5000/uploads/${post.image}`] : []),
         image: imagesByPost[post.id]?.[0] || (post.image ? `http://localhost:5000/uploads/${post.image}` : null),
-        is_pinned: Boolean(post.is_pinned)
+        is_pinned: Boolean(post.is_pinned),
+        reactions: {
+          like: post.like_count || 0,
+          love: post.love_count || 0,
+          haha: post.haha_count || 0,
+          sad: post.sad_count || 0
+        }
       }));
 
       res.json(updated);

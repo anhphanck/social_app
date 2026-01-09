@@ -4,7 +4,6 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import Rightbar from "../components/Rightbar";
 import CreatePost from "../components/CreatePost";
-import Midbar from "../components/Midbar";
 import EditablePost from "../components/EditablePost";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
@@ -218,8 +217,9 @@ export default function HomePage() {
         }
 
         try {
+          const userId = user?.id || "";
           const res = await axios.get(
-            `${API_URL}/posts/search?q=${encodeURIComponent(searchQuery)}`
+            `${API_URL}/posts/search?q=${encodeURIComponent(searchQuery)}&user_id=${userId}`
           );
           setPosts(res.data);
         } catch (err) {
@@ -233,8 +233,8 @@ export default function HomePage() {
     return () => clearTimeout(delay);
   }, [searchQuery]);
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="sticky top-0 z-50">
+    <div className="h-screen w-screen overflow-hidden bg-gray-100 flex flex-col">
+      <div className="flex-none z-50">
         <Navbar
           user={user}
           onLogout={handleLogout}
@@ -243,15 +243,12 @@ export default function HomePage() {
         />
       </div>
 
-      <div className="flex gap-4 p-4">
-        <div className="w-64">
-          <div className="sticky top-16">
-            <Sidebar />
-          </div>
+      <div className="flex flex-1 overflow-hidden gap-4 p-4">
+        <div className="w-64 h-full overflow-hidden flex flex-col">
+          <Sidebar />
         </div>
 
-        <main className="flex-1 bg-white p-6 rounded-md shadow-sm h-[calc(100vh-4rem)] overflow-y-auto">
-          <Midbar />
+        <main className="flex-1 bg-white p-6 rounded-md shadow-sm h-full overflow-y-auto custom-scrollbar">
           <CreatePost
             newPost={newPost}
             setNewPost={setNewPost}
@@ -288,14 +285,12 @@ export default function HomePage() {
           </div>
         </main>
 
-        <div className="w-72">
-          <div className="sticky top-16">
-            <Rightbar
-              users={users}
-              pinnedPosts={posts.filter((p) => p.is_pinned)}
-              onUnpin={(postId) => handleTogglePin(postId, false)}
-            />
-          </div>
+        <div className="w-72 h-full overflow-hidden flex flex-col">
+          <Rightbar
+            users={users}
+            pinnedPosts={posts.filter((p) => p.is_pinned)}
+            onUnpin={(postId) => handleTogglePin(postId, false)}
+          />
         </div>
       </div>
     </div>

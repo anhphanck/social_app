@@ -102,7 +102,7 @@ function CommentCard({ comment, onReply, onDelete }) {
           )}
         </div>
         <div className="cursor-pointer" onClick={() => navigate(`/profile/${comment.user_id}`)}>
-          <strong>{comment.username}</strong>
+          <strong>{comment.username || "Người dùng ẩn"}</strong>
         </div>
         <span className="text-gray-400 text-xs">
           {comment.created_at ? new Date(comment.created_at).toLocaleString() : ""}
@@ -172,6 +172,7 @@ function CommentCard({ comment, onReply, onDelete }) {
 // ========================== CommentList ==========================
 function CommentList({ postId, showInput }) {
   const { user } = useContext(UserContext);
+  const token = localStorage.getItem('token');
   const [comments, setComments] = useState([]);
   const [replyTo, setReplyTo] = useState(null);
   const [newContent, setNewContent] = useState("");
@@ -184,8 +185,11 @@ function CommentList({ postId, showInput }) {
 
     const nested = [];
     flat.forEach((c) => {
-      if (c.parent_id) map[c.parent_id]?.replies.push(map[c.id]);
-      else nested.push(map[c.id]);
+      if (c.parent_id && map[c.parent_id]) {
+        map[c.parent_id].replies.push(map[c.id]);
+      } else {
+        nested.push(map[c.id]);
+      }
     });
     return nested;
   };

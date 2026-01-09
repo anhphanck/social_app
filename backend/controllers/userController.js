@@ -156,50 +156,46 @@ export const updateProfile = async (req, res) => {
     if (!userId) return res.status(401).json({ message: "Unauthenticated" });
 
     const avatarFile = req.file || null;
-    const bio = typeof req.body.bio === 'string' ? req.body.bio : null;
+    const bio = req.body.bio;
 
-    let bioColumnExists = false;
-    try {
-      const [cols] = await db.promise().query("SHOW COLUMNS FROM users LIKE 'bio'");
-      bioColumnExists = Array.isArray(cols) && cols.length > 0;
-    } catch {}
-
-    if (bio && !bioColumnExists) {
-      try {
-        await db.promise().query("ALTER TABLE users ADD COLUMN bio TEXT NULL");
-        bioColumnExists = true;
-      } catch {}
-    }
+    console.log("Processing profile update for user:", userId);
+    console.log("Bio:", bio);
+    console.log("File:", avatarFile ? avatarFile.filename : "No file");
 
     const fields = [];
     const params = [];
+
     if (avatarFile) {
       fields.push('avatar = ?');
       params.push(avatarFile.filename);
     }
-    if (bio && bioColumnExists) {
+
+    // Since we know the column exists from schema, we just update it
+    if (bio !== undefined) {
       fields.push('bio = ?');
       params.push(bio);
     }
 
     if (fields.length === 0) {
-      return res.status(400).json({ message: 'No data to update' });
+      return res.status(400).json({ message: 'Không có dữ liệu để cập nhật' });
     }
 
     params.push(userId);
     const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+    
     await db.promise().execute(sql, params);
 
-    const [rows] = await db.promise().execute('SELECT id, username, email, role, avatar' + (bioColumnExists ? ', bio' : '') + ' FROM users WHERE id = ?', [userId]);
+    const [rows] = await db.promise().execute('SELECT id, username, email, role, avatar, bio FROM users WHERE id = ?', [userId]);
     const updated = rows && rows[0];
+    
     res.json({
       message: 'Profile updated',
       user: updated,
       avatar_url: updated && updated.avatar ? `http://localhost:5000/uploads/${updated.avatar}` : null
     });
   } catch (err) {
-    console.error('Failed to update profile:', err);
-    res.status(500).json({ message: 'Failed to update profile' });
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: "Lỗi server khi cập nhật hồ sơ" });
   }
 };
 

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import AuthPage from "../pages/AuthPage";
 import HomePage from "../pages/HomePage";
+import ProfilePage from "../pages/ProfilePage";
 
 export default function AppRouter() {
   const { user, loadingUser } = useContext(UserContext);
@@ -13,6 +14,7 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={user ? <HomePage /> : <Navigate to="/auth" replace />} />
+        <Route path="/profile/:id" element={user ? <ProfilePage /> : <Navigate to="/auth" replace />} />
         <Route path="/auth" element={!user ? <AuthPage /> : <Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

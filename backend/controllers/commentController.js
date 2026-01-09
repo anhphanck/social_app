@@ -13,7 +13,7 @@ export const getCommentsByPost = (req, res) => {
       COALESCE(rc.sad_count, 0) AS sad_count,
       r.reaction AS user_reaction
     FROM comments c
-    JOIN users u ON c.user_id = u.id
+    LEFT JOIN users u ON c.user_id = u.id
     LEFT JOIN (
       SELECT comment_id,
         SUM(reaction='like') AS like_count,

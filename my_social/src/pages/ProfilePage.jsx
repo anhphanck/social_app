@@ -37,23 +37,33 @@ export default function ProfilePage() {
   }, [file]);
 
   const onSave = async () => {
+    if (!token) {
+      alert('Bạn cần đăng nhập để cập nhật hồ sơ');
+      return;
+    }
     try {
       const fd = new FormData();
       if (file) fd.append('avatar', file);
-      if (bio) fd.append('bio', bio);
+      fd.append('bio', bio || "");
       const res = await axios.put(`${API_URL}/users/profile`, fd, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res && res.data && res.data.user) {
         const updated = res.data.user;
         const newUser = { ...user, ...updated };
+        if (res.data.avatar_url) {
+          newUser.avatar_url = res.data.avatar_url;
+        }
         setUser(newUser);
         localStorage.setItem('user', JSON.stringify(newUser));
+        setFile(null); // Clear file after successful upload
+        setPreview(null); // Clear preview
         alert('Cập nhật hồ sơ thành công');
       }
     } catch (e) {
       console.error('Update profile failed', e);
-      alert('Không thể cập nhật hồ sơ');
+      const errorMessage = e.response?.data?.message || e.message || 'Không thể cập nhật hồ sơ';
+      alert(`Lỗi: ${errorMessage}`);
     }
   };
 
