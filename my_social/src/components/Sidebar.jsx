@@ -6,7 +6,6 @@ export default function Sidebar() {
     { icon: "🏠", label: "Trang chủ", path: "/" },
     { icon: "📄", label: "Tài liệu lớp học", path: "/documents" },
     { icon: "📝", label: "Nhiệm vụ", path: "/tasks" },
-    { icon: "💼", label: "Cuộc họp", path: "/meeting" }
   ];
 
   return (

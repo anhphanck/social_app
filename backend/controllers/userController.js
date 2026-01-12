@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 import { upload } from "./postController.js";
 import path from "path";
 
-// Ensure optional columns exist for profile features (avatar, bio)
 async function ensureUserProfileColumns() {
   try {
     const [cols] = await db.promise().query("SHOW COLUMNS FROM users");
@@ -34,9 +33,7 @@ const SECRET_KEY = "secret_key_demo";
 
 export const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
-  console.log("username:", username);
-console.log("email:", email);
-console.log("password:", password);
+  
   if (!username || !email || !password)
     return res.status(400).json({ message: "Thiếu thông tin" });
   
@@ -169,8 +166,6 @@ export const updateProfile = async (req, res) => {
       fields.push('avatar = ?');
       params.push(avatarFile.filename);
     }
-
-    // Since we know the column exists from schema, we just update it
     if (bio !== undefined) {
       fields.push('bio = ?');
       params.push(bio);
@@ -204,7 +199,7 @@ export const getUserById = async (req, res) => {
     const userId = req.params.id;
     if (!userId) return res.status(400).json({ message: 'Missing user id' });
 
-    // detect optional bio column
+
     let bioColumnExists = false;
     try {
       const [cols] = await db.promise().query("SHOW COLUMNS FROM users LIKE 'bio'");

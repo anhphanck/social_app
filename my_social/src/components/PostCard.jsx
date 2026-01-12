@@ -4,9 +4,7 @@ import axios from "axios";
 import { UserContext } from "../context/UserContext";
 
 const API_URL = "http://localhost:5000/api";
-
-// ========================== CommentCard ==========================
-// ========================== CommentCard ==========================
+//  CommentCard 
 function CommentCard({ comment, onReply, onDelete }) {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
@@ -169,7 +167,7 @@ function CommentCard({ comment, onReply, onDelete }) {
   );
 }
 
-// ========================== CommentList ==========================
+// CommentList 
 function CommentList({ postId, showInput }) {
   const { user } = useContext(UserContext);
   const token = localStorage.getItem('token');
@@ -314,8 +312,7 @@ function CommentList({ postId, showInput }) {
   );
 }
 
-// ========================== PostCard ==========================
-// ========================== PostCard ==========================
+//  PostCard 
 export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();

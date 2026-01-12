@@ -1,7 +1,7 @@
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
-export default function MeetingPage() {
+export default function TasksPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />

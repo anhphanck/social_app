@@ -6,7 +6,7 @@ import axios from "axios";
 
 export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
   const navigate = useNavigate();
-  const { setCurrentChatId, unreadCounts, onlineUsers, setUnreadCounts, user } = useContext(UserContext);
+  const { setCurrentChatId, unreadCounts, setUnreadCounts, user } = useContext(UserContext);
   const [avatarUrls, setAvatarUrls] = useState({});
   const API_URL = "http://localhost:5000/api";
 
@@ -77,7 +77,6 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
       <div className="bg-white shadow-sm p-3 rounded-md h-35">
         <h3 className="font-semibold text-sky-700 mb-2">🟢 Bạn bè đang online</h3>
         {(() => {
-          // Demo: Show 1 user as online (if available)
           const otherUsers = users.filter(u => user && u.id !== user.id);
           const onlineList = otherUsers.length > 0 ? [otherUsers[0]] : [];
           

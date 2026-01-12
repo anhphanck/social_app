@@ -5,7 +5,6 @@ import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";
 import DocumentsPage from "./pages/DocumentsPage";
 import TasksPage from "./pages/TasksPage";
-import MeetingPage from "./pages/MeetingPage";
 import ProfilePage from "./pages/ProfilePage";
 
 export default function App() {
@@ -19,7 +18,6 @@ export default function App() {
         <Route path="/" element={user ? <HomePage /> : <Navigate to="/auth" replace />} />
         <Route path="/auth" element={!user ? <AuthPage /> : <Navigate to="/" replace />} />
         <Route path="/documents" element={user ? <DocumentsPage /> : <Navigate to="/auth" replace />} />
-        <Route path="/meeting" element={user ? <MeetingPage /> : <Navigate to="/auth" replace />} />
         <Route path="/tasks" element={user ? <TasksPage /> : <Navigate to="/auth" replace />} />
         <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/auth" replace />} />
         <Route path="/profile/:id" element={user ? <ProfilePage /> : <Navigate to="/auth" replace />} />
