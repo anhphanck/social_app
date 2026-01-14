@@ -11,8 +11,6 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
    <div className="relative flex items-center justify-between px-6 py-3 bg-sky-200 shadow-md">
   <div className="flex items-center space-x-4 z-10">
     <div className="font-bold text-xl text-sky-700">LOGO</div>
-    <button>🏠</button>
-    <button>🌙</button>
   </div>
 
   <div className="relative w-full max-w-lg">
@@ -26,7 +24,6 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
   />
   </div>
   <div className="flex items-center space-x-4 text-sky-800 z-10">
-    <button>💬</button>
     <div
       className="flex items-center space-x-2 cursor-pointer"
       onClick={() => navigate('/profile')}

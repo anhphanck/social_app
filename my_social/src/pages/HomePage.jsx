@@ -109,8 +109,9 @@ export default function HomePage() {
   };
 
   const handleTogglePin = async (postId, shouldPin) => {
-    if (!user || user.role !== 'admin') {
-      alert('Chỉ admin mới được ghim bài viết');
+    // Giáo viên + admin đều có quyền ghim bài
+    if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
+      alert('Chỉ giáo viên hoặc admin mới được ghim bài viết');
       return;
     }
     if (!token) return;

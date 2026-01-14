@@ -39,20 +39,41 @@ export default function AuthPage() {
           email: formData.email,
           password: formData.password,
         });
-        localStorage.setItem("token", res.data.token);
-        setToken(res.data.token);
+
+        // Lấy thông tin user đầy đủ (bao gồm role hiện tại)
+        let mergedUser = res.data.user;
         try {
           const full = await axios.get(`${API_URL}/${res.data.user.id}`, {
             headers: { Authorization: `Bearer ${res.data.token}` }
           });
-          const mergedUser = { ...res.data.user, ...(full.data?.user || {}) };
-          localStorage.setItem("user", JSON.stringify(mergedUser));
-          setUser(mergedUser);
+          mergedUser = { ...res.data.user, ...(full.data?.user || {}) };
         } catch {
-          localStorage.setItem("user", JSON.stringify(res.data.user));
-          setUser(res.data.user);
+          // nếu lỗi thì dùng tạm user từ login response
+          mergedUser = res.data.user;
         }
+
+        // Chặn admin đăng nhập my_social
+        if (mergedUser.role === "admin") {
+          setMessage("Tài khoản admin chỉ được sử dụng ở trang quản trị, không đăng nhập được vào hệ thống my_social.");
+          setMessageType("error");
+          // đảm bảo không lưu token/user vào localStorage hay context
+          try {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+          } catch {}
+          setToken(null);
+          setUser(null);
+          return;
+        }
+
+        // Lưu thông tin cho user / teacher
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify(mergedUser));
+        setToken(res.data.token);
+        setUser(mergedUser);
+
         setMessage("Đăng nhập thành công!");
+        setMessageType("success");
         navigate("/");  
       } else {
         await axios.post(`${API_URL}/register`, {

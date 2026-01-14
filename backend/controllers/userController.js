@@ -127,8 +127,9 @@ export const updateUserRole = (req, res) => {
   const { userId } = req.params;
   const { role } = req.body;
 
-  if (!role || !['user', 'admin'].includes(role)) {
-    return res.status(400).json({ message: "Role không hợp lệ. Phải là 'user' hoặc 'admin'" });
+  // Trang admin chỉ cho phép chuyển giữa user <-> teacher (không set được admin từ đây)
+  if (!role || !['user', 'teacher'].includes(role)) {
+    return res.status(400).json({ message: "Role không hợp lệ. Chỉ được chọn 'user' hoặc 'teacher'" });
   }
 
   const q = "UPDATE users SET role = ? WHERE id = ?";
@@ -140,7 +141,9 @@ export const updateUserRole = (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Không tìm thấy user" });
     }
-    res.json({ message: `Đã ${role === 'admin' ? 'thăng cấp' : 'hạ cấp'} user thành công`, role });
+
+    const actionText = role === 'teacher' ? 'thăng cấp lên giáo viên' : 'chuyển về user';
+    res.json({ message: `Đã ${actionText} cho user thành công`, role });
   });
 };
 

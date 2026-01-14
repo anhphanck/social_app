@@ -156,7 +156,8 @@ export const listTasks = async (req, res) => {
       const [rows] = await db.promise().execute("SELECT role FROM users WHERE id = ?", [userId]);
       role = (rows && rows[0] && rows[0].role) || "user";
     } catch {}
-    if (role === "admin") {
+    // Giáo viên xem như quản lý: xem tất cả nhiệm vụ như admin
+    if (role === "admin" || role === "teacher") {
       const [rows] = await db.promise().query(
         "SELECT t.*, GROUP_CONCAT(a.user_id) AS assignees, GROUP_CONCAT(u.username) AS assignees_usernames FROM tasks t LEFT JOIN task_assignments a ON t.id=a.task_id LEFT JOIN users u ON a.user_id = u.id GROUP BY t.id ORDER BY t.created_at DESC"
       );
@@ -245,15 +246,21 @@ export const changeStatus = async (req, res) => {
     const [assign] = await db.promise().execute("SELECT 1 FROM task_assignments WHERE task_id=? AND user_id=?", [id, userId]);
     const isAssignee = assign && assign.length > 0;
     const allowedUser = ["in_progress", "pending_review"];
-    const allowedAdmin = ["closed"];
-    if (role !== "admin" && !isAssignee) return res.status(403).json({ message: "Không có quyền" });
-    if (role === "admin") {
-      if (!allowedAdmin.includes(status)) return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    const allowedManager = ["closed"]; // admin + teacher
+    const isManager = role === "admin" || role === "teacher";
+
+    // Chỉ người được giao hoặc quản lý (giáo viên/admin) mới được đổi trạng thái
+    if (!isManager && !isAssignee) {
+      return res.status(403).json({ message: "Không có quyền" });
+    }
+
+    if (isManager) {
+      if (!allowedManager.includes(status)) return res.status(400).json({ message: "Trạng thái không hợp lệ" });
     } else {
       if (!allowedUser.includes(status)) return res.status(400).json({ message: "Trạng thái không hợp lệ" });
     }
     let newStatus = status;
-    if (role !== "admin" && status === "pending_review") {
+    if (!isManager && status === "pending_review") {
       const files = req.files || [];
       if (!files || files.length === 0) {
         return res.status(400).json({ message: "Yêu cầu đính kèm minh chứng" });
@@ -281,7 +288,7 @@ export const changeStatus = async (req, res) => {
     await db.promise().execute("UPDATE tasks SET status=? WHERE id=?", [newStatus, id]);
     const [taskRows] = await db.promise().execute("SELECT title FROM tasks WHERE id=?", [id]);
     const title = taskRows && taskRows[0] && taskRows[0].title;
-    if (role === "admin") {
+    if (isManager) {
       const [assRows] = await db.promise().execute("SELECT user_id FROM task_assignments WHERE task_id=?", [id]);
       for (const r of assRows || []) {
         await db.promise().execute(

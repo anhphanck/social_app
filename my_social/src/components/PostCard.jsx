@@ -430,7 +430,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
           </div>
         </div>
         <div className="space-x-3 text-sm flex items-center gap-3">
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.role === 'teacher') && (
             <button
               onClick={() => onTogglePin && onTogglePin(!post.is_pinned)}
               className={`px-3 py-1 rounded-full text-xs ${post.is_pinned ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}
@@ -449,7 +449,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
 
       {post.is_pinned && (
         <div className="flex items-center gap-2 text-amber-600 text-xs font-semibold uppercase">
-          📌 Đã ghim bởi admin
+          📌 Đã ghim bởi quản lý
         </div>
       )}
       <div className="mt-2 text-gray-800">

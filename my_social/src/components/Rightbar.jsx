@@ -57,7 +57,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
             <div className="text-gray-600 mt-1 line-clamp-2">{post.content || 'Không có nội dung'}</div>
             <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
               <span>{post.created_at ? new Date(post.created_at).toLocaleString('vi-VN') : ''}</span>
-              {user?.role === 'admin' && (
+              {(user?.role === 'admin' || user?.role === 'teacher') && (
                 <button
                   onClick={() => {
                     if (window.confirm('Bạn có chắc muốn gỡ ghim bài viết này?')) {

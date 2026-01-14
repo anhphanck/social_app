@@ -264,7 +264,8 @@ export default function TasksPage() {
             <h1 className="text-xl font-semibold text-sky-700">Quản lý Task</h1>
           </div>
 
-          {user?.role === "admin" && (
+          {/* Giáo viên + admin được tạo nhiệm vụ */}
+          {(user?.role === "admin" || user?.role === "teacher") && (
             <div className="mt-4 p-4 border rounded-md">
               <div className="text-sm font-semibold mb-2">Tạo nhiệm vụ mới</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -303,7 +304,7 @@ export default function TasksPage() {
           )}
 
           <div className="mt-6">
-            <div className="text-sm font-semibold mb-2">{user?.role === 'admin' ? 'Tất cả nhiệm vụ' : 'Nhiệm vụ của tôi'}</div>
+            <div className="text-sm font-semibold mb-2">{(user?.role === 'admin' || user?.role === 'teacher') ? 'Tất cả nhiệm vụ' : 'Nhiệm vụ của tôi'}</div>
             <div className="space-y-3">
               {tasks.map((t) => (
                 <div key={t.id} className="relative border rounded p-3 flex items-center justify-between">
@@ -373,7 +374,7 @@ export default function TasksPage() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {user?.role !== 'admin' && (
+                    {user?.role !== 'admin' && user?.role !== 'teacher' && (
                       <>
                         {t.status === 'new' && (
                           <button onClick={() => changeStatus(t.id, 'in_progress')} className="px-3 py-1 border rounded">Nhận việc</button>
@@ -392,7 +393,7 @@ export default function TasksPage() {
                         )}
                       </>
                     )}
-                    {user?.role === 'admin' && (
+                    {(user?.role === 'admin' || user?.role === 'teacher') && (
                       <>
                         {t.status === 'pending_review' && <button onClick={() => changeStatus(t.id, 'closed')} className="px-3 py-1 border rounded">Duyệt</button>}
                         <button onClick={() => deleteTask(t.id)} className="px-3 py-1 border rounded text-red-700">Xóa</button>
@@ -400,7 +401,7 @@ export default function TasksPage() {
                       </>
                     )}
                   </div>
-                  {user?.role === 'admin' && editTaskId === t.id && (
+                  {(user?.role === 'admin' || user?.role === 'teacher') && editTaskId === t.id && (
                     <div className="mt-2 p-2 border rounded">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <select value={editPriority} onChange={(e) => setEditPriority(e.target.value)} className="border rounded px-3 py-2">

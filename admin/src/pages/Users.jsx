@@ -242,12 +242,16 @@ export default function Users() {
                           {u.email}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            u.role === 'admin' 
-                              ? 'bg-purple-100 text-purple-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {u.role === 'admin' ? 'Admin' : 'User'}
+                          <span
+                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              u.role === 'admin'
+                                ? 'bg-purple-100 text-purple-800'
+                                : u.role === 'teacher'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {u.role === 'admin' ? 'Admin' : u.role === 'teacher' ? 'Giáo viên' : 'User'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -260,21 +264,26 @@ export default function Users() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <div className="flex gap-2 items-center">
-                          {u.role === 'admin' ? (
-                            <button
-                              onClick={() => handleUpdateRole(u.id, 'user')}
-                              className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition text-xs font-medium"
-                            >
-                              Hạ cấp
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleUpdateRole(u.id, 'admin')}
-                              className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-xs font-medium"
-                            >
-                              Thăng cấp
-                            </button>
-                          )}
+                            {/* Admin root (đang đăng nhập) không bị chỉnh role từ đây */}
+                            {u.role !== 'admin' && (
+                              <>
+                                {u.role === 'teacher' ? (
+                                  <button
+                                    onClick={() => handleUpdateRole(u.id, 'user')}
+                                    className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition text-xs font-medium"
+                                  >
+                                    Hạ xuống User
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleUpdateRole(u.id, 'teacher')}
+                                    className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-xs font-medium"
+                                  >
+                                    Thăng lên Giáo viên
+                                  </button>
+                                )}
+                              </>
+                            )}
                           {!u.is_approved && (
                             <button
                               onClick={() => handleApprove(u.id)}
