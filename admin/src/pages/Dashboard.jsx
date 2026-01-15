@@ -195,6 +195,13 @@ export default function Dashboard() {
               <div className="font-medium text-gray-900">Quản lý Tài liệu</div>
               <div className="text-sm text-gray-600 mt-1">Xem và xóa các file người dùng tải lên</div>
             </button>
+            <button
+              onClick={() => navigate('/classes')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition text-left"
+            >
+              <div className="font-medium text-gray-900">Quản lý Lớp</div>
+              <div className="text-sm text-gray-600 mt-1">Tạo, sửa, xóa lớp và gán giáo viên CN</div>
+            </button>
           </div>
         </div>
       </main>

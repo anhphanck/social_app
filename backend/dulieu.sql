@@ -9,6 +9,8 @@ CREATE TABLE users (
     bio TEXT,
     -- Thêm 3 tác nhân: user, teacher, admin
     role ENUM('user','teacher','admin') DEFAULT 'user',
+    -- Lớp học: A, B, C, D (NULL cho teacher vì teacher có thể xem tất cả lớp)
+    class ENUM('A','B','C','D') NULL,
     is_approved TINYINT(1) DEFAULT 0,
     token_version INT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -23,8 +25,11 @@ CREATE TABLE posts (
     content TEXT,
     image VARCHAR(255),
     is_pinned TINYINT(1) DEFAULT 0,
+    -- Lớp học của bài viết (lấy từ user.class khi tạo post)
+    class ENUM('A','B','C','D') NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_created (user_id, created_at),
+    INDEX idx_class_created (class, created_at),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

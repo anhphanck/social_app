@@ -1,23 +1,27 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { UserContext } from "../context/UserContext";
 
 export default function DocumentsPage() {
-  const { token } = useContext(UserContext);
+  const { token, user, selectedClass } = useContext(UserContext);
   const API_URL = "http://localhost:5000/api";
   const [files, setFiles] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const loadDocs = async () => {
+  const loadDocs = useCallback(async () => {
     try {
       if (!token) return;
-      const res = await axios.get(`${API_URL}/documents`, { headers: { Authorization: `Bearer ${token}` } });
+      let url = `${API_URL}/documents`;
+      if (user?.role === "teacher" || user?.role === "admin") {
+        if (selectedClass) url += `?class=${encodeURIComponent(selectedClass)}`;
+      }
+      const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
       setDocs(res.data || []);
     } catch { setDocs([]); }
-  };
+  }, [token, user?.role, selectedClass]);
 
   const handleDownload = async (e, doc) => {
     e.preventDefault();
@@ -25,12 +29,7 @@ export default function DocumentsPage() {
     window.location.href = `http://localhost:5000/api/documents/download/${doc.id}`;
   };
 
-  const getDownloadUrl = (url) => {
-    // Legacy fallback, but UI should use handleDownload
-    return url;
-  }
-
-  useEffect(() => { loadDocs(); }, [token]);
+  useEffect(() => { loadDocs(); }, [loadDocs]);
 
   const uploadDocs = async () => {
     try {
@@ -39,7 +38,11 @@ export default function DocumentsPage() {
       setLoading(true);
       const fd = new FormData();
       for (const f of files) fd.append("files", f);
-      await axios.post(`${API_URL}/documents/upload`, fd, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } });
+      let url = `${API_URL}/documents/upload`;
+      if (user?.role === "teacher" || user?.role === "admin") {
+        if (selectedClass) url += `?class=${encodeURIComponent(selectedClass)}`;
+      }
+      await axios.post(url, fd, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } });
       setFiles([]);
       await loadDocs();
       alert("Đã tải lên");

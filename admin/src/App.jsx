@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import Posts from './pages/Posts'
 import Files from './pages/Files'
+import Classes from './pages/Classes'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('adminToken')
@@ -68,6 +69,14 @@ function App() {
           element={
             <PrivateRoute>
               <Files />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/classes" 
+          element={
+            <PrivateRoute>
+              <Classes />
             </PrivateRoute>
           } 
         />

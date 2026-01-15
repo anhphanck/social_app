@@ -3,26 +3,47 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
 const API_URL = 'http://localhost:5000/api/documents'
+const API_CLASSES = 'http://localhost:5000/api/classes'
 
 export default function Files() {
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
+  const [classes, setClasses] = useState([])
+  const [selectedClass, setSelectedClass] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
     const adminUser = localStorage.getItem('adminUser')
     if (adminUser) setUser(JSON.parse(adminUser))
-    fetchDocs()
+    fetchClasses()
   }, [])
 
-  const fetchDocs = async () => {
+  const fetchClasses = async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await axios.get(API_CLASSES, { headers: { Authorization: `Bearer ${token}` } })
+      const list = res.data || []
+      setClasses(list)
+      const defaultCode = (list[0] && list[0].code) ? list[0].code : 'A'
+      setSelectedClass(defaultCode)
+      await fetchDocs(defaultCode)
+    } catch (err) {
+      // Nếu không lấy được danh sách lớp, vẫn thử fetch tài liệu chung theo mặc định A
+      const fallback = 'A'
+      setSelectedClass(fallback)
+      await fetchDocs(fallback)
+    }
+  }
+
+  const fetchDocs = async (cls = selectedClass) => {
     setLoading(true)
     setError('')
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${token}` } })
+      const url = cls ? `${API_URL}?class=${encodeURIComponent(cls)}` : API_URL
+      const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } })
       setDocs(res.data || [])
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể tải danh sách tài liệu')
@@ -86,9 +107,25 @@ export default function Files() {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Quản lý Tài liệu</h2>
-            <p className="mt-2 text-gray-600">Danh sách tất cả file được người dùng tải lên</p>
+            <p className="mt-2 text-gray-600">Lọc và quản lý theo lớp để dễ theo dõi</p>
           </div>
-          <button onClick={fetchDocs} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">Làm mới</button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700">Lớp:</label>
+              <select
+                value={selectedClass}
+                onChange={async (e) => { const c = e.target.value; setSelectedClass(c); await fetchDocs(c); }}
+                className="border rounded px-3 py-2 text-sm"
+              >
+                {classes.length > 0 ? (
+                  classes.map(c => (<option key={c.id} value={c.code}>{c.code}</option>))
+                ) : (
+                  ['A','B','C','D'].map(code => (<option key={code} value={code}>{code}</option>))
+                )}
+              </select>
+            </div>
+            <button onClick={() => fetchDocs(selectedClass)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">Làm mới</button>
+          </div>
         </div>
 
         {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{error}</div>}
@@ -116,6 +153,9 @@ export default function Files() {
                         <p className="font-semibold text-gray-900">{d.original_name}</p>
                         <p className="text-xs text-gray-500">Người tải lên: {d.username || d.user_id}</p>
                         <p className="text-xs text-gray-500">{d.created_at ? new Date(d.created_at).toLocaleString('vi-VN') : '-'}</p>
+                        {selectedClass && (
+                          <p className="text-xs text-gray-500">Lớp: {selectedClass}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">

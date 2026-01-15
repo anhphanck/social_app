@@ -48,6 +48,15 @@ export async function ensureTaskSchema() {
     await db.promise().query(
       "CREATE TABLE IF NOT EXISTS tasks (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL, description TEXT NULL, priority VARCHAR(20) DEFAULT 'medium', deadline DATETIME NULL, status VARCHAR(30) DEFAULT 'new', created_by INT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+    // Add class_id to tasks if missing
+    try {
+      const [cols] = await db.promise().query("SHOW COLUMNS FROM tasks LIKE 'class_id'");
+      if (!cols || cols.length === 0) {
+        await db.promise().query("ALTER TABLE tasks ADD COLUMN class_id INT NULL");
+        await db.promise().query("ALTER TABLE tasks ADD CONSTRAINT fk_tasks_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL");
+      }
+    } catch {}
+
     await db.promise().query(
       "CREATE TABLE IF NOT EXISTS task_assignments (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, UNIQUE KEY uniq_task_user (task_id, user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
@@ -75,7 +84,7 @@ export async function ensureTaskSchema() {
 
 export const createTask = async (req, res) => {
   try {
-    let { title, description, priority, deadline, assignees } = req.body;
+    let { title, description, priority, deadline, assignees, class_id } = req.body;
     title = typeof title === 'string' ? title.trim() : title;
     // normalize assignees from string to array BEFORE validation
     if (typeof assignees === "string") {
@@ -95,9 +104,55 @@ export const createTask = async (req, res) => {
       const base = dl.replace("T", " ");
       dl = base.length === 16 ? base + ":00" : base;
     }
+    
+    // Determine class_id from body or class code param
+    const classCodeParam = req.query.class || req.body.class || null;
+    let finalClassId = class_id || null;
+    if (!finalClassId && classCodeParam) {
+      try {
+        const [[c]] = await db.promise().query("SELECT id FROM classes WHERE code = ?", [String(classCodeParam).trim().toUpperCase()]);
+        finalClassId = c && c.id ? c.id : null;
+      } catch {}
+    }
+    if (!finalClassId) {
+      try {
+        // If creator is teacher/admin, try to infer from their current selection or assignments
+        // But for now, we rely on client sending it or we use creator's class if they are a student (unlikely to create task)
+        // If teacher, they should select a class. If not provided, it might be a general task?
+        // Let's check if user has a class_id
+        const [uRows] = await db.promise().query("SELECT class_id FROM users WHERE id = ?", [createdBy]);
+        if (uRows && uRows[0] && uRows[0].class_id) {
+           // Only auto-assign if user is student. If teacher, they might want to assign to any class.
+           // But if teacher didn't specify, maybe default to their homeroom?
+           // For safety, let's leave it null if not specified by teacher.
+           // But wait, user requirement is strict isolation.
+           // If a teacher creates a task without class_id, who sees it?
+           // Only assignees. That's fine.
+           // But if we want listTasks to filter by class, we need class_id.
+           // Let's use the first assignee's class as a heuristic if not provided?
+           if (assignees.length > 0) {
+             const [aRows] = await db.promise().query("SELECT class_id FROM users WHERE id = ?", [assignees[0]]);
+             if (aRows && aRows[0]) finalClassId = aRows[0].class_id;
+           }
+        }
+      } catch {}
+    }
+    // Validate all assignees belong to finalClassId (if defined)
+    if (finalClassId) {
+      const placeholders = assignees.map(() => "?").join(",");
+      const [rowsAss] = await db.promise().query(
+        `SELECT id, class_id FROM users WHERE id IN (${placeholders})`,
+        assignees
+      );
+      const invalid = (rowsAss || []).some((u) => Number(u.class_id) !== Number(finalClassId));
+      if (invalid) {
+        return res.status(400).json({ message: "Chỉ được giao nhiệm vụ cho user trong đúng lớp" });
+      }
+    }
+
     const [result] = await db.promise().execute(
-      "INSERT INTO tasks (title, description, priority, deadline, status, created_by) VALUES (?, ?, ?, ?, 'new', ?)",
-      [title, description || null, priority || "medium", dl, createdBy]
+      "INSERT INTO tasks (title, description, priority, deadline, status, created_by, class_id) VALUES (?, ?, ?, ?, 'new', ?, ?)",
+      [title, description || null, priority || "medium", dl, createdBy, finalClassId]
     );
     const taskId = result.insertId;
     const values = assignees.map((uid) => [taskId, uid]);
@@ -129,22 +184,11 @@ export const createTask = async (req, res) => {
         [uid, taskId, msg]
       );
     }
-    try {
-      const io = req.app.get("io");
-      const online = req.app.get("onlineUsers");
-      for (const uid of assignees) {
-        const set = online && online.get && online.get(String(uid));
-        if (set && set.size > 0) {
-          for (const sid of set.values()) {
-            io.to(sid).emit("task_notification", { type: "assigned", task_id: taskId, title });
-          }
-        }
-      }
-      try { io.emit("task_notification", { type: "assigned", task_id: taskId, title }); } catch {}
-    } catch {}
+    
     res.json({ message: "Đã tạo nhiệm vụ", id: taskId });
   } catch (e) {
-    res.status(500).json({ message: "Lỗi tạo nhiệm vụ" });
+    console.error("Create task error:", e);
+    res.status(500).json({ message: "Lỗi tạo nhiệm vụ: " + e.message });
   }
 };
 
@@ -152,20 +196,60 @@ export const listTasks = async (req, res) => {
   try {
     const userId = req.user && req.user.id;
     let role = "user";
+    let userClassId = null;
     try {
-      const [rows] = await db.promise().execute("SELECT role FROM users WHERE id = ?", [userId]);
+      const [rows] = await db.promise().execute("SELECT role, class_id FROM users WHERE id = ?", [userId]);
       role = (rows && rows[0] && rows[0].role) || "user";
+      userClassId = (rows && rows[0] && rows[0].class_id) || null;
     } catch {}
+    
     // Giáo viên xem như quản lý: xem tất cả nhiệm vụ như admin
+    // Nhưng nếu có class param thì lọc theo class
+    const classParam = req.query.class || null; // Code (A,B...)
+
     if (role === "admin" || role === "teacher") {
-      const [rows] = await db.promise().query(
-        "SELECT t.*, GROUP_CONCAT(a.user_id) AS assignees, GROUP_CONCAT(u.username) AS assignees_usernames FROM tasks t LEFT JOIN task_assignments a ON t.id=a.task_id LEFT JOIN users u ON a.user_id = u.id GROUP BY t.id ORDER BY t.created_at DESC"
-      );
+      let whereSql = "";
+      const params = [];
+      if (classParam) {
+         // Need to join classes to filter by code
+         whereSql = "WHERE c.code = ?";
+         params.push(classParam);
+      }
+
+      const query = `
+        SELECT t.*, c.code as class_code, GROUP_CONCAT(a.user_id) AS assignees, GROUP_CONCAT(u.username) AS assignees_usernames,
+        (SELECT COUNT(*) FROM task_submissions s WHERE s.task_id = t.id) AS submissions_count
+        FROM tasks t 
+        LEFT JOIN classes c ON t.class_id = c.id
+        LEFT JOIN task_assignments a ON t.id=a.task_id 
+        LEFT JOIN users u ON a.user_id = u.id 
+        ${whereSql}
+        GROUP BY t.id 
+        ORDER BY t.created_at DESC
+      `;
+      const [rows] = await db.promise().query(query, params);
       return res.json(rows || []);
     }
+    
+    // User: chỉ xem task được giao VÀ (optional: thuộc lớp mình để chắc chắn)
+    // Hiện tại chỉ cần được giao là đủ, nhưng để "cách ly tuyệt đối", ta có thể check thêm class_id của task khớp với class_id của user
+    // Tuy nhiên, nếu user bị assign task của lớp khác (do lỗi teacher), họ có nên thấy không?
+    // Theo yêu cầu "chỉ nhìn thấy bởi trang của lớp đó", nếu task thuộc lớp khác thì user không nên thấy ở trang lớp mình.
+    // Nhưng task thường hiện ở trang "Nhiệm vụ".
+    // Để an toàn, ta lọc thêm class_id nếu task có class_id.
+    
     const [rows] = await db.promise().execute(
-      "SELECT t.*, GROUP_CONCAT(a.user_id) AS assignees, GROUP_CONCAT(u.username) AS assignees_usernames FROM tasks t JOIN task_assignments a ON t.id=a.task_id JOIN users u ON a.user_id = u.id WHERE a.user_id=? GROUP BY t.id ORDER BY t.created_at DESC",
-      [userId]
+      `SELECT t.*, c.code as class_code, GROUP_CONCAT(a.user_id) AS assignees, GROUP_CONCAT(u.username) AS assignees_usernames,
+       (SELECT COUNT(*) FROM task_submissions s WHERE s.task_id = t.id) AS submissions_count
+       FROM tasks t 
+       LEFT JOIN classes c ON t.class_id = c.id
+       JOIN task_assignments a ON t.id=a.task_id 
+       JOIN users u ON a.user_id = u.id 
+       WHERE a.user_id=? 
+       AND (t.class_id IS NULL OR t.class_id = ?)
+       GROUP BY t.id 
+       ORDER BY t.created_at DESC`,
+      [userId, userClassId]
     );
     res.json(rows || []);
   } catch (e) {
@@ -201,6 +285,23 @@ export const updateTask = async (req, res) => {
       await db.promise().execute(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`, params);
     }
     if (Array.isArray(assignees)) {
+      // Enforce class isolation for assignees if task has class_id
+      let taskClassId = null;
+      try {
+        const [[t]] = await db.promise().query("SELECT class_id FROM tasks WHERE id = ?", [id]);
+        taskClassId = t && t.class_id ? t.class_id : null;
+      } catch {}
+      if (taskClassId) {
+        const placeholders = assignees.map(() => "?").join(",");
+        const [rowsAss] = await db.promise().query(
+          `SELECT id, class_id FROM users WHERE id IN (${placeholders})`,
+          assignees
+        );
+        const invalid = (rowsAss || []).some((u) => Number(u.class_id) !== Number(taskClassId));
+        if (invalid) {
+          return res.status(400).json({ message: "Người nhận phải thuộc đúng lớp của nhiệm vụ" });
+        }
+      }
       await db.promise().execute("DELETE FROM task_assignments WHERE task_id = ?", [id]);
       if (assignees.length > 0) {
         const values = assignees.map((uid) => [id, uid]);
@@ -215,17 +316,7 @@ export const updateTask = async (req, res) => {
           [r.user_id, id, "Nhiệm vụ đã được cập nhật"]
         );
       }
-      const io = req.app.get("io");
-      const online = req.app.get("onlineUsers");
-      for (const r of assRows || []) {
-        const set = online && online.get && online.get(String(r.user_id));
-        if (set && set.size > 0) {
-          for (const sid of set.values()) {
-            io.to(sid).emit("task_notification", { type: "task_updated", task_id: id });
-          }
-        }
-      }
-      try { io.emit("task_notification", { type: "task_updated", task_id: id }); } catch {}
+      
     } catch {}
     res.json({ message: "Đã cập nhật nhiệm vụ" });
   } catch (e) {
@@ -245,8 +336,8 @@ export const changeStatus = async (req, res) => {
     } catch {}
     const [assign] = await db.promise().execute("SELECT 1 FROM task_assignments WHERE task_id=? AND user_id=?", [id, userId]);
     const isAssignee = assign && assign.length > 0;
-    const allowedUser = ["in_progress", "pending_review"];
-    const allowedManager = ["closed"]; // admin + teacher
+    const allowedUser = ["in_progress"];
+    const allowedManager = ["completed"]; // admin + teacher
     const isManager = role === "admin" || role === "teacher";
 
     // Chỉ người được giao hoặc quản lý (giáo viên/admin) mới được đổi trạng thái
@@ -254,13 +345,11 @@ export const changeStatus = async (req, res) => {
       return res.status(403).json({ message: "Không có quyền" });
     }
 
-    if (isManager) {
-      if (!allowedManager.includes(status)) return res.status(400).json({ message: "Trạng thái không hợp lệ" });
-    } else {
-      if (!allowedUser.includes(status)) return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    if (isManager ? !allowedManager.includes(status) : !allowedUser.includes(status)) {
+      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
     }
     let newStatus = status;
-    if (!isManager && status === "pending_review") {
+    if (!isManager && status === "in_progress") {
       const files = req.files || [];
       if (!files || files.length === 0) {
         return res.status(400).json({ message: "Yêu cầu đính kèm minh chứng" });
@@ -283,7 +372,7 @@ export const changeStatus = async (req, res) => {
       const results = await Promise.all(uploads);
       const vals = results.map((r, idx) => [id, userId, r.public_id, note, files[idx].originalname || null]);
       await db.promise().query("INSERT INTO task_submissions (task_id, user_id, filename, note, original_name) VALUES ?", [vals]);
-      newStatus = "closed";
+      newStatus = "in_progress";
     }
     await db.promise().execute("UPDATE tasks SET status=? WHERE id=?", [newStatus, id]);
     const [taskRows] = await db.promise().execute("SELECT title FROM tasks WHERE id=?", [id]);
@@ -296,19 +385,7 @@ export const changeStatus = async (req, res) => {
           [r.user_id, id, `Trạng thái nhiệm vụ cập nhật: ${newStatus}`]
         );
       }
-      try {
-        const io = req.app.get("io");
-        const online = req.app.get("onlineUsers");
-        for (const r of assRows || []) {
-          const set = online && online.get && online.get(String(r.user_id));
-          if (set && set.size > 0) {
-            for (const sid of set.values()) {
-              io.to(sid).emit("task_notification", { type: "status_changed", task_id: id, status: newStatus });
-            }
-          }
-        }
-        try { io.emit("task_notification", { type: "status_changed", task_id: id, status: newStatus }); } catch {}
-      } catch {}
+      
     } else {
       const [creator] = await db.promise().execute("SELECT created_by FROM tasks WHERE id=?", [id]);
       const adminId = creator && creator[0] && creator[0].created_by;
@@ -317,22 +394,13 @@ export const changeStatus = async (req, res) => {
           "INSERT INTO task_notifications (user_id, task_id, type, message) VALUES (?, ?, 'ack', ?)",
           [adminId, id, `Người nhận đã cập nhật trạng thái: ${status}`]
         );
-        try {
-          const io = req.app.get("io");
-          const online = req.app.get("onlineUsers");
-          const set = online && online.get && online.get(String(adminId));
-          if (set && set.size > 0) {
-            for (const sid of set.values()) {
-              io.to(sid).emit("task_notification", { type: "ack", task_id: id, status });
-            }
-          }
-          try { io.emit("task_notification", { type: "status_changed", task_id: id, status: newStatus }); } catch {}
-        } catch {}
+        
       }
     }
     res.json({ message: "Đã đổi trạng thái", status: newStatus });
   } catch (e) {
-    res.status(500).json({ message: "Lỗi đổi trạng thái" });
+    console.error("Change status error:", e);
+    res.status(500).json({ message: "Lỗi đổi trạng thái: " + (e && e.message ? e.message : "unknown") });
   }
 };
 
@@ -470,5 +538,3 @@ export const downloadTaskFile = async (req, res) => {
     res.status(500).json({ message: "Lỗi tải file" });
   }
 };
-
-

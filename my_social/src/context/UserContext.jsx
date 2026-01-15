@@ -15,15 +15,34 @@ export const UserProvider = ({ children }) => {
   const [unreadCounts, setUnreadCounts] = useState({});
   // store online user ids as a Set for quick lookup
   const [onlineUsers, setOnlineUsers] = useState(new Set());
-  const [taskNotifCount, setTaskNotifCount] = useState(0);
+  // Lớp hiện tại được chọn (cho teacher) hoặc lớp của user
+  const [selectedClass, setSelectedClass] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const storedToken = localStorage.getItem("token");
-    if (storedUser) setUser(JSON.parse(storedUser));
+    const storedClass = localStorage.getItem("selectedClass");
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      // Nếu là teacher, khôi phục lớp đã chọn hoặc mặc định 'A'
+      if (parsedUser?.role === 'teacher') {
+        setSelectedClass(storedClass || 'A');
+      } else if (parsedUser?.class) {
+        // User thường: dùng lớp của họ
+        setSelectedClass(parsedUser.class);
+      }
+    }
     if (storedToken) setToken(storedToken);
     setLoadingUser(false);
   }, []);
+
+  // Lưu selectedClass vào localStorage khi thay đổi
+  useEffect(() => {
+    if (selectedClass) {
+      localStorage.setItem("selectedClass", selectedClass);
+    }
+  }, [selectedClass]);
 
   useEffect(() => {
     if (!token) {
@@ -94,9 +113,6 @@ export const UserProvider = ({ children }) => {
       }
     });
 
-    socket.on('task_notification', () => {
-      setTaskNotifCount((c) => c + 1);
-    });
 
     return () => {
       if (socketRef.current) {
@@ -163,7 +179,7 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, token, setToken, logout, loadingUser, socket: socketInstance, socketConnected, currentChatId, setCurrentChatId, unreadCounts, setUnreadCounts, onlineUsers, setOnlineUsers, taskNotifCount, setTaskNotifCount }}>
+    <UserContext.Provider value={{ user, setUser, token, setToken, logout, loadingUser, socket: socketInstance, socketConnected, currentChatId, setCurrentChatId, unreadCounts, setUnreadCounts, onlineUsers, setOnlineUsers, selectedClass, setSelectedClass }}>
       {children}
     </UserContext.Provider>
   );

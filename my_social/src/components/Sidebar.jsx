@@ -25,9 +25,9 @@ export default function Sidebar() {
               <span>{item.icon}</span>
               <span className="text-sm font-medium">{item.label}</span>
             </div>
-            {item.path === "/tasks" && (taskNotifCount || 0) > 0 && (
+            {/* {item.path === "/tasks" && (taskNotifCount || 0) > 0 && (
               <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">{taskNotifCount}</span>
-            )}
+            )} */}
           </li>
         ))}
       </ul>

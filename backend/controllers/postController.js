@@ -28,58 +28,58 @@ const getPostImageUrl = (image) => {
   return `http://localhost:5000/uploads/${image}`;
 };
 
-export const getAllPosts = (req, res) => {
-  const userId = req.query.user_id || null;
-
-  const q = `
-    SELECT 
-      posts.*, 
-      users.username, 
-      users.avatar,
-
-      -- cảm xúc của người dùng hiện tại
-      (SELECT reaction 
-         FROM post_reactions 
-         WHERE post_id = posts.id AND user_id = ?) AS user_reaction,
-
-      -- đếm theo từng loại reaction
-      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'like') AS like_count,
-      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'love') AS love_count,
-      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'haha') AS haha_count,
-      (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'sad') AS sad_count
-
-    FROM posts
-    JOIN users ON posts.user_id = users.id
-    ORDER BY posts.created_at DESC
-  `;
-
-  db.query(q, [userId], (err, data) => {
-    if (err) return res.status(500).json({ message: "Lỗi server" });
-
-    // Lấy tất cả ảnh cho các posts
-    const postIds = data.map(p => p.id);
-    if (postIds.length === 0) {
-      return res.json(data.map((post) => ({
-        ...post,
-        images: post.image ? [getPostImageUrl(post.image)] : [],
-        image: post.image ? getPostImageUrl(post.image) : null,
-        is_pinned: Boolean(post.is_pinned),
-        reactions: {
-          like: post.like_count || 0,
-          love: post.love_count || 0,
-          haha: post.haha_count || 0,
-          sad: post.sad_count || 0
+export const getAllPosts = async (req, res) => {
+  try {
+    const userId = req.query.user_id || null;
+    const classParam = req.query.class || null;
+    let desiredClass = null;
+    if (req.user && req.user.id) {
+      try {
+        const [rows] = await db.promise().execute("SELECT role, class_id FROM users WHERE id = ?", [req.user.id]);
+        const role = rows && rows[0] ? (rows[0].role || "user") : "user";
+        const classId = rows && rows[0] ? rows[0].class_id : null;
+        if (role === "user" && classId) {
+          try {
+            const [[c]] = await db.promise().query("SELECT code FROM classes WHERE id = ?", [classId]);
+            desiredClass = c && c.code ? c.code : null;
+          } catch {}
+        } else if ((role === "teacher" || role === "admin") && classParam) {
+          desiredClass = classParam;
         }
-      })));
+      } catch {}
+    } else {
+      if (classParam) {
+        desiredClass = classParam;
+      }
     }
-
-    // Kiểm tra xem bảng post_images có tồn tại không
-    const imageQuery = `SELECT post_id, image FROM post_images WHERE post_id IN (${postIds.join(',')}) ORDER BY id ASC`;
-    db.query(imageQuery, (imgErr, images) => {
-      // Nếu bảng chưa tồn tại, chỉ dùng ảnh cũ
-      if (imgErr) {
-        console.warn("Bảng post_images chưa tồn tại hoặc lỗi:", imgErr.message);
-        const updated = data.map((post) => ({
+    let whereClause = "";
+    const queryParams = [userId];
+    if (desiredClass) {
+      whereClause = "WHERE classes.code = ?";
+      queryParams.push(desiredClass);
+    }
+    const q = `
+      SELECT 
+        posts.*, 
+        users.username, 
+        users.avatar,
+        classes.code AS class,
+        (SELECT reaction FROM post_reactions WHERE post_id = posts.id AND user_id = ?) AS user_reaction,
+        (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'like') AS like_count,
+        (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'love') AS love_count,
+        (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'haha') AS haha_count,
+        (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'sad') AS sad_count
+      FROM posts
+      JOIN users ON posts.user_id = users.id
+      LEFT JOIN classes ON posts.class_id = classes.id
+      ${whereClause}
+      ORDER BY posts.created_at DESC
+    `;
+    db.query(q, queryParams, (err, data) => {
+      if (err) return res.status(500).json({ message: "Lỗi server" });
+      const postIds = data.map(p => p.id);
+      if (postIds.length === 0) {
+        return res.json(data.map((post) => ({
           ...post,
           images: post.image ? [getPostImageUrl(post.image)] : [],
           image: post.image ? getPostImageUrl(post.image) : null,
@@ -90,37 +90,51 @@ export const getAllPosts = (req, res) => {
             haha: post.haha_count || 0,
             sad: post.sad_count || 0
           }
-        }));
-        return res.json(updated);
+        })));
       }
-
-      // Nhóm ảnh theo post_id
-      const imagesByPost = {};
-      images.forEach(img => {
-        if (!imagesByPost[img.post_id]) {
-          imagesByPost[img.post_id] = [];
+      const imageQuery = `SELECT post_id, image FROM post_images WHERE post_id IN (${postIds.join(',')}) ORDER BY id ASC`;
+      db.query(imageQuery, (imgErr, images) => {
+        if (imgErr) {
+          console.warn("Bảng post_images chưa tồn tại hoặc lỗi:", imgErr.message);
+          const updated = data.map((post) => ({
+            ...post,
+            images: post.image ? [getPostImageUrl(post.image)] : [],
+            image: post.image ? getPostImageUrl(post.image) : null,
+            is_pinned: Boolean(post.is_pinned),
+            reactions: {
+              like: post.like_count || 0,
+              love: post.love_count || 0,
+              haha: post.haha_count || 0,
+              sad: post.sad_count || 0
+            }
+          }));
+          return res.json(updated);
         }
-        imagesByPost[img.post_id].push(getPostImageUrl(img.image));
+        const imagesByPost = {};
+        images.forEach(img => {
+          if (!imagesByPost[img.post_id]) {
+            imagesByPost[img.post_id] = [];
+          }
+          imagesByPost[img.post_id].push(getPostImageUrl(img.image));
+        });
+        const updated = data.map((post) => ({
+          ...post,
+          images: imagesByPost[post.id] || (post.image ? [getPostImageUrl(post.image)] : []),
+          image: imagesByPost[post.id]?.[0] || (post.image ? getPostImageUrl(post.image) : null),
+          is_pinned: Boolean(post.is_pinned),
+          reactions: {
+            like: post.like_count,
+            love: post.love_count,
+            haha: post.haha_count,
+            sad: post.sad_count
+          }
+        }));
+        res.json(updated);
       });
-
-      const updated = data.map((post) => ({
-        ...post,
-        // Lấy ảnh từ post_images, nếu không có thì fallback về image cũ (backward compatible)
-        images: imagesByPost[post.id] || (post.image ? [getPostImageUrl(post.image)] : []),
-        image: imagesByPost[post.id]?.[0] || (post.image ? getPostImageUrl(post.image) : null), // Giữ lại cho backward compatible
-        is_pinned: Boolean(post.is_pinned),
-        // gộp các reaction vào object
-        reactions: {
-          like: post.like_count,
-          love: post.love_count,
-          haha: post.haha_count,
-          sad: post.sad_count
-        }
-      }));
-
-      res.json(updated);
     });
-  });
+  } catch (e) {
+    res.status(500).json({ message: "Lỗi server" });
+  }
 };
 
 
@@ -157,11 +171,18 @@ export const createPost = async (req, res) => {
     if (!authUserId || (!content && uploadedImages.length === 0))
       return res.status(400).json({ message: "Thiếu nội dung hoặc ảnh" });
 
-    // Tạo post
-    const q = "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)";
-    const firstImage = uploadedImages.length > 0 ? uploadedImages[0] : null; // Giữ lại image cho backward compatible
-    
-    db.query(q, [authUserId, content, firstImage], (err, result) => {
+    db.query("SELECT class_id FROM users WHERE id = ?", [authUserId], (userErr, userRows) => {
+      if (userErr) {
+        console.error("Lỗi lấy class của user:", userErr);
+        return res.status(500).json({ message: "Lỗi server" });
+      }
+
+      const userClassId = userRows && userRows[0] ? userRows[0].class_id : null;
+
+      const q = "INSERT INTO posts (user_id, content, image, class_id) VALUES (?, ?, ?, ?)";
+      const firstImage = uploadedImages.length > 0 ? uploadedImages[0] : null;
+      
+      db.query(q, [authUserId, content, firstImage, userClassId], (err, result) => {
       if (err) {
         console.error("Lỗi khi thêm bài viết:", err);
         return res.status(500).json({ message: "Không thể đăng bài" });
@@ -185,6 +206,7 @@ export const createPost = async (req, res) => {
               id: postId,
               user_id: authUserId,
               content,
+              class_id: userClassId,
               images: uploadedImages.map(img => getPostImageUrl(img)),
               image: firstImage ? getPostImageUrl(firstImage) : null,
             },
@@ -197,11 +219,13 @@ export const createPost = async (req, res) => {
             id: postId,
             user_id: authUserId,
             content,
+            class_id: userClassId,
             images: [],
             image: null,
           },
         });
       }
+      });
     });
   } catch (e) {
     console.error(e);
@@ -373,21 +397,52 @@ export const unpinPost = (req, res) => {
   });
 };
 
-export const searchPosts = (req, res) => {
-  const { q } = req.query; 
+export const searchPosts = async (req, res) => {
+  const { q } = req.query;
   if (!q) return res.status(400).json({ message: "Thiếu từ khóa tìm kiếm" });
-
+  let desiredClass = null;
+  const classParam = req.query.class || null;
+  const viewerUserId = (req.query.user_id || (req.user && req.user.id)) || null;
+  if (req.user && req.user.id) {
+    try {
+      const [rows] = await db.promise().execute("SELECT role, class_id FROM users WHERE id = ?", [req.user.id]);
+      const role = rows && rows[0] ? (rows[0].role || "user") : "user";
+      const classId = rows && rows[0] ? rows[0].class_id : null;
+      if (role === "user" && classId) {
+        try {
+          const [[c]] = await db.promise().query("SELECT code FROM classes WHERE id = ?", [classId]);
+          desiredClass = c && c.code ? c.code : null;
+        } catch {}
+      } else if ((role === "teacher" || role === "admin") && classParam) {
+        desiredClass = classParam;
+      }
+    } catch {}
+  } else {
+    if (classParam) {
+      desiredClass = classParam;
+    }
+  }
+  const keyword = `%${q}%`;
+  const whereParts = ["(posts.content LIKE ? OR users.username LIKE ?)"];
+  const params = [viewerUserId, keyword, keyword];
+  if (desiredClass) {
+    whereParts.unshift("classes.code = ?");
+    params.splice(1, 0, desiredClass);
+  }
   const sql = `
-    SELECT posts.*, users.username, users.avatar
+    SELECT posts.*, users.username, users.avatar, classes.code AS class,
+    (SELECT reaction FROM post_reactions WHERE post_id = posts.id AND user_id = ?) AS user_reaction,
+    (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'like') AS like_count,
+    (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'love') AS love_count,
+    (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'haha') AS haha_count,
+    (SELECT COUNT(*) FROM post_reactions WHERE post_id = posts.id AND reaction = 'sad') AS sad_count
     FROM posts
     JOIN users ON posts.user_id = users.id
-    WHERE posts.content LIKE ? OR users.username LIKE ?
+    LEFT JOIN classes ON posts.class_id = classes.id
+    WHERE ${whereParts.join(" AND ")}
     ORDER BY posts.created_at DESC
   `;
-
-  const keyword = `%${q}%`;
-
-  db.query(sql, [keyword, keyword], (err, data) => {
+  db.query(sql, params, (err, data) => {
     if (err) {
       console.error("Lỗi tìm kiếm:", err);
       return res.status(500).json({ message: "Lỗi server khi tìm kiếm" });
@@ -425,7 +480,13 @@ export const searchPosts = (req, res) => {
         ...post,
         images: imagesByPost[post.id] || (post.image ? [getPostImageUrl(post.image)] : []),
         image: imagesByPost[post.id]?.[0] || (post.image ? getPostImageUrl(post.image) : null),
-        is_pinned: Boolean(post.is_pinned)
+        is_pinned: Boolean(post.is_pinned),
+        reactions: {
+          like: post.like_count || 0,
+          love: post.love_count || 0,
+          haha: post.haha_count || 0,
+          sad: post.sad_count || 0
+        }
       }));
 
       res.json(updated);

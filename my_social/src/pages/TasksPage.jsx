@@ -5,7 +5,7 @@ import Sidebar from "../components/Sidebar";
 import { UserContext } from "../context/UserContext";
 
 export default function TasksPage() {
-  const { user, token, setTaskNotifCount, socket } = useContext(UserContext);
+  const { user, token, setTaskNotifCount, selectedClass } = useContext(UserContext);
   const [users, setUsers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [details, setDetails] = useState({});
@@ -26,9 +26,9 @@ export default function TasksPage() {
   const [ackUpdates, setAckUpdates] = useState({});
   const [lastStatus, setLastStatus] = useState({});
   const statusText = {
-    new: "Mới",
-    in_progress: "Đang thực hiện",
-    pending_review: "Chờ duyệt",
+    new: "Chưa nộp",
+    in_progress: "Chưa nộp",
+    pending_review: "Đã nộp",
     closed: "Đã hoàn thành"
   };
 
@@ -50,71 +50,35 @@ export default function TasksPage() {
   }
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        if (!token) return;
-        await axios.post(`${API_URL}/tasks/notifications/mark-read`, {}, { headers: { Authorization: `Bearer ${token}` } });
-        setTaskNotifCount(0);
-      } catch { /* ignore */ }
-    };
-    init();
-  }, [token, setTaskNotifCount]);
-
-  useEffect(() => {
     const loadUsers = async () => {
       try {
         if (!token) return;
-        const res = await axios.get(`${API_URL}/users`, { headers: { Authorization: `Bearer ${token}` } });
+        let url = `${API_URL}/users`;
+        if (user?.role === "teacher" || user?.role === "admin") {
+          if (selectedClass) url += `?class=${encodeURIComponent(selectedClass)}`;
+        }
+        const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
         setUsers(res.data || []);
       } catch { console.warn(''); }
     };
     loadUsers();
-  }, [token]);
+  }, [token, user?.role, selectedClass]);
 
   useEffect(() => {
     const run = async () => {
       if (!token) return;
       try {
-        const res = await axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } });
+        let url = `${API_URL}/tasks`;
+        if (user?.role === "teacher" || user?.role === "admin") {
+          if (selectedClass) url += `?class=${encodeURIComponent(selectedClass)}`;
+        }
+        const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
         setTasks(res.data || []);
       } catch { console.warn(''); }
     };
     run();
-  }, [token]);
+  }, [token, user?.role, selectedClass]);
 
-  useEffect(() => {
-    if (!socket) return;
-    const handler = (payload) => {
-      try {
-        if (!payload || !payload.type) return;
-        if (['task_updated','assigned','status_changed','ack'].includes(payload.type)) {
-          if (payload.type === 'assigned' && payload.task_id) {
-            setNewAssignedTaskIds((prev) => {
-              const next = new Set(Array.from(prev));
-              next.add(Number(payload.task_id));
-              return next;
-            });
-          }
-          if (payload.type === 'ack' && payload.task_id && payload.status) {
-            setAckUpdates((prev) => ({ ...prev, [Number(payload.task_id)]: String(payload.status) }));
-          }
-          if (payload.type === 'status_changed' && payload.task_id && payload.status) {
-            setLastStatus((prev) => ({ ...prev, [Number(payload.task_id)]: String(payload.status) }));
-          }
-          axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } })
-            .then((res) => setTasks(res.data || []))
-            .catch(() => {});
-          if (payload.task_id) {
-            axios.get(`${API_URL}/tasks/${payload.task_id}`, { headers: { Authorization: `Bearer ${token}` } })
-              .then((det) => setDetails((prev) => ({ ...prev, [payload.task_id]: det.data })))
-              .catch(() => {});
-          }
-        }
-      } catch { void 0; }
-    };
-    socket.on('task_notification', handler);
-    return () => { try { socket.off('task_notification', handler); } catch { void 0; } };
-  }, [socket, token]);
 
   const createTask = async () => {
     try {
@@ -126,7 +90,11 @@ export default function TasksPage() {
       if (deadline) fd.append('deadline', deadline);
       fd.append('assignees', JSON.stringify(assignees));
       for (const f of files) fd.append('attachments', f);
-      await axios.post(`${API_URL}/tasks`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+      let url = `${API_URL}/tasks`;
+      if (user?.role === "teacher" || user?.role === "admin") {
+        if (selectedClass) url += `?class=${encodeURIComponent(selectedClass)}`;
+      }
+      await axios.post(url, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
       setTitle("");
       setDescription("");
       setPriority("medium");
@@ -134,7 +102,11 @@ export default function TasksPage() {
       setAssignees([]);
       setFiles([]);
       try {
-        const res = await axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } });
+        let urlList = `${API_URL}/tasks`;
+        if (user?.role === "teacher" || user?.role === "admin") {
+          if (selectedClass) urlList += `?class=${encodeURIComponent(selectedClass)}`;
+        }
+        const res = await axios.get(urlList, { headers: { Authorization: `Bearer ${token}` } });
         setTasks(res.data || []);
       } catch { console.warn(''); }
       alert("Đã tạo nhiệm vụ");
@@ -167,7 +139,7 @@ export default function TasksPage() {
   };
   const changeStatus = async (id, status) => {
     try {
-      if (status === 'pending_review') {
+      if (status === 'in_progress') {
         const fd = new FormData();
         fd.append('status', status);
         const note = submissionNotes[id] || '';
@@ -175,7 +147,7 @@ export default function TasksPage() {
         const files = submissionFiles[id] || [];
         if (!files || files.length === 0) { alert('Vui lòng đính kèm minh chứng'); return; }
         for (const f of files) fd.append('evidence', f);
-        const resp = await axios.post(`${API_URL}/tasks/${id}/status`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+        const resp = await axios.post(`${API_URL}/tasks/${id}/status`, fd, { headers: { Authorization: `Bearer ${token}` } });
         const newStatus = (resp && resp.data && resp.data.status) ? resp.data.status : null;
         if (newStatus) {
           setTasks((prev) => prev.map((t) => t.id === id ? { ...t, status: newStatus } : t));
@@ -203,7 +175,11 @@ export default function TasksPage() {
     try {
       if (!confirm('Xóa nhiệm vụ này?')) return;
       await axios.delete(`${API_URL}/tasks/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      const res = await axios.get(`${API_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } });
+      let url = `${API_URL}/tasks`;
+      if (user?.role === "teacher" || user?.role === "admin") {
+        if (selectedClass) url += `?class=${encodeURIComponent(selectedClass)}`;
+      }
+      const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
       setTasks(res.data || []);
     } catch (err) {
       const msg = err?.response?.data?.message || 'Không thể xóa nhiệm vụ';
@@ -316,7 +292,7 @@ export default function TasksPage() {
                   )}
                   <div>
                     <div className="font-semibold">{t.title}</div>
-                    <div className="text-sm text-gray-600">Trạng thái: {statusText[lastStatus[Number(t.id)] || t.status] || lastStatus[Number(t.id)] || t.status || "Đã hoàn thành"}</div>
+                    <div className="text-sm text-gray-600">Trạng thái: {(((lastStatus[Number(t.id)] || t.status) === 'completed') ? 'Đã hoàn thành' : (((t.submissions_count ?? (details[t.id]?.submissions?.length ?? 0)) > 0) ? 'Đã nộp' : 'Chưa nộp'))}</div>
                     {t.assignees_usernames && (
                       <div className="text-sm text-gray-600">Giao cho: {String(t.assignees_usernames)}</div>
                     )}
@@ -374,28 +350,35 @@ export default function TasksPage() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {user?.role !== 'admin' && user?.role !== 'teacher' && (
-                      <>
-                        {t.status === 'new' && (
-                          <button onClick={() => changeStatus(t.id, 'in_progress')} className="px-3 py-1 border rounded">Nhận việc</button>
-                        )}
-                        {t.status === 'in_progress' && (
-                          <div className="flex flex-col gap-2">
-                            <textarea placeholder="Ghi chú minh chứng (tùy chọn)" className="border rounded px-3 py-2"
-                              value={submissionNotes[t.id] || ''}
-                              onChange={(e) => setSubmissionNotes((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                            />
-                            <div className="flex items-center gap-2">
-                              <input type="file" multiple onChange={(e) => setSubmissionFiles((prev) => ({ ...prev, [t.id]: Array.from(e.target.files || []) }))} />
-                              <button onClick={() => changeStatus(t.id, 'pending_review')} disabled={!submissionFiles[t.id] || submissionFiles[t.id].length === 0} className="px-3 py-1 border rounded disabled:opacity-50">Hoàn thành</button>
-                            </div>
-                          </div>
-                        )}
-                      </>
+                    {user?.role !== 'admin' && user?.role !== 'teacher' && (t.status !== 'completed') && ((t.submissions_count ?? (details[t.id]?.submissions?.length ?? 0)) === 0) && (
+                      <div className="flex flex-col gap-2">
+                        <textarea
+                          placeholder="Ghi chú minh chứng (tùy chọn)"
+                          className="border rounded px-3 py-2"
+                          value={submissionNotes[t.id] || ''}
+                          onChange={(e) => setSubmissionNotes((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                        />
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            multiple
+                            onChange={(e) =>
+                              setSubmissionFiles((prev) => ({ ...prev, [t.id]: Array.from(e.target.files || []) }))
+                            }
+                          />
+                          <button
+                            onClick={() => changeStatus(t.id, 'in_progress')}
+                            disabled={!submissionFiles[t.id] || submissionFiles[t.id].length === 0}
+                            className="px-3 py-1 border rounded disabled:opacity-50"
+                          >
+                            Hoàn thành
+                          </button>
+                        </div>
+                      </div>
                     )}
                     {(user?.role === 'admin' || user?.role === 'teacher') && (
                       <>
-                        {t.status === 'pending_review' && <button onClick={() => changeStatus(t.id, 'closed')} className="px-3 py-1 border rounded">Duyệt</button>}
+                        {(t.status !== 'completed') && ((t.submissions_count ?? (details[t.id]?.submissions?.length ?? 0)) > 0) && <button onClick={() => changeStatus(t.id, 'completed')} className="px-3 py-1 border rounded">Duyệt</button>}
                         <button onClick={() => deleteTask(t.id)} className="px-3 py-1 border rounded text-red-700">Xóa</button>
                         <button onClick={() => openEdit(t)} className="px-3 py-1 border rounded">Sửa</button>
                       </>

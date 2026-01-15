@@ -70,6 +70,24 @@ export default function Users() {
     }
   }
 
+  const handleUpdateClass = async (userId, newClass) => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      await axios.put(`http://localhost:5000/api/admin/users/${userId}/class`, 
+        { class: newClass || null },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      // Refresh danh sách users
+      fetchUsers()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể cập nhật lớp')
+    }
+  }
+
   const handleApprove = async (userId) => {
     try {
       setApprovingId(userId)
@@ -210,6 +228,9 @@ export default function Users() {
                       Role
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Lớp
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Trạng thái
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -253,6 +274,24 @@ export default function Users() {
                           >
                             {u.role === 'admin' ? 'Admin' : u.role === 'teacher' ? 'Giáo viên' : 'User'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {/* Chỉ phân lớp cho user (không phân cho admin và teacher) */}
+                          {u.role === 'user' ? (
+                            <select
+                              value={u.class || ''}
+                              onChange={(e) => handleUpdateClass(u.id, e.target.value)}
+                              className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                              <option value="">Chưa phân lớp</option>
+                              <option value="A">Lớp A</option>
+                              <option value="B">Lớp B</option>
+                              <option value="C">Lớp C</option>
+                              <option value="D">Lớp D</option>
+                            </select>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 text-xs font-semibold rounded-full ${u.is_approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>

@@ -12,12 +12,37 @@ export async function ensureDocSchema() {
     try {
       await db.promise().query("ALTER TABLE project_documents ADD COLUMN original_name VARCHAR(255) NULL");
     } catch {}
+    try {
+      await db.promise().query("ALTER TABLE project_documents ADD COLUMN class_id INT NULL");
+    } catch {}
+    try {
+      await db.promise().query("ALTER TABLE project_documents ADD CONSTRAINT fk_project_documents_class FOREIGN KEY (class_id) REFERENCES classes(id)");
+    } catch {}
   } catch {}
 }
 
 export const uploadDocuments = async (req, res) => {
   try {
     const userId = req.user && req.user.id;
+    let role = "user";
+    let userClassId = null;
+    try {
+      const [[u]] = await db.promise().query("SELECT role, class_id FROM users WHERE id = ?", [userId]);
+      role = (u && u.role) || "user";
+      userClassId = (u && u.class_id) || null;
+    } catch {}
+    const classCode = req.query.class || null;
+    let targetClassId = null;
+    if (role === "admin" || role === "teacher") {
+      if (classCode) {
+        try {
+          const [[c]] = await db.promise().query("SELECT id FROM classes WHERE code = ?", [classCode]);
+          targetClassId = c ? c.id : null;
+        } catch {}
+      }
+    } else {
+      targetClassId = userClassId;
+    }
     const files = req.files || [];
     if (!files || files.length === 0) return res.status(400).json({ message: "Không có file" });
     const uploads = files.map((f) => new Promise((resolve, reject) => {
@@ -37,8 +62,8 @@ export const uploadDocuments = async (req, res) => {
       }
     }));
     const results = await Promise.all(uploads);
-    const values = results.map((r, idx) => [userId, r.public_id, files[idx].originalname || null]);
-    await db.promise().query("INSERT INTO project_documents (user_id, filename, original_name) VALUES ?", [values]);
+    const values = results.map((r, idx) => [userId, r.public_id, files[idx].originalname || null, targetClassId]);
+    await db.promise().query("INSERT INTO project_documents (user_id, filename, original_name, class_id) VALUES ?", [values]);
     res.json({ message: "Đã tải lên", count: results.length });
   } catch (e) {
     res.status(500).json({ message: "Lỗi tải lên" });
@@ -86,10 +111,22 @@ const getCloudinaryUrl = (publicId, originalName) => {
 export const downloadDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await db.promise().execute("SELECT filename, original_name FROM project_documents WHERE id=?", [id]);
+    const [rows] = await db.promise().execute("SELECT filename, original_name, class_id FROM project_documents WHERE id=?", [id]);
     if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy tài liệu" });
     
-    const { filename: publicId, original_name } = rows[0];
+    const { filename: publicId, original_name, class_id } = rows[0];
+    let role = "user";
+    let userClassId = null;
+    try {
+      const [[u]] = await db.promise().query("SELECT role, class_id FROM users WHERE id = ?", [req.user && req.user.id]);
+      role = (u && u.role) || "user";
+      userClassId = (u && u.class_id) || null;
+    } catch {}
+    if (role === "user") {
+      if (!userClassId || !class_id || Number(userClassId) !== Number(class_id)) {
+        return res.status(403).json({ message: "Không có quyền tải tài liệu" });
+      }
+    }
 
     if (!publicId || !publicId.includes('/')) {
        // Local file, redirect to static path (or stream it)
@@ -125,9 +162,29 @@ export const downloadDocument = async (req, res) => {
 
 export const listDocuments = async (req, res) => {
   try {
-    const [rows] = await db.promise().query(
-      "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id ORDER BY d.id DESC"
-    );
+    const uid = req.user && req.user.id;
+    let role = "user";
+    let userClassId = null;
+    try {
+      const [[u]] = await db.promise().query("SELECT role, class_id FROM users WHERE id = ?", [uid]);
+      role = (u && u.role) || "user";
+      userClassId = (u && u.class_id) || null;
+    } catch {}
+    const classParam = req.query.class || null;
+    let rows = [];
+    if (role === "admin" || role === "teacher") {
+      if (classParam) {
+        const query = "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id LEFT JOIN classes c ON d.class_id = c.id WHERE c.code = ? ORDER BY d.id DESC";
+        const [r] = await db.promise().query(query, [classParam]);
+        rows = r || [];
+      } else {
+        rows = [];
+      }
+    } else {
+      const query = "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id WHERE d.class_id = ? ORDER BY d.id DESC";
+      const [r] = await db.promise().query(query, [userClassId]);
+      rows = r || [];
+    }
     const docs = (rows || []).map((r) => ({
       id: r.id,
       user_id: r.user_id,

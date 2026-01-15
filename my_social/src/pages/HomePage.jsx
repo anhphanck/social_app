@@ -22,8 +22,9 @@ export default function HomePage() {
   const [keepImages, setKeepImages] = useState([]); // ảnh cũ muốn giữ lại
   const [editContent, setEditContent] = useState(""); // nội dung sửa
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
-  const { user, logout, token } = useContext(UserContext);
+  const { user, logout, token, selectedClass } = useContext(UserContext);
 
   const API_URL = "http://localhost:5000/api";
 
@@ -34,7 +35,7 @@ export default function HomePage() {
       fetchPosts();
       fetchUsers();
     }
-  }, [user]);
+  }, [user, selectedClass]); // Reload posts khi đổi lớp
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -47,9 +48,25 @@ export default function HomePage() {
    
   const fetchPosts = async () => {
     try {
+      if (isSearching) return;
       const token = localStorage.getItem('token');
       const userId = user?.id || null;
-      const url = userId ? `${API_URL}/posts?user_id=${userId}` : `${API_URL}/posts`;
+      
+      // Xác định lớp để filter:
+      // - Teacher: dùng selectedClass (có thể chọn A, B, C, D)
+      // - User: dùng class của họ (chỉ xem lớp của mình)
+      let classToFilter = null;
+      if (user?.role === 'teacher' && selectedClass) {
+        classToFilter = selectedClass;
+      } else if (user?.role === 'user' && user?.class) {
+        classToFilter = user.class;
+      }
+      
+      let url = userId ? `${API_URL}/posts?user_id=${userId}` : `${API_URL}/posts`;
+      if (classToFilter) {
+        url += `&class=${classToFilter}`;
+      }
+      
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await axios.get(url, { headers });
       setPosts(res.data || []);
@@ -62,14 +79,22 @@ export default function HomePage() {
 
   const fetchUsers = async () => {
     try {
-      // API users yêu cầu token, nhưng có thể không có token
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await axios.get(`${API_URL}/users`, { headers });
+      let classToFilter = null;
+      if (user?.role === 'teacher' && selectedClass) {
+        classToFilter = selectedClass;
+      } else if (user?.role === 'user' && user?.class) {
+        classToFilter = user.class;
+      }
+      let url = `${API_URL}/users`;
+      if (classToFilter) {
+        url += `?class=${classToFilter}`;
+      }
+      const res = await axios.get(url, { headers });
       setUsers(res.data);
     } catch (err) {
       console.error("Lỗi khi lấy users:", err);
-      // Nếu lỗi 401, có thể do chưa đăng nhập hoặc token hết hạn
       if (err.response?.status === 401) {
         console.warn("Token không hợp lệ, cần đăng nhập lại");
       }
@@ -211,26 +236,40 @@ export default function HomePage() {
   useEffect(() => {
     const delay = setTimeout(() => {
       const search = async () => {
-        if (!searchQuery.trim()) {
+        const q = searchQuery.trim();
+        if (!q) {
+          setIsSearching(false);
           fetchPosts();
           return;
         }
-
         try {
-          const res = await axios.get(
-            `${API_URL}/posts/search?q=${encodeURIComponent(searchQuery)}`
-          );
-          setPosts(res.data);
+          setIsSearching(true);
+          let classToFilter = null;
+          if (user?.role === 'teacher' && selectedClass) {
+            classToFilter = selectedClass;
+          } else if (user?.role === 'user' && user?.class) {
+            classToFilter = user.class;
+          }
+          const token = localStorage.getItem('token');
+          const userId = user?.id || null;
+          let url = `${API_URL}/posts/search?q=${encodeURIComponent(q)}${userId ? `&user_id=${userId}` : ""}`;
+          if (classToFilter) {
+            url += `&class=${classToFilter}`;
+          }
+          const headers = token ? { Authorization: `Bearer ${token}` } : {};
+          let active = true;
+          const res = await axios.get(url, { headers });
+          if (active) {
+            setPosts(res.data || []);
+          }
         } catch (err) {
           console.error("Lỗi khi tìm kiếm:", err);
         }
       };
-
-      search(); 
-    }, 500); 
-
+      search();
+    }, 500);
     return () => clearTimeout(delay);
-  }, [searchQuery]);
+  }, [searchQuery, selectedClass, user?.role, user?.class]);
   return (
     <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
       <div className="z-50 shrink-0">

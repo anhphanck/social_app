@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.use(async (req, res, next) => { await ensureDocSchema(); next(); });
 router.get("/", verifyToken, listDocuments);
-router.get("/download/:id", downloadDocument); // No auth required for download link if shared, or add verifyToken if strict
+router.get("/download/:id", verifyToken, downloadDocument);
 router.post("/upload", verifyToken, upload.array("files", 10), uploadDocuments);
 router.delete("/:id", verifyAdmin, deleteDocument);
 
