@@ -76,6 +76,8 @@ export async function ensureTaskSchema() {
     // Add original_name column if missing
     try { await db.promise().query("ALTER TABLE task_files ADD COLUMN original_name VARCHAR(255) NULL"); } catch {}
     try { await db.promise().query("ALTER TABLE task_submissions ADD COLUMN original_name VARCHAR(255) NULL"); } catch {}
+    try { await db.promise().query("ALTER TABLE task_submissions ADD COLUMN grade DECIMAL(5,2) NULL"); } catch {}
+    try { await db.promise().query("ALTER TABLE task_submissions ADD COLUMN feedback TEXT NULL"); } catch {}
 
   } catch {}
 }
@@ -84,7 +86,7 @@ export async function ensureTaskSchema() {
 
 export const createTask = async (req, res) => {
   try {
-    let { title, description, priority, deadline, assignees, class_id } = req.body;
+    let { title, description, priority, deadline, assignees, class_id, assign_all_class } = req.body;
     title = typeof title === 'string' ? title.trim() : title;
     // normalize assignees from string to array BEFORE validation
     if (typeof assignees === "string") {
@@ -95,9 +97,7 @@ export const createTask = async (req, res) => {
         assignees = assignees.split(",").map((s) => Number(s)).filter(Boolean);
       }
     }
-    if (!title || !Array.isArray(assignees) || assignees.length === 0) {
-      return res.status(400).json({ message: "Thiếu dữ liệu" });
-    }
+    if (!title) return res.status(400).json({ message: "Thiếu dữ liệu" });
     const createdBy = req.user && req.user.id;
     let dl = deadline || null;
     if (typeof dl === "string" && dl.includes("T")) {
@@ -136,6 +136,16 @@ export const createTask = async (req, res) => {
            }
         }
       } catch {}
+    }
+    const assignAll = String(assign_all_class ?? "").toLowerCase() === "1" || String(assign_all_class ?? "").toLowerCase() === "true";
+    if (assignAll && finalClassId) {
+      try {
+        const [uRows] = await db.promise().query("SELECT id FROM users WHERE role='user' AND class_id = ?", [finalClassId]);
+        assignees = (uRows || []).map((r) => r.id);
+      } catch {}
+    }
+    if (!Array.isArray(assignees) || assignees.length === 0) {
+      return res.status(400).json({ message: "Thiếu danh sách người nhận" });
     }
     // Validate all assignees belong to finalClassId (if defined)
     if (finalClassId) {
@@ -218,7 +228,9 @@ export const listTasks = async (req, res) => {
 
       const query = `
         SELECT t.*, c.code as class_code, GROUP_CONCAT(a.user_id) AS assignees, GROUP_CONCAT(u.username) AS assignees_usernames,
-        (SELECT COUNT(*) FROM task_submissions s WHERE s.task_id = t.id) AS submissions_count
+        (SELECT COUNT(*) FROM task_submissions s WHERE s.task_id = t.id) AS submissions_count,
+        (SELECT s.grade FROM task_submissions s WHERE s.task_id = t.id ORDER BY s.created_at DESC LIMIT 1) AS latest_grade,
+        (SELECT s.feedback FROM task_submissions s WHERE s.task_id = t.id ORDER BY s.created_at DESC LIMIT 1) AS latest_feedback
         FROM tasks t 
         LEFT JOIN classes c ON t.class_id = c.id
         LEFT JOIN task_assignments a ON t.id=a.task_id 
@@ -240,7 +252,9 @@ export const listTasks = async (req, res) => {
     
     const [rows] = await db.promise().execute(
       `SELECT t.*, c.code as class_code, GROUP_CONCAT(a.user_id) AS assignees, GROUP_CONCAT(u.username) AS assignees_usernames,
-       (SELECT COUNT(*) FROM task_submissions s WHERE s.task_id = t.id) AS submissions_count
+       (SELECT COUNT(*) FROM task_submissions s WHERE s.task_id = t.id AND s.user_id = ?) AS submissions_count,
+       (SELECT s.grade FROM task_submissions s WHERE s.task_id = t.id AND s.user_id = ? ORDER BY s.created_at DESC LIMIT 1) AS latest_grade,
+       (SELECT s.feedback FROM task_submissions s WHERE s.task_id = t.id AND s.user_id = ? ORDER BY s.created_at DESC LIMIT 1) AS latest_feedback
        FROM tasks t 
        LEFT JOIN classes c ON t.class_id = c.id
        JOIN task_assignments a ON t.id=a.task_id 
@@ -249,7 +263,7 @@ export const listTasks = async (req, res) => {
        AND (t.class_id IS NULL OR t.class_id = ?)
        GROUP BY t.id 
        ORDER BY t.created_at DESC`,
-      [userId, userClassId]
+      [userId, userId, userId, userId, userClassId]
     );
     res.json(rows || []);
   } catch (e) {
@@ -379,6 +393,28 @@ export const changeStatus = async (req, res) => {
     const title = taskRows && taskRows[0] && taskRows[0].title;
     if (isManager) {
       const [assRows] = await db.promise().execute("SELECT user_id FROM task_assignments WHERE task_id=?", [id]);
+      if (status === "completed") {
+        const gradeRaw = req.body && (req.body.grade ?? null);
+        const feedback = typeof req.body.feedback === "string" ? req.body.feedback : null;
+        let grade = null;
+        if (gradeRaw !== null && gradeRaw !== undefined) {
+          const num = Number(gradeRaw);
+          if (Number.isFinite(num)) grade = num;
+        }
+        if (grade !== null || feedback !== null) {
+          const [[latest]] = await db.promise().query(
+            "SELECT id FROM task_submissions WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
+            [id]
+          );
+          const latestId = latest && latest.id ? latest.id : null;
+          if (latestId) {
+            await db.promise().execute(
+              "UPDATE task_submissions SET grade = COALESCE(?, grade), feedback = COALESCE(?, feedback) WHERE id = ?",
+              [grade, feedback, latestId]
+            );
+          }
+        }
+      }
       for (const r of assRows || []) {
         await db.promise().execute(
           "INSERT INTO task_notifications (user_id, task_id, type, message) VALUES (?, ?, 'status_changed', ?)",
@@ -426,14 +462,14 @@ export const getTaskDetail = async (req, res) => {
     const [assRows] = await db.promise().execute("SELECT u.id AS user_id, u.username FROM task_assignments a JOIN users u ON a.user_id = u.id WHERE a.task_id=?", [id]);
     const [comRows] = await db.promise().execute("SELECT * FROM task_comments WHERE task_id=? ORDER BY created_at ASC", [id]);
     const [fileRows] = await db.promise().execute("SELECT id, filename, original_name FROM task_files WHERE task_id=? ORDER BY id ASC", [id]);
-    const [subRows] = await db.promise().execute("SELECT id, user_id, filename, original_name, created_at, note FROM task_submissions WHERE task_id=? ORDER BY id ASC", [id]);
+    const [subRows] = await db.promise().execute("SELECT id, user_id, filename, original_name, created_at, note, grade, feedback FROM task_submissions WHERE task_id=? ORDER BY id ASC", [id]);
     let creator = null;
     try {
       const [cRows] = await db.promise().execute("SELECT u.id, u.username FROM users u WHERE u.id = ?", [task.created_by]);
       creator = (cRows && cRows[0]) || null;
     } catch {}
     const attachments = (fileRows || []).map((f) => ({ id: f.id, filename: f.filename, original_name: f.original_name, url: f.filename && String(f.filename).includes('/') ? getCloudinaryUrl(f.filename, f.original_name) : `http://localhost:5000/uploads/${f.filename}` }));
-    const submissions = (subRows || []).map((s) => ({ id: s.id, user_id: s.user_id, filename: s.filename, original_name: s.original_name, url: s.filename && String(s.filename).includes('/') ? getCloudinaryUrl(s.filename, s.original_name) : `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null }));
+    const submissions = (subRows || []).map((s) => ({ id: s.id, user_id: s.user_id, filename: s.filename, original_name: s.original_name, url: s.filename && String(s.filename).includes('/') ? getCloudinaryUrl(s.filename, s.original_name) : `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null, grade: s.grade ?? null, feedback: s.feedback ?? null }));
     const assignees = (assRows || []).map((r) => ({ id: r.user_id, username: r.username }));
     res.json({ task, creator, assignees, comments: comRows || [], attachments, submissions });
   } catch (e) {
@@ -536,5 +572,36 @@ export const downloadTaskFile = async (req, res) => {
 
   } catch (e) {
     res.status(500).json({ message: "Lỗi tải file" });
+  }
+};
+
+export const gradeSubmission = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user && req.user.id;
+    const role = req.user && req.user.role;
+    if (role !== "admin" && role !== "teacher") return res.status(403).json({ message: "Chỉ giáo viên hoặc admin" });
+    const targetUserId = Number(req.body.user_id);
+    const gradeRaw = req.body && (req.body.grade ?? null);
+    const feedback = typeof req.body.feedback === "string" ? req.body.feedback : null;
+    if (!targetUserId) return res.status(400).json({ message: "Thiếu user_id" });
+    const [[latest]] = await db.promise().query(
+      "SELECT id FROM task_submissions WHERE task_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1",
+      [id, targetUserId]
+    );
+    const latestId = latest && latest.id ? latest.id : null;
+    if (!latestId) return res.status(404).json({ message: "User chưa nộp minh chứng" });
+    let grade = null;
+    if (gradeRaw !== null && gradeRaw !== undefined) {
+      const num = Number(gradeRaw);
+      if (Number.isFinite(num)) grade = num;
+    }
+    await db.promise().execute(
+      "UPDATE task_submissions SET grade = COALESCE(?, grade), feedback = COALESCE(?, feedback) WHERE id = ?",
+      [grade, feedback, latestId]
+    );
+    res.json({ message: "Đã lưu điểm/ghi chú" });
+  } catch (e) {
+    res.status(500).json({ message: "Lỗi lưu điểm/ghi chú" });
   }
 };
