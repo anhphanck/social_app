@@ -13,21 +13,27 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [bioDirty, setBioDirty] = useState(false);
   const API_URL = "http://localhost:5000/api";
 
   useEffect(() => {
-    if (isSelf) {
-      if (user) setBio(user.bio || "");
-    } else if (viewingId && token) {
+    if (isSelf && user && !bioDirty) {
+      setBio(user.bio || "");
+    }
+  }, [isSelf, user?.id, bioDirty]);
+
+  useEffect(() => {
+    if (!isSelf && viewingId && token) {
       (async () => {
         try {
           const res = await axios.get(`${API_URL}/users/${viewingId}`, { headers: { Authorization: `Bearer ${token}` } });
           const other = res?.data?.user;
           setBio(other?.bio || "");
-        } catch (e) { console.warn('Failed to load user profile', e); }
+          setBioDirty(false);
+        } catch (e) { }
       })();
     }
-  }, [user, viewingId, token, isSelf]);
+  }, [isSelf, viewingId, token]);
 
   useEffect(() => {
     if (!file) { setPreview(null); return; }
@@ -40,7 +46,7 @@ export default function ProfilePage() {
     try {
       const fd = new FormData();
       if (file) fd.append('avatar', file);
-      if (bio) fd.append('bio', bio);
+      fd.append('bio', bio ?? "");
       const res = await axios.put(`${API_URL}/users/profile`, fd, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -49,6 +55,7 @@ export default function ProfilePage() {
         const newUser = { ...user, ...updated };
         setUser(newUser);
         localStorage.setItem('user', JSON.stringify(newUser));
+        setBioDirty(false);
         alert('Cập nhật hồ sơ thành công');
       }
     } catch (e) {
@@ -112,7 +119,7 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium text-gray-700">Giới thiệu</label>
               <textarea
                 value={bio}
-                onChange={(e) => isSelf && setBio(e.target.value)}
+                onChange={(e) => { setBio(e.target.value); setBioDirty(true); }}
                 className="mt-2 w-full min-h-32 p-3 border rounded-md"
                 placeholder="Viết vài dòng giới thiệu về bạn..."
               />
