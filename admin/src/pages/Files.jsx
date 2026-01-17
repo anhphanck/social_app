@@ -71,7 +71,28 @@ export default function Files() {
 
   const handleDownload = async (e, doc) => {
     e.preventDefault();
-    window.location.href = `http://localhost:5000/api/documents/download/${doc.id}`;
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await axios.get(`http://localhost:5000/api/documents/download/${doc.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      })
+      const blob = new Blob([res.data])
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const cd = res.headers['content-disposition'] || ''
+      let filename = doc.original_name || 'download'
+      const match = cd.match(/filename="([^"]+)"/)
+      if (match && match[1]) filename = decodeURIComponent(match[1])
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không thể tải tài liệu')
+    }
   };
 
   return (

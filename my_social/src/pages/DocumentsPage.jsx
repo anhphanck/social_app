@@ -25,8 +25,40 @@ export default function DocumentsPage() {
 
   const handleDownload = async (e, doc) => {
     e.preventDefault();
-    // Use backend proxy for download to ensure correct filename and avoid CORS
-    window.location.href = `http://localhost:5000/api/documents/download/${doc.id}`;
+    try {
+      const res = await axios.get(`http://localhost:5000/api/documents/download/${doc.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data]);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cd = res.headers['content-disposition'] || '';
+      let filename = doc.original_name || 'download';
+      const match = cd.match(/filename="([^"]+)"/);
+      if (match && match[1]) filename = decodeURIComponent(match[1]);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Không thể tải tài liệu';
+      alert(msg);
+    }
+  };
+  const handleDelete = async (doc) => {
+    try {
+      if (!token) return;
+      if (!confirm('Xóa tài liệu này?')) return;
+      await axios.delete(`${API_URL}/documents/${doc.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      await loadDocs();
+      alert('Đã xóa tài liệu');
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Không thể xóa tài liệu';
+      alert(msg);
+    }
   };
 
   useEffect(() => { loadDocs(); }, [loadDocs]);
@@ -86,6 +118,9 @@ export default function DocumentsPage() {
                     <div className="flex gap-2">
                       <a href={d.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">Xem</a>
                       <a href="#" onClick={(e) => handleDownload(e, d)} className="text-xs text-gray-700 underline">Tải</a>
+                      {(String(d.user_id) === String(user?.id)) && (
+                        <button onClick={() => handleDelete(d)} className="text-xs text-red-700 underline">Xóa</button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -14,26 +14,29 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
     let cancelled = false;
     const load = async () => {
       if (!Array.isArray(users) || users.length === 0) return;
-      const next = {};
+      // giữ cache hiện có để tránh nhấp nháy avatar
+      const next = { ...avatarUrls };
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      for (const u of users) {
-        if (!u) continue;
+      const fetches = users.map(async (u) => {
+        if (!u) return;
+        if (next[u.id]) return; // đã có cache
         if (u.avatar) {
           next[u.id] = u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`;
-          continue;
+          return;
         }
         try {
           const res = await axios.get(`${API_URL}/users/${u.id}`, { headers });
           const url = res?.data?.avatar_url || null;
           if (url) next[u.id] = url;
         } catch { /* ignore */ }
-      }
+      });
+      await Promise.all(fetches);
       if (!cancelled) setAvatarUrls(next);
     };
     load();
     return () => { cancelled = true; };
-  }, [users]);
+  }, [users]); 
   const scrollToPost = (id) => {
     const el = document.getElementById(`post-${id}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });

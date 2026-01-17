@@ -60,12 +60,7 @@ export const UserProvider = ({ children }) => {
     if (socketRef.current && socketRef.current.connected) {
       return;
     }
-    
-    // Disconnect socket cũ nếu có
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
+    // Ngăn việc tạo lại socket khi mở/đóng chat: chỉ phụ thuộc vào token
     
     const socket = io("http://localhost:5000", { 
       auth: { token },
@@ -107,7 +102,14 @@ export const UserProvider = ({ children }) => {
     socket.on('presence_update', (payload) => {
       try {
         const arr = (payload && payload.online) || [];
-        setOnlineUsers(new Set(arr.map((id) => String(id))));
+        setOnlineUsers((prev) => {
+          const incoming = new Set(arr.map((id) => String(id)));
+          if (incoming.size !== prev.size) return incoming;
+          for (const id of incoming) {
+            if (!prev.has(id)) return incoming;
+          }
+          return prev;
+        });
       } catch (e) {
         console.error('presence_update handling failed', e);
       }
@@ -121,7 +123,7 @@ export const UserProvider = ({ children }) => {
         setSocketInstance(null);
       }
     };
-  }, [token, user, currentChatId]);
+  }, [token]);
 
   useEffect(() => {
     const fetchUnreads = async () => {

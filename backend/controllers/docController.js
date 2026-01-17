@@ -203,9 +203,19 @@ export const listDocuments = async (req, res) => {
 export const deleteDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await db.promise().execute("SELECT filename FROM project_documents WHERE id=?", [id]);
+    const [rows] = await db.promise().execute("SELECT filename, user_id FROM project_documents WHERE id=?", [id]);
     if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy tài liệu" });
     const fname = rows[0].filename;
+    const ownerId = rows[0].user_id;
+    const requesterId = req.user && req.user.id;
+    let role = "user";
+    try {
+      const [[u]] = await db.promise().query("SELECT role FROM users WHERE id = ?", [requesterId]);
+      role = (u && u.role) || "user";
+    } catch {}
+    if (String(ownerId) !== String(requesterId) && role !== "admin") {
+      return res.status(403).json({ message: "Chỉ người tải lên hoặc admin mới được xóa" });
+    }
     // Xóa từ Cloudinary nếu là tài liệu đã upload lên cloud
     if (String(fname).includes('/')) {
       try { await cloudinary.uploader.destroy(fname, { resource_type: 'auto' }); } catch {}

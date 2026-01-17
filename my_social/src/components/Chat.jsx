@@ -60,8 +60,8 @@ export default function Chat({ users = [] }) {
 
     const handleDeleted = (updatedMsg) => {
       // if the deleted message belongs to this conversation, update it
-      const sender = updatedMsg.sender_id || updatedMsg.sender_id;
-      const receiver = updatedMsg.receiver_id || updatedMsg.receiver_id;
+      const sender = updatedMsg.sender_id || updatedMsg.from;
+      const receiver = updatedMsg.receiver_id || updatedMsg.to;
       if (String(sender) === String(currentChatId) || String(receiver) === String(currentChatId)) {
         setMessages((prev) => prev.map((m) => (String(m.id) === String(updatedMsg.id) ? updatedMsg : m)));
       }

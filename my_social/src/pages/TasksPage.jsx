@@ -495,7 +495,33 @@ export default function TasksPage() {
                             disabled={!submissionFiles[t.id] || submissionFiles[t.id].length === 0}
                             className="px-3 py-1 border rounded disabled:opacity-50"
                           >
-                            Hoàn thành
+                            Nộp
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {user?.role !== 'admin' && user?.role !== 'teacher' && (t.status !== 'completed') && ((t.submissions_count ?? (details[t.id]?.submissions?.length ?? 0)) > 0) && (
+                      <div className="flex flex-col gap-2">
+                        <textarea
+                          placeholder="Ghi chú minh chứng (tùy chọn)"
+                          className="border rounded px-3 py-2"
+                          value={submissionNotes[t.id] || ''}
+                          onChange={(e) => setSubmissionNotes((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                        />
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            multiple
+                            onChange={(e) =>
+                              setSubmissionFiles((prev) => ({ ...prev, [t.id]: Array.from(e.target.files || []) }))
+                            }
+                          />
+                          <button
+                            onClick={() => changeStatus(t.id, 'in_progress')}
+                            disabled={!submissionFiles[t.id] || submissionFiles[t.id].length === 0}
+                            className="px-3 py-1 border rounded disabled:opacity-50"
+                          >
+                            Nộp lại
                           </button>
                         </div>
                       </div>
