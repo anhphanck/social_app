@@ -102,7 +102,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                     </div>
                   )}
                 </div>
-                <div className="text-sm">🟢 {u.username}</div>
+                <div className="text-sm">🟢 {u.username} <span className="text-xs text-gray-500">({u.role === 'teacher' ? 'teacher' : 'user'})</span></div>
                 {unreadCounts && unreadCounts[String(u.id)] > 0 && (
                   <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">{unreadCounts[String(u.id)]}</span>
                 )}
@@ -143,7 +143,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                   </div>
                 )}
               </div>
-              <div className="text-sm text-gray-800">{u.username}</div>
+              <div className="text-sm text-gray-800">{u.username} <span className="text-xs text-gray-500">({u.role === 'teacher' ? 'teacher' : 'user'})</span></div>
             </div>
             <div className="flex items-center gap-2">
               {unreadCounts[String(u.id)] > 0 && (

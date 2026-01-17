@@ -224,8 +224,9 @@ export const getAllUsers = async (req, res) => {
     let whereClause = "";
     const params = [];
     if (desiredClassId) {
-      whereClause = "WHERE u.class_id = ?";
-      params.push(desiredClassId);
+      // Bao gồm cả giáo viên quản lý lớp (class_teachers)
+      whereClause = "WHERE (u.class_id = ? OR u.id IN (SELECT teacher_id FROM class_teachers WHERE class_id = ?))";
+      params.push(desiredClassId, desiredClassId);
     } else if (desiredClassCode) {
       whereClause = "WHERE c.code = ?";
       params.push(desiredClassCode);
@@ -234,7 +235,7 @@ export const getAllUsers = async (req, res) => {
       return res.json([]);
     }
     const q = `
-      SELECT 
+      SELECT DISTINCT
         u.id, u.username, u.email, COALESCE(u.role,'user') AS role,
         c.code AS class, u.class_id, u.avatar, u.created_at,
         COALESCE(u.is_approved,0) AS is_approved
@@ -282,11 +283,12 @@ export const getOnlineUsers = async (req, res) => {
     const params = [...onlineIds];
     let where = `u.id IN (${placeholders})`;
     if (desiredClassId) {
-      where += " AND u.class_id = ?";
-      params.push(desiredClassId);
+      // Bao gồm cả giáo viên quản lý lớp (class_teachers)
+      where += " AND (u.class_id = ? OR u.id IN (SELECT teacher_id FROM class_teachers WHERE class_id = ?))";
+      params.push(desiredClassId, desiredClassId);
     }
     const sql = `
-      SELECT u.id, u.username, u.avatar, c.code AS class
+      SELECT u.id, u.username, u.avatar, c.code AS class, COALESCE(u.role,'user') AS role
       FROM users u
       LEFT JOIN classes c ON u.class_id = c.id
       WHERE ${where}
@@ -298,7 +300,8 @@ export const getOnlineUsers = async (req, res) => {
       username: u.username,
       avatar: u.avatar || null,
       avatar_url: u && u.avatar ? (String(u.avatar).startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`) : null,
-      class: u.class || null
+      class: u.class || null,
+      role: u.role || 'user'
     }));
     res.json(list);
   } catch (err) {
