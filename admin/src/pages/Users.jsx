@@ -170,6 +170,12 @@ export default function Users() {
             >
               Quản lý Tài liệu
             </button>
+            <button
+              onClick={() => navigate('/classes')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Quản lý Lớp
+            </button>
           </div>
         </div>
       </nav>

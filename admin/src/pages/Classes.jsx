@@ -6,6 +6,7 @@ const API_CLASSES = 'http://localhost:5000/api/classes'
 const API_ADMIN_USERS = 'http://localhost:5000/api/admin/users'
 
 export default function Classes() {
+  const [user, setUser] = useState(null)
   const [classes, setClasses] = useState([])
   const [teachers, setTeachers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -33,7 +34,8 @@ export default function Classes() {
         axios.get(API_ADMIN_USERS, { headers })
       ])
       setClasses(Array.isArray(clsRes.data) ? clsRes.data : [])
-      const ts = (usrRes.data || []).filter(u => u.role === 'teacher')
+      const rawUsers = Array.isArray(usrRes.data) ? usrRes.data : []
+      const ts = rawUsers.filter(u => u.role === 'teacher')
       setTeachers(ts)
     } catch (e) {
       setError(e.response?.data?.message || 'Không thể tải dữ liệu lớp')
@@ -47,7 +49,18 @@ export default function Classes() {
     }
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { 
+    const adminUser = localStorage.getItem('adminUser')
+    if (adminUser) {
+      try {
+        setUser(JSON.parse(adminUser))
+      } catch (e) {
+        console.error('Invalid user data', e)
+        localStorage.removeItem('adminUser')
+      }
+    }
+    fetchData() 
+  }, [])
 
   const resetCreateForm = () => {
     setCode('A')
@@ -112,6 +125,7 @@ export default function Classes() {
   }
 
   const deleteClass = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa lớp này?')) return
     setError('')
     try {
       await axios.delete(`${API_CLASSES}/${id}`, { headers })
@@ -121,15 +135,81 @@ export default function Classes() {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('adminUser')
+    navigate('/login')
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý Lớp</h1>
-          <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-indigo-600 text-white rounded">Về Dashboard</button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+            <div className="flex items-center gap-4">
+              {user && (
+                <span className="text-sm text-gray-600">
+                  Xin chào, <span className="font-medium">{user.username}</span>
+                </span>
+              )}
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+
+      {/* Navigation */}
+      <nav className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate('/users')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Quản lý Users
+            </button>
+            <button
+              onClick={() => navigate('/posts')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Quản lý Bài viết
+            </button>
+            <button
+              onClick={() => navigate('/files')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Quản lý Tài liệu
+            </button>
+            <button
+              onClick={() => navigate('/classes')}
+              className="border-b-2 border-indigo-600 text-indigo-600 py-4 px-1 text-sm font-medium"
+            >
+              Quản lý Lớp
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Quản lý Lớp</h2>
+             <p className="mt-2 text-gray-600">Quản lý danh sách lớp và giáo viên chủ nhiệm</p>
+        </div>
+        
         <div className="px-4 py-6 sm:px-0">
           {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

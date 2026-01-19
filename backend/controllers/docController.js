@@ -162,6 +162,7 @@ export const downloadDocument = async (req, res) => {
 
 export const listDocuments = async (req, res) => {
   try {
+    const { q, class: classParam } = req.query;
     const uid = req.user && req.user.id;
     let role = "user";
     let userClassId = null;
@@ -170,21 +171,44 @@ export const listDocuments = async (req, res) => {
       role = (u && u.role) || "user";
       userClassId = (u && u.class_id) || null;
     } catch {}
-    const classParam = req.query.class || null;
+
+    const keyword = q ? `%${q}%` : null;
     let rows = [];
+
     if (role === "admin" || role === "teacher") {
-      if (classParam) {
-        const query = "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id LEFT JOIN classes c ON d.class_id = c.id WHERE c.code = ? ORDER BY d.id DESC";
-        const [r] = await db.promise().query(query, [classParam]);
-        rows = r || [];
-      } else {
-        rows = [];
+      let query = "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id LEFT JOIN classes c ON d.class_id = c.id";
+      const params = [];
+      const conditions = [];
+
+      if (classParam && classParam !== 'all') {
+        conditions.push("c.code = ?");
+        params.push(classParam);
       }
+
+      if (keyword) {
+        conditions.push("(d.original_name LIKE ? OR u.username LIKE ?)");
+        params.push(keyword, keyword);
+      }
+
+      if (conditions.length > 0) {
+        query += " WHERE " + conditions.join(" AND ");
+      }
+
+      query += " ORDER BY d.id DESC";
+      const [r] = await db.promise().query(query, params);
+      rows = r || [];
     } else {
-      const query = "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id WHERE d.class_id = ? ORDER BY d.id DESC";
-      const [r] = await db.promise().query(query, [userClassId]);
+      let query = "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id WHERE d.class_id = ?";
+      const params = [userClassId];
+      if (keyword) {
+        query += " AND (d.original_name LIKE ? OR u.username LIKE ?)";
+        params.push(keyword, keyword);
+      }
+      query += " ORDER BY d.id DESC";
+      const [r] = await db.promise().query(query, params);
       rows = r || [];
     }
+
     const docs = (rows || []).map((r) => ({
       id: r.id,
       user_id: r.user_id,
@@ -199,6 +223,8 @@ export const listDocuments = async (req, res) => {
     res.status(500).json({ message: "Lỗi lấy danh sách" });
   }
 };
+
+
 
 export const deleteDocument = async (req, res) => {
   try {

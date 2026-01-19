@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
 const API_URL = 'http://localhost:5000/api/posts'
+const API_CLASSES = 'http://localhost:5000/api/classes'
 
 export default function Posts() {
   const [posts, setPosts] = useState([])
@@ -10,7 +11,54 @@ export default function Posts() {
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
   const [query, setQuery] = useState('')
+  const [classes, setClasses] = useState([])
+  const [selectedClass, setSelectedClass] = useState(null)
   const navigate = useNavigate()
+
+  const fetchClasses = async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await axios.get(API_CLASSES, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const list = res.data || []
+      setClasses(list)
+      // Mặc định chọn 'Tất cả' (giá trị rỗng)
+      setSelectedClass('')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể tải danh sách lớp')
+      setSelectedClass('')
+    }
+  }
+
+  const fetchPosts = async (cls = selectedClass, searchQuery = query) => {
+    setLoading(true)
+    setError('')
+    try {
+      const params = {}
+      if (cls) params.class = cls
+      if (searchQuery) params.q = searchQuery
+      
+      // Sử dụng chung endpoint search cho cả lọc và tìm kiếm để nhất quán
+      // Nếu backend hỗ trợ list posts với params q và class ở root endpoint thì dùng root
+      // Dựa trên code cũ: search dùng /search, list dùng /. Ta nên thống nhất nếu có thể.
+      // Kiểm tra lại User input: "quản lý user rất mượt". User.jsx dùng 1 endpoint list với params.
+      // Thử dùng endpoint root với params xem sao (nếu backend hỗ trợ).
+      // Code cũ fetchPosts dùng root endpoint với params class.
+      // Code cũ search dùng /search endpoint.
+      // Để đơn giản và giống Files.jsx, ta gọi fetchPosts trong useEffect.
+      
+      const endpoint = searchQuery ? `${API_URL}/search` : API_URL
+      const res = await axios.get(endpoint, { params })
+      setPosts(res.data)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể tải danh sách bài viết')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     const adminUser = localStorage.getItem('adminUser')
@@ -18,41 +66,16 @@ export default function Posts() {
       setUser(JSON.parse(adminUser))
     }
 
-    fetchPosts()
+    fetchClasses()
   }, [])
 
   useEffect(() => {
-    const t = setTimeout(async () => {
-      if (!query.trim()) {
-        fetchPosts()
-        return
-      }
-      setLoading(true)
-      setError('')
-      try {
-        const res = await axios.get(`${API_URL}/search`, { params: { q: query } })
-        setPosts(res.data)
-      } catch (err) {
-        setError(err.response?.data?.message || 'Không thể tìm kiếm bài viết')
-      } finally {
-        setLoading(false)
-      }
+    // Debounce fetch khi filter hoặc search thay đổi
+    const t = setTimeout(() => {
+      fetchPosts(selectedClass, query)
     }, 400)
     return () => clearTimeout(t)
-  }, [query])
-
-  const fetchPosts = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const response = await axios.get(API_URL)
-      setPosts(response.data)
-    } catch (err) {
-      setError(err.response?.data?.message || 'Không thể tải danh sách bài viết')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [query, selectedClass])
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
@@ -131,6 +154,12 @@ export default function Posts() {
             >
               Quản lý Tài liệu
             </button>
+            <button
+              onClick={() => navigate('/classes')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Quản lý Lớp
+            </button>
           </div>
         </div>
       </nav>
@@ -142,12 +171,29 @@ export default function Posts() {
             <h2 className="text-3xl font-bold text-gray-900">Quản lý Bài viết</h2>
             <p className="mt-2 text-gray-600">Danh sách tất cả bài viết trong hệ thống</p>
           </div>
-          <button
-            onClick={fetchPosts}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
-          >
-            Làm mới
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700">Lớp:</label>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="border rounded px-3 py-2 text-sm"
+              >
+                <option value="">Tất cả</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.code}>
+                    {c.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => fetchPosts()}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
+            >
+              Làm mới
+            </button>
+          </div>
         </div>
 
         <div className="mb-4">

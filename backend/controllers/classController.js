@@ -170,15 +170,19 @@ export async function updateClass(req, res) {
 export async function deleteClass(req, res) {
   try {
     const { id } = req.params;
-    const [[uc]] = await db.promise().query("SELECT COUNT(*) AS cnt FROM users WHERE class_id = ?", [id]);
-    const [[pc]] = await db.promise().query("SELECT COUNT(*) AS cnt FROM posts WHERE class_id = ?", [id]);
-    if ((uc && uc.cnt > 0) || (pc && pc.cnt > 0)) {
-      return res.status(400).json({ message: "Không thể xóa lớp đang được sử dụng" });
-    }
+    
+    // Set class_id to NULL for related entities before deleting
+    await db.promise().query("UPDATE users SET class_id = NULL WHERE class_id = ?", [id]);
+    await db.promise().query("UPDATE posts SET class_id = NULL WHERE class_id = ?", [id]);
+    await db.promise().query("UPDATE project_documents SET class_id = NULL WHERE class_id = ?", [id]);
+    // Also delete from class_teachers mapping
+    await db.promise().query("DELETE FROM class_teachers WHERE class_id = ?", [id]);
+
     const [r] = await db.promise().execute("DELETE FROM classes WHERE id = ?", [id]);
     if (!r || r.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy lớp" });
     res.json({ message: "Đã xóa lớp" });
-  } catch {
+  } catch (e) {
+    console.error(e);
     res.status(500).json({ message: "Lỗi xóa lớp" });
   }
 }

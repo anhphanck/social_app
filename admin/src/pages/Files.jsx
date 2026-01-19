@@ -12,6 +12,7 @@ export default function Files() {
   const [user, setUser] = useState(null)
   const [classes, setClasses] = useState([])
   const [selectedClass, setSelectedClass] = useState('')
+  const [query, setQuery] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -26,24 +27,27 @@ export default function Files() {
       const res = await axios.get(API_CLASSES, { headers: { Authorization: `Bearer ${token}` } })
       const list = res.data || []
       setClasses(list)
-      const defaultCode = (list[0] && list[0].code) ? list[0].code : 'A'
-      setSelectedClass(defaultCode)
-      await fetchDocs(defaultCode)
+      // Mặc định chọn 'Tất cả' (giá trị rỗng) thay vì lớp đầu tiên
+      setSelectedClass('') 
     } catch (err) {
-      // Nếu không lấy được danh sách lớp, vẫn thử fetch tài liệu chung theo mặc định A
-      const fallback = 'A'
-      setSelectedClass(fallback)
-      await fetchDocs(fallback)
+      setSelectedClass('')
     }
   }
 
-  const fetchDocs = async (cls = selectedClass) => {
+  // Hàm fetchDocs chỉ nhận tham số tùy chọn, mặc định lấy từ state
+  const fetchDocs = async (cls = selectedClass, searchQuery = query) => {
     setLoading(true)
     setError('')
     try {
       const token = localStorage.getItem('adminToken')
-      const url = cls ? `${API_URL}?class=${encodeURIComponent(cls)}` : API_URL
-      const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } })
+      const params = {}
+      if (cls) params.class = cls
+      if (searchQuery) params.q = searchQuery
+      
+      const res = await axios.get(API_URL, { 
+        params,
+        headers: { Authorization: `Bearer ${token}` } 
+      })
       setDocs(res.data || [])
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể tải danh sách tài liệu')
@@ -51,6 +55,27 @@ export default function Files() {
       setLoading(false)
     }
   }
+
+  // Effect khởi tạo: chỉ chạy 1 lần
+  useEffect(() => {
+    const adminUser = localStorage.getItem('adminUser')
+    if (adminUser) setUser(JSON.parse(adminUser))
+    fetchClasses()
+  }, [])
+
+  // Effect xử lý thay đổi filter/search với debounce
+  useEffect(() => {
+    // Bỏ qua lần chạy đầu tiên khi selectedClass chưa được set (nếu cần)
+    // Nhưng ở đây ta set mặc định là '' ngay từ đầu trong fetchClasses hoặc useState
+    // Tuy nhiên fetchClasses là async, nên ta cần kiểm tra selectedClass đã sẵn sàng chưa nếu muốn
+    // Ở đây ta dùng cờ mounted hoặc kiểm tra loading của fetchClasses nếu cần thiết.
+    // Đơn giản hóa: chỉ fetch khi user tương tác hoặc sau khi fetchClasses xong.
+    
+    const t = setTimeout(() => {
+        fetchDocs(selectedClass, query)
+    }, 400)
+    return () => clearTimeout(t)
+  }, [query, selectedClass])
 
   const handleDeleteDoc = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) return
@@ -120,6 +145,7 @@ export default function Files() {
             <button onClick={() => navigate('/users')} className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition">Quản lý Users</button>
             <button onClick={() => navigate('/posts')} className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition">Quản lý Bài viết</button>
             <button onClick={() => navigate('/files')} className="border-b-2 border-indigo-600 text-indigo-600 py-4 px-1 text-sm font-medium">Quản lý Tài liệu</button>
+            <button onClick={() => navigate('/classes')} className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition">Quản lý Lớp</button>
           </div>
         </div>
       </nav>
@@ -138,6 +164,7 @@ export default function Files() {
                 onChange={async (e) => { const c = e.target.value; setSelectedClass(c); await fetchDocs(c); }}
                 className="border rounded px-3 py-2 text-sm"
               >
+                <option value="">Tất cả</option>
                 {classes.length > 0 ? (
                   classes.map(c => (<option key={c.id} value={c.code}>{c.code}</option>))
                 ) : (
@@ -145,8 +172,18 @@ export default function Files() {
                 )}
               </select>
             </div>
-            <button onClick={() => fetchDocs(selectedClass)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">Làm mới</button>
+            <button onClick={() => fetchDocs(selectedClass, query)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">Làm mới</button>
           </div>
+        </div>
+
+        <div className="mb-4">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Tìm theo tên tài liệu hoặc người dùng"
+            className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-sm"
+          />
         </div>
 
         {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{error}</div>}
