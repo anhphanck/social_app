@@ -147,6 +147,18 @@ export const createTask = async (req, res) => {
     if (!Array.isArray(assignees) || assignees.length === 0) {
       return res.status(400).json({ message: "Thiếu danh sách người nhận" });
     }
+    // Only allow assigning tasks to users with role 'user'
+    try {
+      const placeholders = assignees.map(() => "?").join(",");
+      const [roleRows] = await db.promise().query(
+        `SELECT id, COALESCE(role,'user') AS role FROM users WHERE id IN (${placeholders})`,
+        assignees
+      );
+      const invalidRole = (roleRows || []).some((r) => String(r.role || 'user') !== 'user');
+      if (invalidRole) {
+        return res.status(400).json({ message: "Chỉ được giao nhiệm vụ cho user (học sinh)" });
+      }
+    } catch {}
     // Validate all assignees belong to finalClassId (if defined)
     if (finalClassId) {
       const placeholders = assignees.map(() => "?").join(",");

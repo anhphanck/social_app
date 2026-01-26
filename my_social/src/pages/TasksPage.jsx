@@ -47,7 +47,8 @@ export default function TasksPage() {
           if (selectedClass) url += `?class=${encodeURIComponent(selectedClass)}`;
         }
         const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
-        setUsers(res.data || []);
+        const list = Array.isArray(res.data) ? res.data : [];
+        setUsers(list.filter((u) => String(u.role || 'user') === 'user'));
       } catch { console.warn(''); }
     };
     loadUsers();
