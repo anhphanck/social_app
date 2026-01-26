@@ -342,12 +342,9 @@ export const updateUserClass = async (req, res) => {
     if (class_id !== null && class_id !== undefined) {
       targetId = class_id || null;
     } else if (userClass !== null && userClass !== undefined) {
-      if (['A','B','C','D'].includes(userClass)) {
-        const [[c]] = await db.promise().query("SELECT id FROM classes WHERE code = ?", [userClass]);
-        targetId = c && c.id ? c.id : null;
-      } else {
-        return res.status(400).json({ message: "Lớp không hợp lệ" });
-      }
+      const [[c]] = await db.promise().query("SELECT id FROM classes WHERE code = ? AND (is_deleted = 0 OR is_deleted IS NULL)", [userClass]);
+      if (!c || !c.id) return res.status(400).json({ message: "Lớp không hợp lệ" });
+      targetId = c.id;
     }
     const [r] = await db.promise().execute("UPDATE users SET class_id = ?, class = NULL WHERE id = ?", [targetId, userId]);
     if (!r || r.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy user" });

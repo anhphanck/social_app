@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
 const API_URL = 'http://localhost:5000/api/admin/users'
+const API_CLASSES = 'http://localhost:5000/api/classes'
 
 export default function Users() {
   const [users, setUsers] = useState([])
+  const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
@@ -21,6 +23,7 @@ export default function Users() {
     }
 
     fetchUsers()
+    fetchClasses()
   }, [])
 
   const fetchUsers = async () => {
@@ -43,6 +46,16 @@ export default function Users() {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchClasses = async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await axios.get(API_CLASSES, { headers: { Authorization: `Bearer ${token}` } })
+      setClasses(Array.isArray(res.data) ? res.data : [])
+    } catch (err) {
+      // Không chặn toàn trang nếu lỗi, chỉ không hiển thị dropdown động
     }
   }
 
@@ -70,11 +83,11 @@ export default function Users() {
     }
   }
 
-  const handleUpdateClass = async (userId, newClass) => {
+  const handleUpdateClass = async (userId, newClassId) => {
     try {
       const token = localStorage.getItem('adminToken')
       await axios.put(`http://localhost:5000/api/admin/users/${userId}/class`, 
-        { class: newClass || null },
+        { class_id: newClassId ?? null },
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -285,15 +298,19 @@ export default function Users() {
                           {/* Chỉ phân lớp cho user (không phân cho admin và teacher) */}
                           {u.role === 'user' ? (
                             <select
-                              value={u.class || ''}
-                              onChange={(e) => handleUpdateClass(u.id, e.target.value)}
+                              value={u.class_id ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                handleUpdateClass(u.id, val === '' ? null : Number(val))
+                              }}
                               className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
                               <option value="">Chưa phân lớp</option>
-                              <option value="A">Lớp A</option>
-                              <option value="B">Lớp B</option>
-                              <option value="C">Lớp C</option>
-                              <option value="D">Lớp D</option>
+                              {classes.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  Lớp {c.code}
+                                </option>
+                              ))}
                             </select>
                           ) : (
                             <span className="text-xs text-gray-400">-</span>

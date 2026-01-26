@@ -186,3 +186,42 @@ CREATE TABLE project_documents (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS classes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(255),
+    description TEXT,
+    homeroom_teacher_id INT,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (homeroom_teacher_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS class_teachers (
+    class_id INT NOT NULL,
+    teacher_id INT NOT NULL,
+    PRIMARY KEY (class_id, teacher_id),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE users ADD COLUMN class_id INT NULL;
+ALTER TABLE users ADD CONSTRAINT fk_users_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL;
+
+ALTER TABLE posts ADD COLUMN class_id INT NULL;
+ALTER TABLE posts ADD CONSTRAINT fk_posts_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL;
+
+ALTER TABLE tasks ADD COLUMN class_id INT NULL;
+ALTER TABLE tasks ADD CONSTRAINT fk_tasks_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL;
+
+ALTER TABLE project_documents ADD COLUMN class_id INT NULL;
+ALTER TABLE project_documents ADD CONSTRAINT fk_project_documents_class FOREIGN KEY (class_id) REFERENCES classes(id);
+
+ALTER TABLE task_files ADD COLUMN original_name VARCHAR(255) NULL;
+ALTER TABLE task_submissions ADD COLUMN original_name VARCHAR(255) NULL;
+
+CREATE INDEX idx_sender_receiver_created ON messages(sender_id, receiver_id, created_at);
+CREATE INDEX idx_receiver_created ON messages(receiver_id, created_at);
+CREATE INDEX idx_conversation_created ON messages(conversation_id, created_at);
