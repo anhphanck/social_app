@@ -48,7 +48,6 @@ export default function HomePage() {
    
   const fetchPosts = async () => {
     try {
-      if (isSearching) return;
       const token = localStorage.getItem('token');
       const userId = user?.id || null;
       

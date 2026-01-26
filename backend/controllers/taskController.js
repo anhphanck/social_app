@@ -311,6 +311,17 @@ export const updateTask = async (req, res) => {
       await db.promise().execute(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`, params);
     }
     if (Array.isArray(assignees)) {
+      try {
+        const placeholders = assignees.map(() => "?").join(",");
+        const [roleRows] = await db.promise().query(
+          `SELECT id, COALESCE(role,'user') AS role FROM users WHERE id IN (${placeholders})`,
+          assignees
+        );
+        const invalidRole = (roleRows || []).some((r) => String(r.role || 'user') !== 'user');
+        if (invalidRole) {
+          return res.status(400).json({ message: "Chỉ được giao nhiệm vụ cho user (học sinh)" });
+        }
+      } catch {}
       // Enforce class isolation for assignees if task has class_id
       let taskClassId = null;
       try {
