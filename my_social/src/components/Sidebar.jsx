@@ -7,9 +7,9 @@ export default function Sidebar() {
   const { taskNotifCount } = useContext(UserContext);
   const items = [
     { icon: "🏠", label: "Trang chủ", path: "/" },
-    { icon: "📄", label: "Tài liệu dự án", path: "/documents" },
+    { icon: "📄", label: "Tài liệu lớp học", path: "/documents" },
     { icon: "📝", label: "Task", path: "/tasks" },
-    { icon: "💼", label: "Cuộc họp", path: "/meeting" }
+    // { icon: "💼", label: "Cuộc họp", path: "/meeting" }
   ];
 
   return (

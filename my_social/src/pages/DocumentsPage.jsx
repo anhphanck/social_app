@@ -92,7 +92,7 @@ export default function DocumentsPage() {
             <Sidebar />
         </div>
         <div className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
-          <h1 className="text-xl font-semibold text-sky-700">Chia sẻ tài liệu dự án</h1>
+          <h1 className="text-xl font-semibold text-sky-700">Chia sẻ tài liệu lớp học</h1>
           <div className="mt-4">
             <div className="p-4 border rounded-md">
               <div className="text-sm font-semibold mb-2">Tải lên tài liệu</div>

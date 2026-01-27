@@ -78,7 +78,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
       </div>
       
       <div className="bg-white shadow-sm p-3 rounded-md h-35">
-        <h3 className="font-semibold text-sky-700 mb-2">🟢 Bạn bè đang online</h3>
+        <h3 className="font-semibold text-sky-700 mb-2">🟢 Đang hoạt động</h3>
         {(() => {
           const onlineList = users.filter((u) => onlineUsers && onlineUsers.has && onlineUsers.has(String(u.id)));
           if (!onlineList || onlineList.length === 0) return <div className="text-sm text-gray-500">Không có bạn nào đang online</div>;

@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import Rightbar from "../components/Rightbar";
 import CreatePost from "../components/CreatePost";
-import Midbar from "../components/Midbar";
+
 import EditablePost from "../components/EditablePost";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
@@ -286,7 +286,7 @@ export default function HomePage() {
         </div>
 
         <main className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
-          <Midbar />
+          
           <CreatePost
             newPost={newPost}
             setNewPost={setNewPost}

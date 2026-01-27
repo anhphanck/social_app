@@ -230,17 +230,37 @@ export default function Classes() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">Giáo viên chủ nhiệm</label>
-                  <select
-                    multiple
-                    value={homeroomIds.map(String)}
-                    onChange={e => {
-                      const opts = Array.from(e.target.selectedOptions).map(o => Number(o.value))
-                      setHomeroomIds(opts)
-                    }}
-                    className="w-full border rounded px-3 py-2 h-28"
-                  >
-                    {teachers.map(t => (<option key={t.id} value={t.id}>{t.username}</option>))}
-                  </select>
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setHomeroomIds(teachers.map(t => t.id))}
+                      className="px-3 py-1 rounded border"
+                    >
+                      Chọn tất cả
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHomeroomIds([])}
+                      className="px-3 py-1 rounded border"
+                    >
+                      Bỏ chọn tất cả
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {teachers.map(t => {
+                      const checked = homeroomIds.includes(t.id)
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setHomeroomIds(prev => prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id])}
+                          className={`px-3 py-1 rounded border ${checked ? 'bg-indigo-600 text-white' : 'bg-white'}`}
+                        >
+                          {t.username}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
                 <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Tạo</button>
               </form>
@@ -265,65 +285,31 @@ export default function Classes() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {classes.map(c => {
                       const teacher = teachers.find(t => String(t.id) === String(c.homeroom_teacher_id))
-                      const isEditing = editingId === c.id
                       return (
                         <tr key={c.id}>
                           <td className="px-6 py-2 text-sm">{c.id}</td>
                           <td className="px-6 py-2 text-sm">
-                            {isEditing ? (
-                              <input value={editCode} onChange={e => setEditCode(e.target.value)} className="border rounded px-2 py-1 w-24" />
-                            ) : (
-                              c.code
-                            )}
+                            {c.code}
                           </td>
                           <td className="px-6 py-2 text-sm">
-                            {isEditing ? (
-                              <input value={editName} onChange={e => setEditName(e.target.value)} className="border rounded px-2 py-1" />
-                            ) : (
-                              c.name || ''
-                            )}
+                            {c.name || ''}
                           </td>
                           <td className="px-6 py-2 text-sm">
-                            {isEditing ? (
-                              <select
-                                multiple
-                                value={editHomeroomIds.map(String)}
-                                onChange={e => {
-                                  const opts = Array.from(e.target.selectedOptions).map(o => Number(o.value))
-                                  setEditHomeroomIds(opts)
-                                }}
-                                className="border rounded px-2 py-1 min-w-48 h-24"
-                              >
-                                {teachers.map(t => (<option key={t.id} value={t.id}>{t.username}</option>))}
-                              </select>
-                            ) : (
-                              (() => {
-                                const names = String(c.homeroom_teacher_usernames || '').split(',').filter(Boolean)
-                                if (names.length > 0) return names.join(', ')
-                                if (teacher) return teacher.username
-                                return ''
-                              })()
-                            )}
+                            {(() => {
+                              const names = String(c.homeroom_teacher_usernames || '').split(',').filter(Boolean)
+                              if (names.length > 0) return names.join(', ')
+                              if (teacher) return teacher.username
+                              return ''
+                            })()}
                           </td>
                           <td className="px-6 py-2 text-sm">
-                            {isEditing ? (
-                              <input value={editDescription} onChange={e => setEditDescription(e.target.value)} className="border rounded px-2 py-1 w-full" />
-                            ) : (
-                              c.description || ''
-                            )}
+                            {c.description || ''}
                           </td>
                           <td className="px-6 py-2 text-sm">
-                            {isEditing ? (
-                              <div className="flex gap-2">
-                                <button onClick={() => saveEdit(c.id)} className="px-3 py-1 bg-green-600 text-white rounded">Lưu</button>
-                                <button onClick={cancelEdit} className="px-3 py-1 bg-gray-300 rounded">Hủy</button>
-                              </div>
-                            ) : (
-                              <div className="flex gap-2">
-                                <button onClick={() => startEdit(c)} className="px-3 py-1 bg-indigo-600 text-white rounded">Sửa</button>
-                                <button onClick={() => deleteClass(c.id)} className="px-3 py-1 bg-red-600 text-white rounded">Xóa</button>
-                              </div>
-                            )}
+                            <div className="flex gap-2">
+                              <button onClick={() => startEdit(c)} className="px-3 py-1 bg-indigo-600 text-white rounded">Sửa</button>
+                              <button onClick={() => deleteClass(c.id)} className="px-3 py-1 bg-red-600 text-white rounded">Xóa</button>
+                            </div>
                           </td>
                         </tr>
                       )
@@ -335,6 +321,68 @@ export default function Classes() {
           </div>
         </div>
       </main>
+      {editingId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="text-lg font-semibold">Sửa lớp</div>
+              <button onClick={cancelEdit} className="px-3 py-1 rounded bg-gray-100">Đóng</button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <div className="text-sm text-gray-700 mb-1">Mã lớp</div>
+                <input value={editCode} onChange={e => setEditCode(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="A" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-700 mb-1">Tên lớp</div>
+                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="Lớp A" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-700 mb-1">Mô tả</div>
+                <textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="Mô tả" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-700 mb-1">Giáo viên chủ nhiệm</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditHomeroomIds(teachers.map(t => t.id))}
+                    className="px-3 py-1 rounded border"
+                  >
+                    Chọn tất cả
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditHomeroomIds([])}
+                    className="px-3 py-1 rounded border"
+                  >
+                    Bỏ chọn tất cả
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {teachers.map(t => {
+                    const checked = editHomeroomIds.includes(t.id)
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setEditHomeroomIds(prev => prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id])}
+                        className={`px-3 py-1 rounded border ${checked ? 'bg-indigo-600 text-white' : 'bg-white'}`}
+                      >
+                        {t.username}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <button onClick={cancelEdit} className="px-4 py-2 rounded bg-gray-200">Hủy</button>
+              <button onClick={() => saveEdit(editingId)} className="px-4 py-2 rounded bg-indigo-600 text-white">Lưu</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
