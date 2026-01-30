@@ -22,7 +22,6 @@ export default function HomePage() {
   const [keepImages, setKeepImages] = useState([]); // ảnh cũ muốn giữ lại
   const [editContent, setEditContent] = useState(""); // nội dung sửa
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
 
   const { user, logout, token, selectedClass } = useContext(UserContext);
 
@@ -32,7 +31,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (user) {
-      fetchPosts();
+      if (!searchQuery.trim()) {
+        fetchPosts();
+      }
       fetchUsers();
     }
   }, [user, selectedClass]); // Reload posts khi đổi lớp
@@ -237,12 +238,10 @@ export default function HomePage() {
       const search = async () => {
         const q = searchQuery.trim();
         if (!q) {
-          setIsSearching(false);
           fetchPosts();
           return;
         }
         try {
-          setIsSearching(true);
           let classToFilter = null;
           if (user?.role === 'teacher' && selectedClass) {
             classToFilter = selectedClass;
@@ -256,11 +255,8 @@ export default function HomePage() {
             url += `&class=${classToFilter}`;
           }
           const headers = token ? { Authorization: `Bearer ${token}` } : {};
-          let active = true;
           const res = await axios.get(url, { headers });
-          if (active) {
-            setPosts(res.data || []);
-          }
+          setPosts(res.data || []);
         } catch (err) {
           console.error("Lỗi khi tìm kiếm:", err);
         }
