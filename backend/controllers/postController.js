@@ -171,61 +171,77 @@ export const createPost = async (req, res) => {
     if (!authUserId || (!content && uploadedImages.length === 0))
       return res.status(400).json({ message: "Thiếu nội dung hoặc ảnh" });
 
-    db.query("SELECT class_id FROM users WHERE id = ?", [authUserId], (userErr, userRows) => {
+    db.query("SELECT role, class_id FROM users WHERE id = ?", [authUserId], (userErr, userRows) => {
       if (userErr) {
         console.error("Lỗi lấy class của user:", userErr);
         return res.status(500).json({ message: "Lỗi server" });
       }
 
-      const userClassId = userRows && userRows[0] ? userRows[0].class_id : null;
+      let finalClassId = userRows && userRows[0] ? userRows[0].class_id : null;
+      const role = userRows && userRows[0] ? (userRows[0].role || 'user') : 'user';
+      const requestedClassCode = req.body.class;
 
-      const q = "INSERT INTO posts (user_id, content, image, class_id) VALUES (?, ?, ?, ?)";
-      const firstImage = uploadedImages.length > 0 ? uploadedImages[0] : null;
-      
-      db.query(q, [authUserId, content, firstImage, userClassId], (err, result) => {
-      if (err) {
-        console.error("Lỗi khi thêm bài viết:", err);
-        return res.status(500).json({ message: "Không thể đăng bài" });
-      }
-
-      const postId = result.insertId;
-
-      // Lưu nhiều ảnh vào bảng post_images
-      if (uploadedImages.length > 0) {
-        const imageValues = uploadedImages.map(img => [postId, img]);
-        const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
+      const proceedToInsert = (classIdToUse) => {
+        const q = "INSERT INTO posts (user_id, content, image, class_id) VALUES (?, ?, ?, ?)";
+        const firstImage = uploadedImages.length > 0 ? uploadedImages[0] : null;
         
-        db.query(insertImagesQuery, [imageValues], (imgErr) => {
-          if (imgErr) {
-            console.error("Lỗi khi lưu ảnh:", imgErr);
-          }
-
+        db.query(q, [authUserId, content, firstImage, classIdToUse], (err, result) => {
+        if (err) {
+          console.error("Lỗi khi thêm bài viết:", err);
+          return res.status(500).json({ message: "Không thể đăng bài" });
+        }
+  
+        const postId = result.insertId;
+  
+        // Lưu nhiều ảnh vào bảng post_images
+        if (uploadedImages.length > 0) {
+          const imageValues = uploadedImages.map(img => [postId, img]);
+          const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
+          
+          db.query(insertImagesQuery, [imageValues], (imgErr) => {
+            if (imgErr) {
+              console.error("Lỗi khi lưu ảnh:", imgErr);
+            }
+  
+            res.json({
+              message: "Đăng bài thành công",
+              post: {
+                id: postId,
+                user_id: authUserId,
+                content,
+                class_id: classIdToUse,
+                images: uploadedImages.map(img => getPostImageUrl(img)),
+                image: firstImage ? getPostImageUrl(firstImage) : null,
+              },
+            });
+          });
+        } else {
           res.json({
             message: "Đăng bài thành công",
             post: {
               id: postId,
               user_id: authUserId,
               content,
-              class_id: userClassId,
-              images: uploadedImages.map(img => getPostImageUrl(img)),
-              image: firstImage ? getPostImageUrl(firstImage) : null,
+              class_id: classIdToUse,
+              images: [],
+              image: null,
             },
           });
+        }
+        });
+      };
+
+      if ((role === 'teacher' || role === 'admin') && requestedClassCode) {
+        db.query("SELECT id FROM classes WHERE code = ?", [requestedClassCode], (cErr, cRows) => {
+           if (!cErr && cRows && cRows.length > 0) {
+             proceedToInsert(cRows[0].id);
+           } else {
+             proceedToInsert(finalClassId);
+           }
         });
       } else {
-        res.json({
-          message: "Đăng bài thành công",
-          post: {
-            id: postId,
-            user_id: authUserId,
-            content,
-            class_id: userClassId,
-            images: [],
-            image: null,
-          },
-        });
+        proceedToInsert(finalClassId);
       }
-      });
     });
   } catch (e) {
     console.error(e);

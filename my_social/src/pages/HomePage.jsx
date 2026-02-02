@@ -110,6 +110,11 @@ export default function HomePage() {
     try {
       const formData = new FormData();
       formData.append("content", newPost);
+      // Gửi kèm class nếu là teacher/admin và đang có selectedClass
+      if ((user?.role === 'teacher' || user?.role === 'admin') && selectedClass) {
+        formData.append("class", selectedClass);
+      }
+
       if (filesToUpload && filesToUpload.length > 0) {
         filesToUpload.forEach((file) => {
           formData.append("images", file);
