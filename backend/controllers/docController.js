@@ -129,9 +129,7 @@ export const downloadDocument = async (req, res) => {
     }
 
     if (!publicId || !publicId.includes('/')) {
-       // Local file, redirect to static path (or stream it)
-       // Assuming local uploads are handled by static middleware or we can just redirect
-       return res.redirect(`http://localhost:5000/uploads/${publicId}`);
+       return res.redirect(`/uploads/${publicId}`);
     }
 
     // It's a cloudinary file
@@ -216,7 +214,7 @@ export const listDocuments = async (req, res) => {
       filename: r.filename,
       original_name: r.original_name || r.filename,
       created_at: r.created_at,
-      url: r.filename && r.filename.includes('/') ? getCloudinaryUrl(r.filename, r.original_name) : `http://localhost:5000/uploads/${r.filename}`
+      url: r.filename && r.filename.includes('/') ? getCloudinaryUrl(r.filename, r.original_name) : `/uploads/${r.filename}`
     }));
     res.json(docs);
   } catch (e) {

@@ -12,7 +12,7 @@
 # CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
 
 # Build stage
-FROM node:18 AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 COPY package*.json ./

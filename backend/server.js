@@ -17,6 +17,7 @@ import { verifyTokenSocket } from "./middleware/authMiddleware.js";
 import db from "./config/db.js";
 
 const app = express();
+app.set('trust proxy', true);
 app.use(cors({
 	origin: [
 		"http://localhost:5173",

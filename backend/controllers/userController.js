@@ -208,7 +208,7 @@ export const loginUser = (req, res) => {
         class_id: user.class_id || null,
         avatar: user.avatar || null
       },
-      avatar_url: user && user.avatar ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/${user.avatar}`) : null
+      avatar_url: user && user.avatar ? (user.avatar.startsWith('http') ? user.avatar : `/uploads/${user.avatar}`) : null
     });
   });
 };
@@ -321,7 +321,7 @@ export const getOnlineUsers = async (req, res) => {
       id: u.id,
       username: u.username,
       avatar: u.avatar || null,
-      avatar_url: u && u.avatar ? (String(u.avatar).startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`) : null,
+      avatar_url: u && u.avatar ? (String(u.avatar).startsWith('http') ? u.avatar : `/uploads/${u.avatar}`) : null,
       class: u.class || null,
       role: u.role || 'user'
     }));
@@ -470,7 +470,7 @@ export const updateProfile = async (req, res) => {
     res.json({
       message: 'Profile updated',
       user: updated,
-      avatar_url: updated && updated.avatar ? (updated.avatar.startsWith('http') ? updated.avatar : `http://localhost:5000/uploads/${updated.avatar}`) : null
+      avatar_url: updated && updated.avatar ? (updated.avatar.startsWith('http') ? updated.avatar : `/uploads/${updated.avatar}`) : null
     });
   } catch (err) {
     console.error('Failed to update profile:', err);
@@ -499,7 +499,7 @@ export const getUserById = async (req, res) => {
     const u = rows[0];
     res.json({
       user: u,
-      avatar_url: u && u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`) : null
+      avatar_url: u && u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`) : null
     });
   } catch (err) {
     console.error('Failed to fetch user by id:', err);

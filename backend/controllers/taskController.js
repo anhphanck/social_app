@@ -491,8 +491,8 @@ export const getTaskDetail = async (req, res) => {
       const [cRows] = await db.promise().execute("SELECT u.id, u.username FROM users u WHERE u.id = ?", [task.created_by]);
       creator = (cRows && cRows[0]) || null;
     } catch {}
-    const attachments = (fileRows || []).map((f) => ({ id: f.id, filename: f.filename, original_name: f.original_name, url: f.filename && String(f.filename).includes('/') ? getCloudinaryUrl(f.filename, f.original_name) : `http://localhost:5000/uploads/${f.filename}` }));
-    const submissions = (subRows || []).map((s) => ({ id: s.id, user_id: s.user_id, filename: s.filename, original_name: s.original_name, url: s.filename && String(s.filename).includes('/') ? getCloudinaryUrl(s.filename, s.original_name) : `http://localhost:5000/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null, grade: s.grade ?? null, feedback: s.feedback ?? null }));
+    const attachments = (fileRows || []).map((f) => ({ id: f.id, filename: f.filename, original_name: f.original_name, url: f.filename && String(f.filename).includes('/') ? getCloudinaryUrl(f.filename, f.original_name) : `/uploads/${f.filename}` }));
+    const submissions = (subRows || []).map((s) => ({ id: s.id, user_id: s.user_id, filename: s.filename, original_name: s.original_name, url: s.filename && String(s.filename).includes('/') ? getCloudinaryUrl(s.filename, s.original_name) : `/uploads/${s.filename}`, created_at: s.created_at, note: s.note || null, grade: s.grade ?? null, feedback: s.feedback ?? null }));
     const assignees = (assRows || []).map((r) => ({ id: r.user_id, username: r.username }));
     res.json({ task, creator, assignees, comments: comRows || [], attachments, submissions });
   } catch (e) {
