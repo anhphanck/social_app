@@ -1,16 +1,12 @@
-FROM node:20-alpine
+FROM node:18 AS build
 
 WORKDIR /app
-
-# Cài vite global để chắc chắn có binary
-RUN npm install -g vite
-
 COPY package*.json ./
 RUN npm install
-
 COPY . .
+RUN npm run build
 
-EXPOSE 5174
-
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5174"]
-
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
