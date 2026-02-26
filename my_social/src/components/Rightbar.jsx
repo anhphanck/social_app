@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import Chat from "./Chat";
 import axios from "axios";
+import { API_URL, UPLOADS_URL } from "../config/api";
 
 export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
   const navigate = useNavigate();
   const { setCurrentChatId, unreadCounts, onlineUsers, setUnreadCounts, user } = useContext(UserContext);
   const [avatarUrls, setAvatarUrls] = useState({});
-  const API_URL = "http://localhost:5000/api";
 
   useEffect(() => {
     let cancelled = false;
@@ -22,7 +22,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
         if (!u) return;
         if (next[u.id]) return; // đã có cache
         if (u.avatar) {
-          next[u.id] = u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`;
+          next[u.id] = u.avatar.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`;
           return;
         }
         try {
@@ -91,8 +91,8 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                   title={u.username}
                 >
                   {(avatarUrls[u.id] || u.avatar) ? (
-                    <img
-                      src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`)}
+                      <img
+                      src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`)}
                       alt="avatar"
                       className="w-7 h-7 rounded-full object-cover"
                     />
@@ -133,7 +133,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
               >
                 {(avatarUrls[u.id] || u.avatar) ? (
                   <img
-                    src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`)}
+                  src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`)}
                     alt="avatar"
                     className="w-7 h-7 rounded-full object-cover"
                   />

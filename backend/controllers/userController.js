@@ -119,10 +119,32 @@ async function ensureClassesAndMigrate() {
     console.warn("Failed to ensure classes/migration", e);
   }
 }
+
+async function ensureAdminUser() {
+  try {
+    const email = process.env.ADMIN_EMAIL;
+    const password = process.env.ADMIN_PASSWORD;
+    if (!email || !password) return;
+
+    const [rows] = await db.promise().query("SELECT id FROM users WHERE email = ?", [email]);
+    if (rows && rows.length > 0) return;
+
+    const hashed = await bcrypt.hash(password, 10);
+    await db.promise().execute(
+      "INSERT INTO users (username, email, password, role, is_approved) VALUES (?, ?, ?, 'admin', 1)",
+      ["Admin", email, hashed]
+    );
+    console.log("Seeded admin user from ENV:", email);
+  } catch (e) {
+    console.warn("Failed to ensure admin user", e);
+  }
+}
+
 ensureUserSchema();
 ensureUserProfileColumns();
 ensureUserClassColumn();
 ensureClassesAndMigrate();
+ensureAdminUser();
 
 const SECRET_KEY = "secret_key_demo";
 

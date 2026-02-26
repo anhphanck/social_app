@@ -1,0 +1,47 @@
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: social_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: social_app
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build: ./backend
+    container_name: social_backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - mysql
+    volumes:
+      - ./backend/uploads:/app/uploads
+    restart: unless-stopped
+
+  my_social:
+    build: ./my_social
+    container_name: social_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  admin:
+    build: ./admin
+    container_name: social_admin
+    ports:
+      - "5174:5174"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

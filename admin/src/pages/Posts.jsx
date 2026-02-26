@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { API_URL } from '../config/api'
 
-const API_URL = 'http://localhost:5000/api/posts'
-const API_CLASSES = 'http://localhost:5000/api/classes'
+const API_POSTS = `${API_URL}/posts`
+const API_CLASSES = `${API_URL}/classes`
 
 export default function Posts() {
   const [posts, setPosts] = useState([])
@@ -50,7 +51,7 @@ export default function Posts() {
       // Code cũ search dùng /search endpoint.
       // Để đơn giản và giống Files.jsx, ta gọi fetchPosts trong useEffect.
       
-      const endpoint = searchQuery ? `${API_URL}/search` : API_URL
+      const endpoint = searchQuery ? `${API_POSTS}/search` : API_POSTS
       const res = await axios.get(endpoint, { params })
       setPosts(res.data)
     } catch (err) {
@@ -84,7 +85,7 @@ export default function Posts() {
 
     try {
       const token = localStorage.getItem('adminToken')
-      await axios.delete(`${API_URL}/${postId}`, {
+      await axios.delete(`${API_POSTS}/${postId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

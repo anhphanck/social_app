@@ -6,6 +6,9 @@ import AuthInput from "../components/AuthInput";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
+import { API_URL } from "../config/api";
+
+const API_USERS = `${API_URL}/users`;
 
 export default function AuthPage() {
   const { setUser, setToken } = useContext(UserContext);
@@ -19,8 +22,6 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("error");
-
-  const API_URL = "http://localhost:5000/api/users";
   const navigate = useNavigate();
   const transition = { duration: 0.6, ease: "easeInOut" };
 
@@ -35,7 +36,7 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        const res = await axios.post(`${API_URL}/login`, {
+        const res = await axios.post(`${API_USERS}/login`, {
           email: formData.email,
           password: formData.password,
         });
@@ -43,7 +44,7 @@ export default function AuthPage() {
         // Lấy thông tin user đầy đủ (bao gồm role hiện tại)
         let mergedUser = res.data.user;
         try {
-          const full = await axios.get(`${API_URL}/${res.data.user.id}`, {
+          const full = await axios.get(`${API_USERS}/${res.data.user.id}`, {
             headers: { Authorization: `Bearer ${res.data.token}` }
           });
           mergedUser = { ...res.data.user, ...(full.data?.user || {}) };
@@ -76,7 +77,7 @@ export default function AuthPage() {
         setMessageType("success");
         navigate("/");  
       } else {
-        await axios.post(`${API_URL}/register`, {
+        await axios.post(`${API_USERS}/register`, {
           username: formData.username,
           email: formData.email,
           password: formData.password,

@@ -39,7 +39,7 @@ export default function Sidebar() {
 // import axios from "axios";
 // import { UserContext } from "../context/UserContext";
 
-// const API_URL = "http://localhost:5000/api";
+// const API_URL = "/api"; // use API_URL from config if needed
 
 // // ========================== CommentCard ==========================
 // function CommentCard({ comment, onReply }) {

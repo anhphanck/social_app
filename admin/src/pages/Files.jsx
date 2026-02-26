@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { API_URL } from '../config/api'
 
-const API_URL = 'http://localhost:5000/api/documents'
-const API_CLASSES = 'http://localhost:5000/api/classes'
+const API_DOCS = `${API_URL}/documents`
+const API_CLASSES = `${API_URL}/classes`
 
 export default function Files() {
   const [docs, setDocs] = useState([])
@@ -44,7 +45,7 @@ export default function Files() {
       if (cls) params.class = cls
       if (searchQuery) params.q = searchQuery
       
-      const res = await axios.get(API_URL, { 
+      const res = await axios.get(API_DOCS, { 
         params,
         headers: { Authorization: `Bearer ${token}` } 
       })
@@ -81,7 +82,7 @@ export default function Files() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) return
     try {
       const token = localStorage.getItem('adminToken')
-      await axios.delete(`${API_URL}/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.delete(`${API_DOCS}/${id}`, { headers: { Authorization: `Bearer ${token}` } })
       fetchDocs()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể xóa tài liệu')
@@ -98,7 +99,7 @@ export default function Files() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await axios.get(`http://localhost:5000/api/documents/download/${doc.id}`, {
+      const res = await axios.get(`${API_DOCS}/download/${doc.id}`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       })

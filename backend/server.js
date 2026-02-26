@@ -17,7 +17,17 @@ import { verifyTokenSocket } from "./middleware/authMiddleware.js";
 import db from "./config/db.js";
 
 const app = express();
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
+app.use(cors({
+	origin: [
+		"http://localhost:5173",
+		"http://localhost:5174",
+		"http://127.0.0.1:5173",
+		"http://127.0.0.1:5174",
+		"http://my_social:5173",
+		"http://admin:5174"
+	],
+	credentials: true
+}));
 app.use(bodyParser.json());
 
 app.use("/api/users", userRoutes); // Cho user thường
@@ -48,7 +58,7 @@ app.get('/api/files/:filename', (req, res) => {
 // create HTTP server and attach Socket.IO
 const httpServer = createServer(app);
 const io = new IOServer(httpServer, {
-	cors: { origin: ["http://localhost:5173", "http://localhost:5174"], methods: ["GET", "POST"], credentials: true },
+	cors: { origin: ["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"], methods: ["GET", "POST"], credentials: true },
 });
 
 // expose io so controllers/routes can emit

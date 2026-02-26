@@ -1,5 +1,6 @@
 import { useContext, useState } from "react";
 import { UserContext } from "../context/UserContext";
+import { UPLOADS_URL } from "../config/api";
 
 export default function CreatePost({ newPost, setNewPost, onSubmit, loading, files, setFiles }) {
   const { user } = useContext(UserContext);
@@ -26,7 +27,7 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
           >
             {user?.avatar ? (
             <img
-              src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/${user.avatar}`}
+              src={user.avatar.startsWith('http') ? user.avatar : `${UPLOADS_URL}/${user.avatar}`}
               alt="avatar"
               className="w-10 h-10 rounded-full object-cover"
             />
@@ -52,7 +53,7 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
       <div className="flex items-center gap-3 mb-3">
         {user?.avatar ? (
           <img
-            src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/${user.avatar}`}
+            src={user.avatar.startsWith('http') ? user.avatar : `${UPLOADS_URL}/${user.avatar}`}
             alt="avatar"
             className="w-10 h-10 rounded-full object-cover"
           />
