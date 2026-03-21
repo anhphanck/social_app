@@ -4,23 +4,6 @@ import { Readable } from "stream";
 import https from "https";
 import fs from "fs";
 
-export async function ensureDocSchema() {
-  try {
-    await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS project_documents (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, filename VARCHAR(255) NOT NULL, original_name VARCHAR(255) NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
-    );
-    try {
-      await db.promise().query("ALTER TABLE project_documents ADD COLUMN original_name VARCHAR(255) NULL");
-    } catch {}
-    try {
-      await db.promise().query("ALTER TABLE project_documents ADD COLUMN class_id INT NULL");
-    } catch {}
-    try {
-      await db.promise().query("ALTER TABLE project_documents ADD CONSTRAINT fk_project_documents_class FOREIGN KEY (class_id) REFERENCES classes(id)");
-    } catch {}
-  } catch {}
-}
-
 export const uploadDocuments = async (req, res) => {
   try {
     const userId = req.user && req.user.id;
@@ -72,34 +55,25 @@ export const uploadDocuments = async (req, res) => {
 
 const getCloudinaryUrl = (publicId, originalName) => {
   if (!publicId) return null;
-  
-  // Extract extension
   let ext = "";
-  // Check publicId first
   const match = publicId.match(/\.([a-zA-Z0-9]+)$/);
   if (match) {
     ext = match[1].toLowerCase();
   } else if (originalName) {
-    // Fallback to originalName
     const match2 = originalName.match(/\.([a-zA-Z0-9]+)$/);
     if (match2) {
       ext = match2[1].toLowerCase();
     }
   }
-
-  // Determine resource type
-  // Default to raw for unknown types (safest for download)
   const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "svg", "heic", "ico", "pdf", "eps", "psd"];
   const videoExts = ["mp4", "mov", "avi", "mkv", "webm", "wmv", "flv", "mpeg", "3gp"];
   
-  let resourceType = "image"; // Default for no extension (legacy fallback)
+  let resourceType = "image";
   if (ext) {
     if (videoExts.includes(ext)) resourceType = "video";
     else if (imageExts.includes(ext)) resourceType = "image";
     else resourceType = "raw";
   }
-
-  // Options for download
   const options = { 
     secure: true, 
     resource_type: resourceType,
@@ -129,25 +103,15 @@ export const downloadDocument = async (req, res) => {
     }
 
     if (!publicId || !publicId.includes('/')) {
-       // Local file, redirect to static path (or stream it)
-       // Assuming local uploads are handled by static middleware or we can just redirect
        return res.redirect(`http://localhost:5000/uploads/${publicId}`);
     }
-
-    // It's a cloudinary file
     const url = getCloudinaryUrl(publicId, original_name);
-    
-    // Fetch and pipe
     https.get(url, (stream) => {
       if (stream.statusCode !== 200) {
         return res.status(stream.statusCode).send("Failed to fetch file from storage");
       }
-      
-      // Determine content type if possible, or default to generic
-      // We can try to guess from original_name
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(original_name || 'download')}"`);
       res.setHeader('Content-Type', stream.headers['content-type'] || 'application/octet-stream');
-      
       stream.pipe(res);
     }).on('error', (e) => {
       console.error("Cloudinary fetch error", e);
@@ -171,10 +135,8 @@ export const listDocuments = async (req, res) => {
       role = (u && u.role) || "user";
       userClassId = (u && u.class_id) || null;
     } catch {}
-
     const keyword = q ? `%${q}%` : null;
     let rows = [];
-
     if (role === "admin" || role === "teacher") {
       let query = "SELECT d.id, d.user_id, d.filename, d.original_name, d.created_at, u.username FROM project_documents d LEFT JOIN users u ON d.user_id = u.id LEFT JOIN classes c ON d.class_id = c.id";
       const params = [];
@@ -184,16 +146,13 @@ export const listDocuments = async (req, res) => {
         conditions.push("c.code = ?");
         params.push(classParam);
       }
-
       if (keyword) {
         conditions.push("(d.original_name LIKE ? OR u.username LIKE ?)");
         params.push(keyword, keyword);
       }
-
       if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");
       }
-
       query += " ORDER BY d.id DESC";
       const [r] = await db.promise().query(query, params);
       rows = r || [];
@@ -224,8 +183,6 @@ export const listDocuments = async (req, res) => {
   }
 };
 
-
-
 export const deleteDocument = async (req, res) => {
   try {
     const { id } = req.params;
@@ -242,7 +199,6 @@ export const deleteDocument = async (req, res) => {
     if (String(ownerId) !== String(requesterId) && role !== "admin") {
       return res.status(403).json({ message: "Chỉ người tải lên hoặc admin mới được xóa" });
     }
-    // Xóa từ Cloudinary nếu là tài liệu đã upload lên cloud
     if (String(fname).includes('/')) {
       try { await cloudinary.uploader.destroy(fname, { resource_type: 'auto' }); } catch {}
     } else {

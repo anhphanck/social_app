@@ -13,21 +13,15 @@ export default function HomePage() {
   const [posts, setPosts] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-
   const [newPost, setNewPost] = useState("");
   const [files, setFiles] = useState([]); // nhiều ảnh cho bài đăng mới
-
   const [editingPost, setEditingPost] = useState(null); // { id, content, images, removeImages }
   const [editFiles, setEditFiles] = useState([]); // nhiều ảnh cho bài đang sửa
   const [keepImages, setKeepImages] = useState([]); // ảnh cũ muốn giữ lại
   const [editContent, setEditContent] = useState(""); // nội dung sửa
   const [searchQuery, setSearchQuery] = useState("");
-
   const { user, logout, token, selectedClass } = useContext(UserContext);
-
   const API_URL = "http://localhost:5000/api";
-
-
 
   useEffect(() => {
     if (user) {
@@ -36,7 +30,7 @@ export default function HomePage() {
       }
       fetchUsers();
     }
-  }, [user, selectedClass]); // Reload posts khi đổi lớp
+  }, [user, selectedClass]); 
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -51,7 +45,6 @@ export default function HomePage() {
     try {
       const token = localStorage.getItem('token');
       const userId = user?.id || null;
-      
       // Xác định lớp để filter:
       // - Teacher: dùng selectedClass (có thể chọn A, B, C, D)
       // - User: dùng class của họ (chỉ xem lớp của mình)
@@ -61,18 +54,16 @@ export default function HomePage() {
       } else if (user?.role === 'user' && user?.class) {
         classToFilter = user.class;
       }
-      
       let url = userId ? `${API_URL}/posts?user_id=${userId}` : `${API_URL}/posts`;
       if (classToFilter) {
         url += `&class=${classToFilter}`;
       }
-      
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await axios.get(url, { headers });
       setPosts(res.data || []);
     } catch (err) {
       console.error("Lỗi khi lấy posts:", err);
-      // Nếu lỗi, vẫn set mảng rỗng để không crash
+      // set mảng rỗng để không crash
       setPosts([]);
     }
   };
@@ -106,21 +97,17 @@ export default function HomePage() {
     if (!user) return;
     if (!newPost.trim() && (!filesToUpload || filesToUpload.length === 0)) return;
     setLoading(true);
-
     try {
       const formData = new FormData();
       formData.append("content", newPost);
-      // Gửi kèm class nếu là teacher/admin và đang có selectedClass
       if ((user?.role === 'teacher' || user?.role === 'admin') && selectedClass) {
         formData.append("class", selectedClass);
       }
-
       if (filesToUpload && filesToUpload.length > 0) {
         filesToUpload.forEach((file) => {
           formData.append("images", file);
         });
       }
-      
       await axios.post(`${API_URL}/posts`, formData, {
         headers: { 
           "Content-Type": "multipart/form-data",
@@ -139,7 +126,6 @@ export default function HomePage() {
   };
 
   const handleTogglePin = async (postId, shouldPin) => {
-    // Giáo viên + admin đều có quyền ghim bài
     if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
       alert('Chỉ giáo viên hoặc admin mới được ghim bài viết');
       return;
@@ -177,24 +163,20 @@ export default function HomePage() {
     }
   };
 
-
   const handleStartEdit = (post) => {
     setEditingPost({ id: post.id, removeImages: false });
     setEditContent(post.content);
     setEditFiles([]);
-    // Giữ lại tất cả ảnh hiện có
     setKeepImages(post.images || (post.image ? [post.image] : []));
     const el = document.getElementById(`post-${post.id}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  
   const handleSaveEdit = async () => {
     if (!editingPost) return;
     const formData = new FormData();
     formData.append("content", editContent);
     
-    // Thêm ảnh mới
     if (editFiles && editFiles.length > 0) {
       editFiles.forEach((file) => {
         formData.append("images", file);

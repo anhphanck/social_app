@@ -13,25 +13,20 @@ function PrivateRoute({ children }) {
   if (!token) {
     return <Navigate to="/login" replace />
   }
-  
-  // Kiểm tra role nếu có thông tin user
   if (adminUser) {
     try {
       const user = JSON.parse(adminUser)
       if (user.role !== 'admin') {
-        // Nếu không phải admin, xóa token và chuyển về login
         localStorage.removeItem('adminToken')
         localStorage.removeItem('adminUser')
         return <Navigate to="/login" replace />
       }
     } catch (e) {
-      // Nếu parse lỗi, xóa và chuyển về login
       localStorage.removeItem('adminToken')
       localStorage.removeItem('adminUser')
       return <Navigate to="/login" replace />
     }
   }
-  
   return children
 }
 

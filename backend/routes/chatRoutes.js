@@ -7,15 +7,9 @@ import { Readable } from "stream";
 import path from "path";
 
 const router = express.Router();
-
-// GET /api/chats/conversation/:userA/:userB
 router.get("/conversation/:userA/:userB", chatController.getConversation);
-
 router.get('/unreads', verifyToken, chatController.getUnreadCounts);
 router.post('/mark-read', verifyToken, chatController.markConversationRead);
-
-// POST /api/chats/upload - upload a file for chat messages
-// field name: 'file'
 router.post("/upload", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ message: "No file uploaded" });
@@ -40,7 +34,6 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     }
 });
 
-// DELETE /api/chats/message/:id - soft-delete a message (sender only)
+// DELETE /api/chats/message/:id xoas mềm
 router.delete('/message/:id', verifyToken, chatController.deleteMessage);
-
 export default router;

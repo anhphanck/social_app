@@ -1,31 +1,4 @@
 import db from "../config/db.js";
-
-// Ensure messages table exists. Uses InnoDB + utf8mb4 for emoji support.
-const createTableSql = `
-CREATE TABLE IF NOT EXISTS messages (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  conversation_id INT NULL,
-  sender_id INT NOT NULL,
-  receiver_id INT NULL,
-  content TEXT,
-  file_url VARCHAR(512),
-  file_type ENUM('text','image','video','file') NOT NULL DEFAULT 'text',
-  is_read TINYINT(1) NOT NULL DEFAULT 0,
-  is_deleted TINYINT(1) NOT NULL DEFAULT 0,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_sender_receiver_created (sender_id, receiver_id, created_at),
-  INDEX idx_receiver_created (receiver_id, created_at),
-  INDEX idx_conversation_created (conversation_id, created_at)
-)
-ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-`;
-
-db.promise().execute(createTableSql).catch((err) => {
-  console.error('Failed to ensure messages table exists:', err);
-});
-
-// Add a message to DB and return the saved row
 export async function addMessage(msg) {
   const sql = `INSERT INTO messages (sender_id, receiver_id, content, file_url, file_type) VALUES (?, ?, ?, ?, ?)`;
   const params = [msg.from, msg.to, msg.content || null, msg.file_url || null, msg.file_type || 'text'];
@@ -40,7 +13,6 @@ export async function addMessage(msg) {
   }
 }
 
-// GET conversation between two users
 export async function getConversation(req, res) {
   const { userA, userB } = req.params;
   const sql = `
@@ -94,7 +66,6 @@ export async function markConversationRead(req, res) {
   }
 }
 
-// Soft-delete a message (only sender can delete)
 export async function deleteMessage(req, res) {
   const messageId = req.params.id;
   const userId = req.user && req.user.id;
@@ -112,8 +83,6 @@ export async function deleteMessage(req, res) {
 
     const [rows] = await db.promise().execute('SELECT * FROM messages WHERE id = ?', [messageId]);
     const updated = rows[0];
-
-    // notify via Socket.IO (if available) so other clients can update in real-time
     try {
       if (req && req.app && req.app.get) {
         const io = req.app.get('io');

@@ -3,12 +3,6 @@ import db from "../config/db.js";
 export const getCommentsByPost = (req, res) => {
   const postId = req.params.postId;
   const userId = (req.user && req.user.id) || req.query.user_id || 0;
-
-  // Lấy comment + reaction counts + reaction của user
-  // Thêm kiểm tra quyền truy cập post (isolation theo lớp)
-  // Nếu user thường (role='user'), post phải thuộc cùng lớp (hoặc post không có lớp - coi như public?)
-  // Để an toàn, chúng ta sẽ join với posts và users
-  
   const sql = `
     SELECT c.*, u.username, u.avatar,
       COALESCE(rc.like_count, 0) AS like_count,
@@ -58,28 +52,17 @@ export const createComment = (req, res) => {
 };
 
 export const deleteComment = (req, res) => {
-  // 1. Lấy id comment từ URL params
   const { id } = req.params; 
-  // 2. Lấy user_id từ body (hoặc thông qua token/session - cách an toàn hơn)
-  // Giả sử bạn truyền user_id qua body như trong code FE của bạn
   const user_id = req.user && req.user.id; 
-
-  // 3. Cập nhật SQL: Chỉ xóa khi ID khớp VÀ user_id khớp
   const sql = "DELETE FROM comments WHERE id = ? AND user_id = ?";
-
-  // 4. Truyền cả hai giá trị vào truy vấn
   db.query(sql, [id, user_id], (err, result) => {
     if (err) {
-        // Log lỗi chi tiết hơn nếu có thể
         console.error("Database error:", err);
         return res.status(500).json({ message: "Lỗi xóa comment (Database Error)" });
     }
-
     if (result.affectedRows === 0) {
-      // 404: Comment không tồn tại, HOẶC 403: Không có quyền xóa
       return res.status(403).json({ message: "Bạn không có quyền hoặc bình luận không tồn tại" });
     }
-
     res.json({ message: "Đã xóa comment" });
   });
 };

@@ -13,9 +13,7 @@ export const UserProvider = ({ children }) => {
   const [socketInstance, setSocketInstance] = useState(null);
   const [currentChatId, setCurrentChatId] = useState(null);
   const [unreadCounts, setUnreadCounts] = useState({});
-  // store online user ids as a Set for quick lookup
   const [onlineUsers, setOnlineUsers] = useState(new Set());
-  // Lớp hiện tại được chọn (cho teacher) hoặc lớp của user
   const [selectedClass, setSelectedClass] = useState(null);
 
   useEffect(() => {
@@ -25,11 +23,9 @@ export const UserProvider = ({ children }) => {
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      // Nếu là teacher, khôi phục lớp đã chọn hoặc mặc định 'A'
       if (parsedUser?.role === 'teacher') {
         setSelectedClass(storedClass || 'A');
       } else if (parsedUser?.class) {
-        // User thường: dùng lớp của họ
         setSelectedClass(parsedUser.class);
       }
     }
@@ -37,7 +33,6 @@ export const UserProvider = ({ children }) => {
     setLoadingUser(false);
   }, []);
 
-  // Lưu selectedClass vào localStorage khi thay đổi
   useEffect(() => {
     if (selectedClass) {
       localStorage.setItem("selectedClass", selectedClass);
@@ -46,7 +41,6 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (!token) {
-      // Nếu không có token, disconnect socket nếu đang kết nối
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -56,11 +50,9 @@ export const UserProvider = ({ children }) => {
       return;
     }
     
-    // Nếu đã có socket và đang kết nối, không tạo lại
     if (socketRef.current && socketRef.current.connected) {
       return;
     }
-    // Ngăn việc tạo lại socket khi mở/đóng chat: chỉ phụ thuộc vào token
     
     const socket = io("http://localhost:5000", { 
       auth: { token },
@@ -73,13 +65,11 @@ export const UserProvider = ({ children }) => {
 
     socket.on("connect", () => {
       setSocketConnected(true);
-      // ask server for current presence to populate onlineUsers immediately
       try {
         socket.emit('get_presence');
       } catch (e) {
         console.warn('Failed to request presence', e);
       }
-      // fetch unread counts when user comes online
       if (token) {
         axios.get('http://localhost:5000/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
           .then((res) => setUnreadCounts(res.data || {}))
@@ -88,9 +78,7 @@ export const UserProvider = ({ children }) => {
     });
     socket.on("disconnect", () => setSocketConnected(false));
     socket.on("connect_error", (err) => console.error('Socket connect_error', err));
-
     socket.on("private_message", (msg) => {
-      // if message is for current user and chat not open, increment unread
       const receiver = msg.receiver_id || msg.to;
       const sender = msg.sender_id || msg.from;
       if (!user) return;
@@ -111,10 +99,9 @@ export const UserProvider = ({ children }) => {
           return prev;
         });
       } catch (e) {
-        console.error('presence_update handling failed', e);
+        console.error('Xử lý lỗi', e);
       }
     });
-
 
     return () => {
       if (socketRef.current) {

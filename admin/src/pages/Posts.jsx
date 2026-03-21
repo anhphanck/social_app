@@ -40,16 +40,6 @@ export default function Posts() {
       const params = {}
       if (cls) params.class = cls
       if (searchQuery) params.q = searchQuery
-      
-      // Sử dụng chung endpoint search cho cả lọc và tìm kiếm để nhất quán
-      // Nếu backend hỗ trợ list posts với params q và class ở root endpoint thì dùng root
-      // Dựa trên code cũ: search dùng /search, list dùng /. Ta nên thống nhất nếu có thể.
-      // Kiểm tra lại User input: "quản lý user rất mượt". User.jsx dùng 1 endpoint list với params.
-      // Thử dùng endpoint root với params xem sao (nếu backend hỗ trợ).
-      // Code cũ fetchPosts dùng root endpoint với params class.
-      // Code cũ search dùng /search endpoint.
-      // Để đơn giản và giống Files.jsx, ta gọi fetchPosts trong useEffect.
-      
       const endpoint = searchQuery ? `${API_URL}/search` : API_URL
       const res = await axios.get(endpoint, { params })
       setPosts(res.data)
@@ -70,7 +60,6 @@ export default function Posts() {
   }, [])
 
   useEffect(() => {
-    // Debounce fetch khi filter hoặc search thay đổi
     const t = setTimeout(() => {
       fetchPosts(selectedClass, query)
     }, 400)
@@ -81,7 +70,6 @@ export default function Posts() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
       return
     }
-
     try {
       const token = localStorage.getItem('adminToken')
       await axios.delete(`${API_URL}/${postId}`, {

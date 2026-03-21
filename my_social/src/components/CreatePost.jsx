@@ -96,7 +96,6 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
 
       <div className="flex justify-between items-center mt-3 border-t border-gray-200 pt-2">
         <div className="flex space-x-4 text-sky-600 text-sm">
-          {/* Nút chọn nhiều ảnh */}
           <label
             htmlFor="imageUpload"
             className="flex items-center gap-1 cursor-pointer hover:text-sky-700"

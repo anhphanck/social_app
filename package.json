@@ -1,5 +1,12 @@
 {
+  "scripts": {
+    "start-all": "concurrently \"npm run backend\" \"npm run admin\" \"npm run my_social\"",
+    "backend": "cd backend && npm run dev",
+    "admin": "cd admin && npm run dev",
+    "my_social": "cd my_social && npm run dev"
+  },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "nodemon": "^3.1.11"
   }
 }

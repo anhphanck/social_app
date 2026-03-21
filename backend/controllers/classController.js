@@ -15,7 +15,6 @@ export async function ensureClassSchema() {
         FOREIGN KEY (homeroom_teacher_id) REFERENCES users(id) ON DELETE SET NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
-    // Ensure soft delete columns exist on existing installs
     try {
       const [colsDel] = await db.promise().query("SHOW COLUMNS FROM classes LIKE 'deleted_at'");
       if (!colsDel || colsDel.length === 0) {
@@ -28,7 +27,6 @@ export async function ensureClassSchema() {
         await db.promise().query("ALTER TABLE classes ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0");
       }
     } catch {}
-    // New mapping table to support multiple homeroom teachers per class
     await db.promise().query(`
       CREATE TABLE IF NOT EXISTS class_teachers (
         class_id INT NOT NULL,
@@ -117,7 +115,6 @@ export async function createClass(req, res) {
       "INSERT INTO classes (code, name, description, homeroom_teacher_id) VALUES (?, ?, ?, ?)",
       [up, name || null, description || null, teacherId || null]
     );
-    // Get inserted class id
     const [[c]] = await db.promise().query("SELECT id FROM classes WHERE code = ?", [up]);
     const classId = c && c.id ? c.id : null;
     if (classId && teacherIds.length > 0) {
@@ -163,7 +160,6 @@ export async function updateClass(req, res) {
     const sql = `UPDATE classes SET ${fields.join(", ")} WHERE id = ?`;
     const [result] = await db.promise().execute(sql, params);
     if (!result || result.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy lớp" });
-    // Update multi teachers mapping
     if (homeroom_teacher_ids !== undefined) {
       const teacherIds = Array.isArray(homeroom_teacher_ids) ? homeroom_teacher_ids : [];
       if (teacherIds.length > 0) {

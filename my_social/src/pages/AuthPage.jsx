@@ -40,7 +40,6 @@ export default function AuthPage() {
           password: formData.password,
         });
 
-        // Lấy thông tin user đầy đủ (bao gồm role hiện tại)
         let mergedUser = res.data.user;
         try {
           const full = await axios.get(`${API_URL}/${res.data.user.id}`, {
@@ -48,15 +47,12 @@ export default function AuthPage() {
           });
           mergedUser = { ...res.data.user, ...(full.data?.user || {}) };
         } catch {
-          // nếu lỗi thì dùng tạm user từ login response
           mergedUser = res.data.user;
         }
 
-        // Chặn admin đăng nhập my_social
         if (mergedUser.role === "admin") {
           setMessage("Tài khoản admin chỉ được sử dụng ở trang quản trị, không đăng nhập được vào hệ thống my_social.");
           setMessageType("error");
-          // đảm bảo không lưu token/user vào localStorage hay context
           try {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
@@ -65,13 +61,10 @@ export default function AuthPage() {
           setUser(null);
           return;
         }
-
-        // Lưu thông tin cho user / teacher
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(mergedUser));
         setToken(res.data.token);
         setUser(mergedUser);
-
         setMessage("Đăng nhập thành công!");
         setMessageType("success");
         navigate("/");  

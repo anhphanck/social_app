@@ -10,7 +10,6 @@ import ProfilePage from "./pages/ProfilePage";
 
 export default function App() {
   const { user, loadingUser } = useContext(UserContext);
-
   if (loadingUser) return <div className="h-screen flex justify-center items-center">Loading...</div>;
 
   return (

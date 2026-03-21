@@ -55,7 +55,6 @@ export default function Users() {
       const res = await axios.get(API_CLASSES, { headers: { Authorization: `Bearer ${token}` } })
       setClasses(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
-      // Không chặn toàn trang nếu lỗi, chỉ không hiển thị dropdown động
     }
   }
 
@@ -76,7 +75,6 @@ export default function Users() {
           }
         }
       )
-      // Refresh danh sách users
       fetchUsers()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể cập nhật role')
@@ -94,7 +92,6 @@ export default function Users() {
           }
         }
       )
-      // Refresh danh sách users
       fetchUsers()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể cập nhật lớp')

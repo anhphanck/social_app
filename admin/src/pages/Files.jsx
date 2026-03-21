@@ -33,8 +33,6 @@ export default function Files() {
       setSelectedClass('')
     }
   }
-
-  // Hàm fetchDocs chỉ nhận tham số tùy chọn, mặc định lấy từ state
   const fetchDocs = async (cls = selectedClass, searchQuery = query) => {
     setLoading(true)
     setError('')
@@ -56,21 +54,13 @@ export default function Files() {
     }
   }
 
-  // Effect khởi tạo: chỉ chạy 1 lần
   useEffect(() => {
     const adminUser = localStorage.getItem('adminUser')
     if (adminUser) setUser(JSON.parse(adminUser))
     fetchClasses()
   }, [])
 
-  // Effect xử lý thay đổi filter/search với debounce
   useEffect(() => {
-    // Bỏ qua lần chạy đầu tiên khi selectedClass chưa được set (nếu cần)
-    // Nhưng ở đây ta set mặc định là '' ngay từ đầu trong fetchClasses hoặc useState
-    // Tuy nhiên fetchClasses là async, nên ta cần kiểm tra selectedClass đã sẵn sàng chưa nếu muốn
-    // Ở đây ta dùng cờ mounted hoặc kiểm tra loading của fetchClasses nếu cần thiết.
-    // Đơn giản hóa: chỉ fetch khi user tương tác hoặc sau khi fetchClasses xong.
-    
     const t = setTimeout(() => {
         fetchDocs(selectedClass, query)
     }, 400)
