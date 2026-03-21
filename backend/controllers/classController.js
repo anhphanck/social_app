@@ -1,5 +1,50 @@
 import db from "../config/db.js";
 
+export async function ensureClassSchema() {
+  try {
+    await db.promise().query(`
+      CREATE TABLE IF NOT EXISTS classes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(20) NOT NULL UNIQUE,
+        name VARCHAR(255) NULL,
+        description TEXT NULL,
+        homeroom_teacher_id INT NULL,
+        is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+        deleted_at DATETIME NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (homeroom_teacher_id) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    try {
+      const [colsDel] = await db.promise().query("SHOW COLUMNS FROM classes LIKE 'deleted_at'");
+      if (!colsDel || colsDel.length === 0) {
+        await db.promise().query("ALTER TABLE classes ADD COLUMN deleted_at DATETIME NULL");
+      }
+    } catch {}
+    try {
+      const [colsFlag] = await db.promise().query("SHOW COLUMNS FROM classes LIKE 'is_deleted'");
+      if (!colsFlag || colsFlag.length === 0) {
+        await db.promise().query("ALTER TABLE classes ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0");
+      }
+    } catch {}
+    await db.promise().query(`
+      CREATE TABLE IF NOT EXISTS class_teachers (
+        class_id INT NOT NULL,
+        teacher_id INT NOT NULL,
+        PRIMARY KEY (class_id, teacher_id),
+        FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+        FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    const [rows] = await db.promise().query("SELECT code FROM classes");
+    const existing = new Set((rows || []).map((r) => r.code));
+    const defaults = ["A", "B", "C", "D"].filter((c) => !existing.has(c));
+    for (const code of defaults) {
+      await db.promise().execute("INSERT INTO classes (code, name) VALUES (?, ?)", [code, `Lớp ${code}`]);
+    }
+  } catch {}
+}
+
 export async function listClasses(req, res) {
   try {
     const uid = req.user && req.user.id;
@@ -63,12 +108,12 @@ export async function createClass(req, res) {
     if (teacherIds.length > 0) {
       const placeholders = teacherIds.map(() => "?").join(",");
       const [rows] = await db.promise().query(`SELECT id, role FROM users WHERE id IN (${placeholders})`, teacherIds);
-      const invalid = (rows || []).some((r) => (r.role || "user") !== "teacher");
+      const invalid = (rows || []).some((r) => !['teacher', 'admin'].includes(r.role || "user"));
       if (invalid || rows.length !== teacherIds.length) return res.status(400).json({ message: "Danh sách giáo viên không hợp lệ" });
     }
     await db.promise().execute(
       "INSERT INTO classes (code, name, description, homeroom_teacher_id) VALUES (?, ?, ?, ?)",
-      [up, name || null, description || null, teacherId || null]
+      [up, name || null, description || null, teacherId || (teacherIds.length > 0 ? teacherIds[0] : null)]
     );
     const [[c]] = await db.promise().query("SELECT id FROM classes WHERE code = ?", [up]);
     const classId = c && c.id ? c.id : null;
@@ -105,28 +150,35 @@ export async function updateClass(req, res) {
     if (teacherId) {
       const [[row]] = await db.promise().query("SELECT role FROM users WHERE id = ?", [teacherId]);
       if (!row) return res.status(400).json({ message: "Không tìm thấy giáo viên" });
-      if ((row.role || "user") !== "teacher") return res.status(400).json({ message: "homeroom_teacher_id phải là giáo viên" });
+      if (!['teacher', 'admin'].includes(row.role || "user")) return res.status(400).json({ message: "Người phụ trách phải là giáo viên hoặc admin" });
     }
       fields.push("homeroom_teacher_id = ?");
     params.push(teacherId || null);
     }
-    if (fields.length === 0) return res.status(400).json({ message: "Không có dữ liệu cập nhật" });
-    params.push(id);
-    const sql = `UPDATE classes SET ${fields.join(", ")} WHERE id = ?`;
-    const [result] = await db.promise().execute(sql, params);
-    if (!result || result.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy lớp" });
+    if (fields.length === 0 && homeroom_teacher_ids === undefined) return res.status(400).json({ message: "Không có dữ liệu cập nhật" });
+    if (fields.length > 0) {
+      params.push(id);
+      const sql = `UPDATE classes SET ${fields.join(", ")} WHERE id = ?`;
+      await db.promise().execute(sql, params);
+    }
     if (homeroom_teacher_ids !== undefined) {
       const teacherIds = Array.isArray(homeroom_teacher_ids) ? homeroom_teacher_ids : [];
       if (teacherIds.length > 0) {
         const placeholders = teacherIds.map(() => "?").join(",");
         const [rows] = await db.promise().query(`SELECT id, role FROM users WHERE id IN (${placeholders})`, teacherIds);
-        const invalid = (rows || []).some((r) => (r.role || "user") !== "teacher");
+        const invalid = (rows || []).some((r) => !['teacher', 'admin'].includes(r.role || "user"));
         if (invalid || rows.length !== teacherIds.length) return res.status(400).json({ message: "Danh sách giáo viên không hợp lệ" });
       }
       await db.promise().execute("DELETE FROM class_teachers WHERE class_id = ?", [id]);
       if (teacherIds.length > 0) {
         const values = teacherIds.map((tid) => [id, tid]);
         await db.promise().query("INSERT IGNORE INTO class_teachers (class_id, teacher_id) VALUES ?", [values]);
+        // Cập nhật homeroom_teacher_id chính nếu chưa được set cụ thể
+        if (homeroom_teacher_id === undefined) {
+          await db.promise().execute("UPDATE classes SET homeroom_teacher_id = ? WHERE id = ?", [teacherIds[0], id]);
+        }
+      } else {
+        await db.promise().execute("UPDATE classes SET homeroom_teacher_id = NULL WHERE id = ?", [id]);
       }
     }
     res.json({ message: "Đã cập nhật lớp" });

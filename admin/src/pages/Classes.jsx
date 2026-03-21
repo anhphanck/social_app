@@ -35,7 +35,7 @@ export default function Classes() {
       ])
       setClasses(Array.isArray(clsRes.data) ? clsRes.data : [])
       const rawUsers = Array.isArray(usrRes.data) ? usrRes.data : []
-      const ts = rawUsers.filter(u => u.role === 'teacher')
+      const ts = rawUsers.filter(u => u.role === 'teacher' || u.role === 'admin')
       setTeachers(ts)
     } catch (e) {
       setError(e.response?.data?.message || 'Không thể tải dữ liệu lớp')
