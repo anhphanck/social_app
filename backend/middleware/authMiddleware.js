@@ -1,7 +1,9 @@
 import jwt from "jsonwebtoken";
 import db from "../config/db.js";
+import dotenv from "dotenv";
+dotenv.config();
 
-const SECRET_KEY = process.env.JWT_SECRET || "secret_key_demo";
+const SECRET_KEY = process.env.JWT_SECRET ;
 
 export function verifyTokenSocket(token) {
 	if (!token) throw new Error("No token provided");

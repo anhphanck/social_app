@@ -34,7 +34,7 @@ app.get('/api/files/:filename', (req, res) => {
   try {
     const fname = req.params.filename;
     if (!fname || fname.includes('..') || fname.includes('/') || fname.includes('\\')) {
-      return res.status(400).json({ message: 'Invalid filename' });
+      return res.status(400).json({ message: 'Tên tệp không hợp lệ' });
     }
     const filePath = path.join(process.cwd(), 'uploads', fname);
     return res.download(filePath, fname, (err) => {
@@ -45,26 +45,21 @@ app.get('/api/files/:filename', (req, res) => {
   }
 });
 
-// create HTTP server and attach Socket.IO
 const httpServer = createServer(app);
 const io = new IOServer(httpServer, {
 	cors: { origin: ["http://localhost:5173", "http://localhost:5174"], methods: ["GET", "POST"], credentials: true },
 });
 
-// expose io so controllers/routes can emit
 app.set('io', io);
 
-// track connected sockets per user
-const onlineUsers = new Map(); // userId -> Set(socketId)
+const onlineUsers = new Map();
 app.set('onlineUsers', onlineUsers);
 
-// engine-level errors
 if (io && io.engine) {
 	io.engine.on && io.engine.on('connection_error', (err) => console.error('Engine connection_error:', err));
 }
 
 io.use((socket, next) => {
-	// log handshake for debugging
 	try {
 		const origin = socket.handshake.headers.origin || socket.handshake.headers.host;
 		const token = socket.handshake.auth && socket.handshake.auth.token;
@@ -107,7 +102,7 @@ io.on('connection', (socket) => {
         try {
           io.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
         } catch (e) {
-          console.warn('Failed to emit presence_update', e);
+          console.warn('Không thể phát ra thông báo cập nhật trạng thái', e);
         }
       });
     	} catch (err) {
@@ -129,7 +124,6 @@ io.on('connection', (socket) => {
 				if (toSet && toSet.size > 0) {
 					for (const sid of toSet) io.to(sid).emit('private_message', savedWithClient);
 				}
-				// ack to sender
 				if (typeof callback === 'function') callback({ success: true, message: savedWithClient });
 			}).catch((e) => {
 				console.error('Error saving message:', e);
@@ -143,12 +137,11 @@ io.on('connection', (socket) => {
 		}
 	});
 
-	// presence query should be available immediately after connection
 	socket.on('get_presence', () => {
 		try {
 			socket.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
 		} catch (e) {
-			console.warn('Failed to respond to get_presence', e);
+			console.warn('Không thể phản hồi yêu cầu', e);
 		}
 	});
 
@@ -162,11 +155,10 @@ io.on('connection', (socket) => {
 				if (set.size === 0) onlineUsers.delete(key);
 				else onlineUsers.set(key, set);
 			}
-			// broadcast presence update after disconnect
 			try {
 				io.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
 			} catch (e) {
-				console.warn('Failed to emit presence_update after disconnect', e);
+				console.warn('Không thể phát ra thông báo cập nhật trạng thái sau khi ngắt kết nối', e);
 			}
 		}
 	});
