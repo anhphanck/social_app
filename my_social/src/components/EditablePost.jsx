@@ -46,7 +46,7 @@ export default function EditablePost({
     <div id={`post-${post.id}`} key={post.id}>
       {editingPost?.id === post.id ? (
         <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-4">
-          {/* Nhập nội dung */}
+          {}
           <textarea
             rows="3"
             value={editContent}
@@ -55,7 +55,7 @@ export default function EditablePost({
             placeholder="Viết nội dung..."
           />
 
-          {/* Hiển thị tất cả ảnh (cũ + mới) */}
+          {}
           {allImages.length > 0 && (
             <div className="mb-3 grid grid-cols-2 gap-2">
               {allImages.map((item, idx) => (
@@ -83,7 +83,7 @@ export default function EditablePost({
             </div>
           )}
 
-          {/* Chọn ảnh mới */}
+          {}
           <div className="mb-3">
             <label
               htmlFor="editImages"
@@ -96,12 +96,11 @@ export default function EditablePost({
               type="file"
               accept="image/*"
               multiple
-              className="hidden"
               onChange={handleFileChange}
+              className="hidden"
             />
           </div>
 
-          {/* Nút hành động */}
           <div className="flex justify-end gap-2">
             <button
               onClick={handleCancelEdit}
@@ -129,3 +128,4 @@ export default function EditablePost({
     </div>
   );
 }
+

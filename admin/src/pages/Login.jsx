@@ -33,7 +33,7 @@ export default function Login() {
       })
 
       if (response.data.token) {
-        // Kiểm tra role - chỉ cho phép admin đăng nhập
+        
         const userRole = response.data.user?.role || 'user'
         if (userRole !== 'admin') {
           setError('Bạn không có quyền truy cập trang quản trị. Chỉ admin mới được phép đăng nhập.')
@@ -112,4 +112,5 @@ export default function Login() {
     </div>
   )
 }
+
 

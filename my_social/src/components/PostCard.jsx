@@ -5,8 +5,8 @@ import { UserContext } from "../context/UserContext";
 
 const API_URL = "http://localhost:5000/api";
 
-// ========================== CommentCard ==========================
-// ========================== CommentCard ==========================
+
+
 function CommentCard({ comment, onReply, onDelete }) {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
@@ -47,7 +47,7 @@ function CommentCard({ comment, onReply, onDelete }) {
 
         <button onClick={() => onReply(comment.id)}>Reply</button>
 
-        {/* 🔥 NÚT XÓA */}
+        {}
         {user?.id === comment.user_id && (
           <button
             className="text-red-500 ml-2"
@@ -71,7 +71,7 @@ function CommentCard({ comment, onReply, onDelete }) {
   );
 }
 
-// ========================== CommentList ==========================
+
 function CommentList({ postId, showInput }) {
   const { user } = useContext(UserContext);
   const token = localStorage.getItem('token');
@@ -81,7 +81,7 @@ function CommentList({ postId, showInput }) {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
 
-  // Scroll to input when replying
+  
   useEffect(() => {
     if (replyTo !== null && inputRef.current) {
       inputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -154,7 +154,7 @@ function CommentList({ postId, showInput }) {
       await loadComments();
     } catch (err) {
       console.error("Error deleting comment:", err);
-      // Xử lý lỗi hiển thị cho người dùng
+      
     }
 };
 
@@ -228,8 +228,8 @@ function CommentList({ postId, showInput }) {
   );
 }
 
-// ========================== PostCard ==========================
-// ========================== PostCard ==========================
+
+
 export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
@@ -373,7 +373,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
       <div className="mt-2 text-gray-800">
         {post.content}
         
-        {/* Hiển thị nhiều ảnh */}
+        {}
         {post.images && post.images.length > 0 && (
           <div className={`mt-3 rounded-lg overflow-hidden ${
             post.images.length === 1 ? 'grid grid-cols-1' :
@@ -404,7 +404,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
             ))}
           </div>
         )}
-        {/* Backward compatible: hiển thị ảnh cũ nếu không có images */}
+        {}
         {(!post.images || post.images.length === 0) && post.image && (
           <img src={post.image} alt="post" className="rounded-md mt-2 max-h-80 w-full object-cover" />
         )}
@@ -507,3 +507,4 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
     </div>
   );
 };
+

@@ -9,22 +9,22 @@ import { Readable } from "stream";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Sử dụng memoryStorage để upload lên Cloudinary
+
 const storage = multer.memoryStorage();
 
 export const upload = multer({ 
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB per file
+  limits: { fileSize: 10 * 1024 * 1024 } 
 });
 
 const getPostImageUrl = (image) => {
   if (!image) return null;
   if (image.includes('/') && !image.includes('\\')) {
-     // Nếu có chứa / (và không phải đường dẫn window \) thì coi là Cloudinary public_id hoặc URL
+     
      if (image.startsWith('http')) return image;
      return cloudinary.url(image, { secure: true });
   }
-  // Fallback cho ảnh cũ lưu local
+  
   return `http://localhost:5000/uploads/${image}`;
 };
 
@@ -144,7 +144,7 @@ export const createPost = async (req, res) => {
     const { content } = req.body;
     const files = req.files || [];
     
-    // Upload files to Cloudinary
+    
     const uploadedImages = [];
     if (files.length > 0) {
       const uploads = files.map((f) => new Promise((resolve, reject) => {
@@ -193,7 +193,7 @@ export const createPost = async (req, res) => {
   
         const postId = result.insertId;
   
-        // Lưu nhiều ảnh vào bảng post_images
+        
         if (uploadedImages.length > 0) {
           const imageValues = uploadedImages.map(img => [postId, img]);
           const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
@@ -263,7 +263,7 @@ export const updatePost = async (req, res) => {
       return res.status(403).json({ message: "Không có quyền sửa bài viết" });
     }
 
-    // Upload new files
+    
     const newImages = [];
     if (newFiles.length > 0) {
       const uploads = newFiles.map((f) => new Promise((resolve, reject) => {
@@ -286,9 +286,9 @@ export const updatePost = async (req, res) => {
       }
     }
 
-    // Xóa ảnh cũ nếu cần
+    
     if (removeImages === "true" || (Array.isArray(keepImages) && keepImages.length === 0 && newImages.length > 0)) {
-      // Lấy tất cả ảnh cũ
+      
       db.query("SELECT image FROM post_images WHERE post_id=?", [id], (imgErr, oldImages) => {
         if (!imgErr && oldImages) {
           oldImages.forEach(img => {
@@ -300,25 +300,25 @@ export const updatePost = async (req, res) => {
             }
           });
         }
-        // Xóa tất cả ảnh cũ
+        
         db.query("DELETE FROM post_images WHERE post_id=?", [id]);
       });
     } else if (Array.isArray(keepImages) && keepImages.length > 0) {
-      // Xóa ảnh không được giữ lại
+      
       db.query("SELECT image FROM post_images WHERE post_id=?", [id], (imgErr, oldImages) => {
         if (!imgErr && oldImages) {
           oldImages.forEach(img => {
-            // keepImages chứa full URL, cần extract filename/public_id để so sánh?
-            // Client gửi lên keepImages là list các URL.
-            // Nếu URL chứa public_id thì giữ, ko thì xóa.
-            // Nhưng logic so sánh URL với DB value hơi phức tạp.
-            // Giả sử client gửi keepImages là list các "image value" (filename hoặc public_id) thì dễ hơn.
-            // Nếu client gửi URL, ta phải parse.
             
-            // Check if img.image is inside keepImages (assuming keepImages contains raw values or we need check URL)
-            // Simplification: assume keepImages contains the DB values (filename/public_id) or verify logic
             
-            // Let's rely on simple string inclusion check if exact match fails
+            
+            
+            
+            
+            
+            
+            
+            
+            
             const isKept = keepImages.some(k => k.includes(img.image));
             
             if (!isKept) {
@@ -335,13 +335,13 @@ export const updatePost = async (req, res) => {
       });
     }
 
-    // Cập nhật content
+    
     let q = "UPDATE posts SET content=?";
     const params = [content];
 
-    // Cập nhật image đầu tiên cho backward compatible (ưu tiên ảnh mới nhất hoặc ảnh cũ còn lại)
-    // Logic này hơi phức tạp vì cần biết ảnh nào còn lại. 
-    // Tạm thời update image=NULL nếu removeImages=true, hoặc update thành ảnh mới đầu tiên.
+    
+    
+    
     if (newImages.length > 0) {
       q += ", image=?";
       params.push(newImages[0]);
@@ -355,7 +355,7 @@ export const updatePost = async (req, res) => {
     db.query(q, params, (err) => {
       if (err) return res.status(500).json({ message: "Không thể cập nhật" });
 
-      // Thêm ảnh mới
+      
       if (newImages.length > 0) {
         const imageValues = newImages.map(img => [id, img]);
         const insertImagesQuery = "INSERT INTO post_images (post_id, image) VALUES ?";
@@ -372,7 +372,7 @@ export const updatePost = async (req, res) => {
 export const deletePost = (req, res) => {
   const postId = req.params.id;
 
-  // Xóa tất cả ảnh từ post_images
+  
   db.query("SELECT image FROM post_images WHERE post_id=?", [postId], (imgErr, images) => {
     if (!imgErr && images) {
       images.forEach(img => {
@@ -387,7 +387,7 @@ export const deletePost = (req, res) => {
       });
     }
 
-    // Xóa bài viết (CASCADE sẽ xóa post_images tự động)
+    
     db.query("DELETE FROM posts WHERE id=?", [postId], (err) => {
       if (err) return res.status(500).json({ message: "Lỗi xóa bài viết" });
       res.json({ message: "Đã xóa bài viết và ảnh" });
@@ -510,7 +510,7 @@ export const searchPosts = async (req, res) => {
   });
 };
 
-//Like bài viết
+
 export const reactPost = (req, res) => {
   const { post_id, reaction } = req.body;
   const user_id = req.user && req.user.id;
@@ -528,7 +528,7 @@ export const reactPost = (req, res) => {
 };
 
 
-// Bỏ like
+
 export const removeReact = (req, res) => {
   const { post_id } = req.body;
   const user_id = req.user && req.user.id;
@@ -542,3 +542,4 @@ export const removeReact = (req, res) => {
     }
   );
 };
+

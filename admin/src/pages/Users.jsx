@@ -55,7 +55,7 @@ export default function Users() {
       const res = await axios.get(API_CLASSES, { headers: { Authorization: `Bearer ${token}` } })
       setClasses(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
-      // Không chặn toàn trang nếu lỗi, chỉ không hiển thị dropdown động
+      
     }
   }
 
@@ -76,7 +76,7 @@ export default function Users() {
           }
         }
       )
-      // Refresh danh sách users
+      
       fetchUsers()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể cập nhật role')
@@ -94,7 +94,7 @@ export default function Users() {
           }
         }
       )
-      // Refresh danh sách users
+      
       fetchUsers()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể cập nhật lớp')
@@ -133,7 +133,7 @@ export default function Users() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -155,7 +155,7 @@ export default function Users() {
         </div>
       </header>
 
-      {/* Navigation */}
+      {}
       <nav className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
@@ -193,7 +193,7 @@ export default function Users() {
         </div>
       </nav>
 
-      {/* Main Content */}
+      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
@@ -295,7 +295,7 @@ export default function Users() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {/* Chỉ phân lớp cho user (không phân cho admin và teacher) */}
+                          {}
                           {u.role === 'user' ? (
                             <select
                               value={u.class_id ?? ''}
@@ -326,7 +326,7 @@ export default function Users() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <div className="flex gap-2 items-center">
-                            {/* Admin root (đang đăng nhập) không bị chỉnh role từ đây */}
+                            {}
                             {u.role !== 'admin' && (
                               <>
                                 {u.role === 'teacher' ? (
@@ -384,3 +384,4 @@ export default function Users() {
     </div>
   )
 }
+

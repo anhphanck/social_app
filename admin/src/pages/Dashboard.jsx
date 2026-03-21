@@ -62,7 +62,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -84,7 +84,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Navigation */}
+      {}
       <nav className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
@@ -122,14 +122,14 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Main Content */}
+      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900">Tổng quan</h2>
           <p className="mt-2 text-gray-600">Thống kê và quản lý hệ thống</p>
         </div>
 
-        {/* Stats Cards */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
@@ -176,7 +176,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Thao tác nhanh</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -214,4 +214,5 @@ export default function Dashboard() {
     </div>
   )
 }
+
 

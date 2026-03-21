@@ -7,34 +7,34 @@ import { Readable } from "stream";
 const getCloudinaryUrl = (publicId, originalName) => {
   if (!publicId) return null;
   
-  // Extract extension
+  
   let ext = "";
-  // Check publicId first
+  
   const match = publicId.match(/\.([a-zA-Z0-9]+)$/);
   if (match) {
     ext = match[1].toLowerCase();
   } else if (originalName) {
-    // Fallback to originalName
+    
     const match2 = originalName.match(/\.([a-zA-Z0-9]+)$/);
     if (match2) {
       ext = match2[1].toLowerCase();
     }
   }
 
-  // Determine resource type
-  // PDF is tricky, often 'image' but can be downloaded. 
-  // Determine resource type
+  
+  
+  
   const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp", "svg", "heic", "ico", "pdf", "eps", "psd"];
   const videoExts = ["mp4", "mov", "avi", "mkv", "webm", "wmv", "flv", "mpeg", "3gp"];
   
-  let resourceType = "image"; // Default for no extension
+  let resourceType = "image"; 
   if (ext) {
     if (videoExts.includes(ext)) resourceType = "video";
     else if (imageExts.includes(ext)) resourceType = "image";
     else resourceType = "raw";
   }
 
-  // Options for download
+  
   const options = { 
     secure: true, 
     resource_type: resourceType,
@@ -43,52 +43,11 @@ const getCloudinaryUrl = (publicId, originalName) => {
   return cloudinary.url(publicId, options);
 };
 
-export async function ensureTaskSchema() {
-  try {
-    await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS tasks (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL, description TEXT NULL, priority VARCHAR(20) DEFAULT 'medium', deadline DATETIME NULL, status VARCHAR(30) DEFAULT 'new', created_by INT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-    // Add class_id to tasks if missing
-    try {
-      const [cols] = await db.promise().query("SHOW COLUMNS FROM tasks LIKE 'class_id'");
-      if (!cols || cols.length === 0) {
-        await db.promise().query("ALTER TABLE tasks ADD COLUMN class_id INT NULL");
-        await db.promise().query("ALTER TABLE tasks ADD CONSTRAINT fk_tasks_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL");
-      }
-    } catch {}
-
-    await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_assignments (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, UNIQUE KEY uniq_task_user (task_id, user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-    await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_comments (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, content TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-    await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_notifications (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, task_id INT NOT NULL, type VARCHAR(30) NOT NULL, message VARCHAR(255) NULL, is_read TINYINT(1) DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-    await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_files (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, filename VARCHAR(255) NOT NULL, uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-    await db.promise().query(
-      "CREATE TABLE IF NOT EXISTS task_submissions (id INT AUTO_INCREMENT PRIMARY KEY, task_id INT NOT NULL, user_id INT NOT NULL, filename VARCHAR(255) NOT NULL, note TEXT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-    
-    // Add original_name column if missing
-    try { await db.promise().query("ALTER TABLE task_files ADD COLUMN original_name VARCHAR(255) NULL"); } catch {}
-    try { await db.promise().query("ALTER TABLE task_submissions ADD COLUMN original_name VARCHAR(255) NULL"); } catch {}
-    try { await db.promise().query("ALTER TABLE task_submissions ADD COLUMN grade DECIMAL(5,2) NULL"); } catch {}
-    try { await db.promise().query("ALTER TABLE task_submissions ADD COLUMN feedback TEXT NULL"); } catch {}
-
-  } catch {}
-}
-
-
-
 export const createTask = async (req, res) => {
   try {
     let { title, description, priority, deadline, assignees, class_id, assign_all_class } = req.body;
     title = typeof title === 'string' ? title.trim() : title;
-    // normalize assignees from string to array BEFORE validation
+    
     if (typeof assignees === "string") {
       try {
         const parsed = JSON.parse(assignees);
@@ -105,7 +64,7 @@ export const createTask = async (req, res) => {
       dl = base.length === 16 ? base + ":00" : base;
     }
     
-    // Determine class_id from body or class code param
+    
     const classCodeParam = req.query.class || req.body.class || null;
     let finalClassId = class_id || null;
     if (!finalClassId && classCodeParam) {
@@ -116,20 +75,20 @@ export const createTask = async (req, res) => {
     }
     if (!finalClassId) {
       try {
-        // If creator is teacher/admin, try to infer from their current selection or assignments
-        // But for now, we rely on client sending it or we use creator's class if they are a student (unlikely to create task)
-        // If teacher, they should select a class. If not provided, it might be a general task?
-        // Let's check if user has a class_id
+        
+        
+        
+        
         const [uRows] = await db.promise().query("SELECT class_id FROM users WHERE id = ?", [createdBy]);
         if (uRows && uRows[0] && uRows[0].class_id) {
-           // Only auto-assign if user is student. If teacher, they might want to assign to any class.
-           // But if teacher didn't specify, maybe default to their homeroom?
-           // For safety, let's leave it null if not specified by teacher.
-           // But wait, user requirement is strict isolation.
-           // If a teacher creates a task without class_id, who sees it?
-           // Only assignees. That's fine.
-           // But if we want listTasks to filter by class, we need class_id.
-           // Let's use the first assignee's class as a heuristic if not provided?
+           
+           
+           
+           
+           
+           
+           
+           
            if (assignees.length > 0) {
              const [aRows] = await db.promise().query("SELECT class_id FROM users WHERE id = ?", [assignees[0]]);
              if (aRows && aRows[0]) finalClassId = aRows[0].class_id;
@@ -147,7 +106,7 @@ export const createTask = async (req, res) => {
     if (!Array.isArray(assignees) || assignees.length === 0) {
       return res.status(400).json({ message: "Thiếu danh sách người nhận" });
     }
-    // Only allow assigning tasks to users with role 'user'
+    
     try {
       const placeholders = assignees.map(() => "?").join(",");
       const [roleRows] = await db.promise().query(
@@ -159,7 +118,7 @@ export const createTask = async (req, res) => {
         return res.status(400).json({ message: "Chỉ được giao nhiệm vụ cho user (học sinh)" });
       }
     } catch {}
-    // Validate all assignees belong to finalClassId (if defined)
+    
     if (finalClassId) {
       const placeholders = assignees.map(() => "?").join(",");
       const [rowsAss] = await db.promise().query(
@@ -225,15 +184,15 @@ export const listTasks = async (req, res) => {
       userClassId = (rows && rows[0] && rows[0].class_id) || null;
     } catch {}
     
-    // Giáo viên xem như quản lý: xem tất cả nhiệm vụ như admin
-    // Nhưng nếu có class param thì lọc theo class
-    const classParam = req.query.class || null; // Code (A,B...)
+    
+    
+    const classParam = req.query.class || null; 
 
     if (role === "admin" || role === "teacher") {
       let whereSql = "";
       const params = [];
       if (classParam) {
-         // Need to join classes to filter by code
+         
          whereSql = "WHERE c.code = ?";
          params.push(classParam);
       }
@@ -255,12 +214,12 @@ export const listTasks = async (req, res) => {
       return res.json(rows || []);
     }
     
-    // User: chỉ xem task được giao VÀ (optional: thuộc lớp mình để chắc chắn)
-    // Hiện tại chỉ cần được giao là đủ, nhưng để "cách ly tuyệt đối", ta có thể check thêm class_id của task khớp với class_id của user
-    // Tuy nhiên, nếu user bị assign task của lớp khác (do lỗi teacher), họ có nên thấy không?
-    // Theo yêu cầu "chỉ nhìn thấy bởi trang của lớp đó", nếu task thuộc lớp khác thì user không nên thấy ở trang lớp mình.
-    // Nhưng task thường hiện ở trang "Nhiệm vụ".
-    // Để an toàn, ta lọc thêm class_id nếu task có class_id.
+    
+    
+    
+    
+    
+    
     
     const [rows] = await db.promise().execute(
       `SELECT t.*, c.code as class_code, GROUP_CONCAT(a.user_id) AS assignees, GROUP_CONCAT(u.username) AS assignees_usernames,
@@ -322,7 +281,7 @@ export const updateTask = async (req, res) => {
           return res.status(400).json({ message: "Chỉ được giao nhiệm vụ cho user (học sinh)" });
         }
       } catch {}
-      // Enforce class isolation for assignees if task has class_id
+      
       let taskClassId = null;
       try {
         const [[t]] = await db.promise().query("SELECT class_id FROM tasks WHERE id = ?", [id]);
@@ -374,10 +333,10 @@ export const changeStatus = async (req, res) => {
     const [assign] = await db.promise().execute("SELECT 1 FROM task_assignments WHERE task_id=? AND user_id=?", [id, userId]);
     const isAssignee = assign && assign.length > 0;
     const allowedUser = ["in_progress"];
-    const allowedManager = ["completed"]; // admin + teacher
+    const allowedManager = ["completed"]; 
     const isManager = role === "admin" || role === "teacher";
 
-    // Chỉ người được giao hoặc quản lý (giáo viên/admin) mới được đổi trạng thái
+    
     if (!isManager && !isAssignee) {
       return res.status(403).json({ message: "Không có quyền" });
     }
@@ -529,7 +488,7 @@ export const deleteTask = async (req, res) => {
     if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy nhiệm vụ" });
     const t = rows[0];
     if (String(t.created_by) !== String(userId)) return res.status(403).json({ message: "Chỉ người giao mới được xóa" });
-    // allow delete at any status
+    
 
     const [fileRows] = await db.promise().execute("SELECT filename FROM task_files WHERE task_id=?", [id]);
     const [subRows] = await db.promise().execute("SELECT filename FROM task_submissions WHERE task_id=?", [id]);
@@ -563,12 +522,12 @@ export const deleteTask = async (req, res) => {
 export const downloadTaskFile = async (req, res) => {
   try {
     const { id } = req.params;
-    const { type } = req.query; // 'attachment' or 'submission'
+    const { type } = req.query; 
     
     let table = "task_files";
     if (type === "submission") table = "task_submissions";
     
-    // Validate table name to prevent SQL injection (though we use logic selection)
+    
     
     const [rows] = await db.promise().execute(`SELECT filename, original_name FROM ${type === "submission" ? "task_submissions" : "task_files"} WHERE id=?`, [id]);
     
@@ -628,3 +587,4 @@ export const gradeSubmission = async (req, res) => {
     res.status(500).json({ message: "Lỗi lưu điểm/ghi chú" });
   }
 };
+

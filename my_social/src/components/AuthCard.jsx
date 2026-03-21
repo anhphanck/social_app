@@ -11,3 +11,4 @@ export default function AuthCard({ title, children, footer }) {
     </div>
   );
 }
+

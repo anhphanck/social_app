@@ -20,8 +20,8 @@ const app = express();
 app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
 app.use(bodyParser.json());
 
-app.use("/api/users", userRoutes); // Cho user thường
-app.use("/api/admin", adminRoutes); // Cho admin panel
+app.use("/api/users", userRoutes); 
+app.use("/api/admin", adminRoutes); 
 app.use("/api/posts", postRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/comments", commentRoutes);
@@ -45,26 +45,26 @@ app.get('/api/files/:filename', (req, res) => {
   }
 });
 
-// create HTTP server and attach Socket.IO
+
 const httpServer = createServer(app);
 const io = new IOServer(httpServer, {
 	cors: { origin: ["http://localhost:5173", "http://localhost:5174"], methods: ["GET", "POST"], credentials: true },
 });
 
-// expose io so controllers/routes can emit
+
 app.set('io', io);
 
-// track connected sockets per user
-const onlineUsers = new Map(); // userId -> Set(socketId)
+
+const onlineUsers = new Map(); 
 app.set('onlineUsers', onlineUsers);
 
-// engine-level errors
+
 if (io && io.engine) {
 	io.engine.on && io.engine.on('connection_error', (err) => console.error('Engine connection_error:', err));
 }
 
 io.use((socket, next) => {
-	// log handshake for debugging
+	
 	try {
 		const origin = socket.handshake.headers.origin || socket.handshake.headers.host;
 		const token = socket.handshake.auth && socket.handshake.auth.token;
@@ -129,7 +129,7 @@ io.on('connection', (socket) => {
 				if (toSet && toSet.size > 0) {
 					for (const sid of toSet) io.to(sid).emit('private_message', savedWithClient);
 				}
-				// ack to sender
+				
 				if (typeof callback === 'function') callback({ success: true, message: savedWithClient });
 			}).catch((e) => {
 				console.error('Error saving message:', e);
@@ -143,7 +143,7 @@ io.on('connection', (socket) => {
 		}
 	});
 
-	// presence query should be available immediately after connection
+	
 	socket.on('get_presence', () => {
 		try {
 			socket.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
@@ -162,7 +162,7 @@ io.on('connection', (socket) => {
 				if (set.size === 0) onlineUsers.delete(key);
 				else onlineUsers.set(key, set);
 			}
-			// broadcast presence update after disconnect
+			
 			try {
 				io.emit('presence_update', { online: Array.from(onlineUsers.keys()) });
 			} catch (e) {
@@ -174,3 +174,4 @@ io.on('connection', (socket) => {
 
 const PORT = 5000;
 httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+

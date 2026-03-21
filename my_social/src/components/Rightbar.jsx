@@ -14,13 +14,13 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
     let cancelled = false;
     const load = async () => {
       if (!Array.isArray(users) || users.length === 0) return;
-      // giữ cache hiện có để tránh nhấp nháy avatar
+      
       const next = { ...avatarUrls };
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const fetches = users.map(async (u) => {
         if (!u) return;
-        if (next[u.id]) return; // đã có cache
+        if (next[u.id]) return; 
         if (u.avatar) {
           next[u.id] = u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`;
           return;
@@ -29,7 +29,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
           const res = await axios.get(`${API_URL}/users/${u.id}`, { headers });
           const url = res?.data?.avatar_url || null;
           if (url) next[u.id] = url;
-        } catch { /* ignore */ }
+        } catch {  }
       });
       await Promise.all(fetches);
       if (!cancelled) setAvatarUrls(next);
@@ -158,3 +158,4 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
     </div>
   );
 }
+

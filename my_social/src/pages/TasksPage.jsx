@@ -145,7 +145,7 @@ export default function TasksPage() {
           try {
             const det = await axios.get(`${API_URL}/tasks/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             setDetails((prev) => ({ ...prev, [id]: det.data }));
-          } catch { /* ignore */ }
+          } catch {  }
         }
       } else {
         let body = { status };
@@ -163,7 +163,7 @@ export default function TasksPage() {
           try {
             const det = await axios.get(`${API_URL}/tasks/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             setDetails((prev) => ({ ...prev, [id]: det.data }));
-          } catch { /* ignore */ }
+          } catch {  }
         }
       }
       try {
@@ -263,7 +263,7 @@ export default function TasksPage() {
             <h1 className="text-xl font-semibold text-sky-700">Quản lý Task</h1>
           </div>
 
-          {/* Giáo viên + admin được tạo nhiệm vụ */}
+          {}
           {(user?.role === "admin" || user?.role === "teacher") && (
             <div className="mt-4 p-4 border rounded-md">
               <div className="text-sm font-semibold mb-2">Tạo nhiệm vụ mới</div>
@@ -570,3 +570,4 @@ export default function TasksPage() {
     </div>
   );
 }
+
