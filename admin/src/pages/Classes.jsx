@@ -205,9 +205,18 @@ export default function Classes() {
 
       {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
+        <div className="mb-8 flex justify-between items-center">
+          <div>
             <h2 className="text-3xl font-bold text-gray-900">Quản lý Lớp</h2>
-             <p className="mt-2 text-gray-600">Quản lý danh sách lớp và giáo viên chủ nhiệm</p>
+            <p className="mt-2 text-gray-600">Quản lý danh sách lớp và giáo viên chủ nhiệm</p>
+          </div>
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+          >
+            {loading ? 'Đang làm mới...' : 'Làm mới'}
+          </button>
         </div>
         
         <div className="px-4 py-6 sm:px-0">

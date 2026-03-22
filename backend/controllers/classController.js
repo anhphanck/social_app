@@ -3,18 +3,22 @@ import db from "../config/db.js";
 export async function listClasses(req, res) {
   try {
     const uid = req.user && req.user.id;
+    const selectSql = `
+      SELECT c.id, c.code, c.name, c.description, c.homeroom_teacher_id, c.created_at,
+             GROUP_CONCAT(ct.teacher_id) AS homeroom_teacher_ids,
+             GROUP_CONCAT(u.username) AS homeroom_teacher_usernames
+      FROM classes c
+      LEFT JOIN class_teachers ct ON c.id = ct.class_id
+      LEFT JOIN users u ON ct.teacher_id = u.id AND u.role = 'teacher'
+      WHERE c.is_deleted = 0
+    `;
+    const groupBySql = `
+      GROUP BY c.id
+      ORDER BY c.code ASC
+    `;
+
     if (!uid) {
-      const [rows] = await db.promise().query(`
-        SELECT c.id, c.code, c.name, c.description, c.homeroom_teacher_id, c.created_at,
-               GROUP_CONCAT(ct.teacher_id) AS homeroom_teacher_ids,
-               GROUP_CONCAT(u.username) AS homeroom_teacher_usernames
-        FROM classes c
-        LEFT JOIN class_teachers ct ON c.id = ct.class_id
-        LEFT JOIN users u ON ct.teacher_id = u.id
-        WHERE c.is_deleted = 0
-        GROUP BY c.id
-        ORDER BY c.code ASC
-      `);
+      const [rows] = await db.promise().query(selectSql + groupBySql);
       return res.json(rows || []);
     }
     let role = "user";
@@ -23,30 +27,10 @@ export async function listClasses(req, res) {
       role = row && row.role ? row.role : "user";
     } catch {}
     if (role === "teacher") {
-      const [rows] = await db.promise().query(`
-        SELECT c.id, c.code, c.name, c.description, c.homeroom_teacher_id, c.created_at,
-               GROUP_CONCAT(ct.teacher_id) AS homeroom_teacher_ids,
-               GROUP_CONCAT(u.username) AS homeroom_teacher_usernames
-        FROM classes c
-        LEFT JOIN class_teachers ct ON c.id = ct.class_id
-        LEFT JOIN users u ON ct.teacher_id = u.id
-        WHERE ct.teacher_id = ? AND c.is_deleted = 0
-        GROUP BY c.id
-        ORDER BY c.code ASC
-      `, [uid]);
+      const [rows] = await db.promise().query(selectSql + " AND ct.teacher_id = ?" + groupBySql, [uid]);
       return res.json(rows || []);
     }
-    const [rows] = await db.promise().query(`
-      SELECT c.id, c.code, c.name, c.description, c.homeroom_teacher_id, c.created_at,
-             GROUP_CONCAT(ct.teacher_id) AS homeroom_teacher_ids,
-             GROUP_CONCAT(u.username) AS homeroom_teacher_usernames
-      FROM classes c
-      LEFT JOIN class_teachers ct ON c.id = ct.class_id
-      LEFT JOIN users u ON ct.teacher_id = u.id
-      WHERE c.is_deleted = 0
-      GROUP BY c.id
-      ORDER BY c.code ASC
-    `);
+    const [rows] = await db.promise().query(selectSql + groupBySql);
     res.json(rows || []);
   } catch {
     res.status(500).json({ message: "Lỗi lấy danh sách lớp" });
@@ -58,27 +42,35 @@ export async function createClass(req, res) {
     const { code, name, description, homeroom_teacher_id, homeroom_teacher_ids } = req.body;
     if (!code) return res.status(400).json({ message: "Thiếu mã lớp" });
     const up = String(code).trim().toUpperCase();
+    
     let teacherId = homeroom_teacher_id || null;
     const teacherIds = Array.isArray(homeroom_teacher_ids) ? homeroom_teacher_ids : (teacherId ? [teacherId] : []);
+    
+    let validTeacherIds = [];
     if (teacherIds.length > 0) {
       const placeholders = teacherIds.map(() => "?").join(",");
-      const [rows] = await db.promise().query(`SELECT id, role FROM users WHERE id IN (${placeholders})`, teacherIds);
-      const invalid = (rows || []).some((r) => (r.role || "user") !== "teacher");
-      if (invalid || rows.length !== teacherIds.length) return res.status(400).json({ message: "Danh sách giáo viên không hợp lệ" });
+      const [rows] = await db.promise().query(`SELECT id FROM users WHERE id IN (${placeholders}) AND role = 'teacher'`, teacherIds);
+      validTeacherIds = (rows || []).map(r => r.id);
     }
+
+    if (teacherId && !validTeacherIds.includes(Number(teacherId))) {
+      teacherId = null;
+    }
+
     await db.promise().execute(
       "INSERT INTO classes (code, name, description, homeroom_teacher_id) VALUES (?, ?, ?, ?)",
-      [up, name || null, description || null, teacherId || null]
+      [up, name || null, description || null, teacherId]
     );
     
     const [[c]] = await db.promise().query("SELECT id FROM classes WHERE code = ?", [up]);
     const classId = c && c.id ? c.id : null;
-    if (classId && teacherIds.length > 0) {
-      const values = teacherIds.map((tid) => [classId, tid]);
+    if (classId && validTeacherIds.length > 0) {
+      const values = validTeacherIds.map((tid) => [classId, tid]);
       await db.promise().query("INSERT IGNORE INTO class_teachers (class_id, teacher_id) VALUES ?", [values]);
     }
     res.json({ message: "Đã tạo lớp", code: up });
   } catch (e) {
+    console.error(e);
     res.status(400).json({ message: "Không thể tạo lớp" });
   }
 }
@@ -101,38 +93,43 @@ export async function updateClass(req, res) {
       fields.push("description = ?");
       params.push(description || null);
     }
+    
     if (homeroom_teacher_id !== undefined) {
-    let teacherId = homeroom_teacher_id || null;
-    if (teacherId) {
-      const [[row]] = await db.promise().query("SELECT role FROM users WHERE id = ?", [teacherId]);
-      if (!row) return res.status(400).json({ message: "Không tìm thấy giáo viên" });
-      if ((row.role || "user") !== "teacher") return res.status(400).json({ message: "homeroom_teacher_id phải là giáo viên" });
-    }
+      let teacherId = homeroom_teacher_id || null;
+      if (teacherId) {
+        const [[row]] = await db.promise().query("SELECT role FROM users WHERE id = ? AND role = 'teacher'", [teacherId]);
+        if (!row) {
+          teacherId = null; 
+        }
+      }
       fields.push("homeroom_teacher_id = ?");
-    params.push(teacherId || null);
+      params.push(teacherId);
     }
-    if (fields.length === 0) return res.status(400).json({ message: "Không có dữ liệu cập nhật" });
-    params.push(id);
-    const sql = `UPDATE classes SET ${fields.join(", ")} WHERE id = ?`;
-    const [result] = await db.promise().execute(sql, params);
-    if (!result || result.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy lớp" });
+
+    if (fields.length > 0) {
+      params.push(id);
+      const sql = `UPDATE classes SET ${fields.join(", ")} WHERE id = ?`;
+      const [result] = await db.promise().execute(sql, params);
+      if (!result || result.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy lớp" });
+    }
     
     if (homeroom_teacher_ids !== undefined) {
       const teacherIds = Array.isArray(homeroom_teacher_ids) ? homeroom_teacher_ids : [];
+      let validTeacherIds = [];
       if (teacherIds.length > 0) {
         const placeholders = teacherIds.map(() => "?").join(",");
-        const [rows] = await db.promise().query(`SELECT id, role FROM users WHERE id IN (${placeholders})`, teacherIds);
-        const invalid = (rows || []).some((r) => (r.role || "user") !== "teacher");
-        if (invalid || rows.length !== teacherIds.length) return res.status(400).json({ message: "Danh sách giáo viên không hợp lệ" });
+        const [rows] = await db.promise().query(`SELECT id FROM users WHERE id IN (${placeholders}) AND role = 'teacher'`, teacherIds);
+        validTeacherIds = (rows || []).map(r => r.id);
       }
       await db.promise().execute("DELETE FROM class_teachers WHERE class_id = ?", [id]);
-      if (teacherIds.length > 0) {
-        const values = teacherIds.map((tid) => [id, tid]);
+      if (validTeacherIds.length > 0) {
+        const values = validTeacherIds.map((tid) => [id, tid]);
         await db.promise().query("INSERT IGNORE INTO class_teachers (class_id, teacher_id) VALUES ?", [values]);
       }
     }
     res.json({ message: "Đã cập nhật lớp" });
-  } catch {
+  } catch (e) {
+    console.error(e);
     res.status(500).json({ message: "Lỗi cập nhật lớp" });
   }
 }

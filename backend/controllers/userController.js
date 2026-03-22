@@ -196,19 +196,27 @@ export const updateUserRole = (req, res) => {
   const { userId } = req.params;
   const { role } = req.body;
 
-  
   if (!role || !['user', 'teacher'].includes(role)) {
     return res.status(400).json({ message: "Role không hợp lệ. Chỉ được chọn 'user' hoặc 'teacher'" });
   }
 
   const q = "UPDATE users SET role = ? WHERE id = ?";
-  db.query(q, [role, userId], (err, result) => {
+  db.query(q, [role, userId], async (err, result) => {
     if (err) {
       console.error("Lỗi cập nhật role:", err);
       return res.status(500).json({ message: "Lỗi khi cập nhật role" });
     }
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Không tìm thấy user" });
+    }
+
+    if (role === 'user') {
+      try {
+        await db.promise().execute("UPDATE classes SET homeroom_teacher_id = NULL WHERE homeroom_teacher_id = ?", [userId]);
+        await db.promise().execute("DELETE FROM class_teachers WHERE teacher_id = ?", [userId]);
+      } catch (e) {
+        console.error("Lỗi dọn dẹp liên kết giáo viên:", e);
+      }
     }
 
     const actionText = role === 'teacher' ? 'thăng cấp lên giáo viên' : 'chuyển về user';
