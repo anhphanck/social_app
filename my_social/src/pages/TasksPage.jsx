@@ -7,6 +7,7 @@ import { API_URL } from "../config/env";
 
 export default function TasksPage() {
   const { user, token, selectedClass } = useContext(UserContext);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [details, setDetails] = useState({});
@@ -250,15 +251,23 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-gray-100 flex flex-col overflow-x-hidden">
       <div className="z-50 shrink-0">
         <Navbar />
       </div>
-      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
-        <div className="w-64 shrink-0 overflow-y-auto">
+      <div className="md:hidden px-3 sm:px-4 pt-2">
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="px-3 py-2 rounded-md bg-white border text-sm font-medium text-sky-700"
+        >
+          ☰ Menu
+        </button>
+      </div>
+      <div className="flex flex-1 gap-3 p-3 sm:p-4 overflow-hidden">
+        <div className="w-64 shrink-0 overflow-y-auto hidden md:block">
           <Sidebar />
         </div>
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
+        <div className="flex-1 bg-white p-3 sm:p-6 rounded-md shadow-sm overflow-y-auto min-w-0">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-xl font-semibold text-sky-700">Quản lý Task</h1>
           </div>
@@ -319,14 +328,14 @@ export default function TasksPage() {
             <div className="text-sm font-semibold mb-2">{(user?.role === 'admin' || user?.role === 'teacher') ? 'Tất cả nhiệm vụ' : 'Nhiệm vụ của tôi'}</div>
             <div className="space-y-3">
               {tasks.map((t) => (
-                <div key={t.id} className="relative border rounded p-3 flex items-center justify-between">
+                <div key={t.id} className="relative border rounded p-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   {newAssignedTaskIds.has(Number(t.id)) && (
                     <span className="absolute -top-2 -left-2 bg-red-500 text-white text-xs px-1.5 rounded">Mới giao</span>
                   )}
                   {user?.id === t.created_by && ackUpdates[Number(t.id)] && (
                     <span className="absolute -top-2 left-16 bg-yellow-500 text-white text-xs px-1.5 rounded">Cập nhật: {ackUpdates[Number(t.id)]}</span>
                   )}
-                  <div>
+                  <div className="min-w-0">
                     <div className="font-semibold">{t.title}</div>
                     <div className="text-sm text-gray-600">Trạng thái: {(((lastStatus[Number(t.id)] || t.status) === 'completed') ? 'Đã hoàn thành' : (((t.submissions_count ?? (details[t.id]?.submissions?.length ?? 0)) > 0) ? 'Đã nộp' : 'Chưa nộp'))}</div>
                     {t.assignees_usernames && (
@@ -474,7 +483,7 @@ export default function TasksPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {user?.role !== 'admin' && user?.role !== 'teacher' && (t.status !== 'completed') && ((t.submissions_count ?? (details[t.id]?.submissions?.length ?? 0)) === 0) && (
                       <div className="flex flex-col gap-2">
                         <textarea
@@ -565,8 +574,16 @@ export default function TasksPage() {
             </div>
           </div>
         </div>
-        <div className="w-72 shrink-0"></div>
+        <div className="w-72 shrink-0 hidden lg:block"></div>
       </div>
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-72 max-w-[85vw]">
+            <Sidebar onNavigate={() => setMobileSidebarOpen(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

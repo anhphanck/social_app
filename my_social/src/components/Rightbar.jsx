@@ -43,7 +43,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
   };
 
   return (
-    <div className="w-72 p-4 space-y-4 bg-white rounded-md shadow-sm">
+    <div className="w-full lg:w-72 p-4 space-y-4 bg-white rounded-md shadow-sm">
 
       <div className="bg-white shadow-sm p-3 rounded-md max-h-60 overflow-y-auto">
         <h3 className="font-semibold text-sky-700 mb-2">📌 Bài viết đã ghim</h3>

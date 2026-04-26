@@ -11,6 +11,7 @@ import { UserContext } from "../context/UserContext";
 import { API_URL } from "../config/env";
 
 export default function HomePage() {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [posts, setPosts] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -268,7 +269,7 @@ export default function HomePage() {
     return () => clearTimeout(delay);
   }, [searchQuery, selectedClass, user?.role, user?.class]);
   return (
-    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-gray-100 flex flex-col overflow-x-hidden">
       <div className="z-50 shrink-0">
         <Navbar
           user={user}
@@ -278,12 +279,21 @@ export default function HomePage() {
         />
       </div>
 
-      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+      <div className="md:hidden px-3 sm:px-4 pt-2">
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="px-3 py-2 rounded-md bg-white border text-sm font-medium text-sky-700"
+        >
+          ☰ Menu
+        </button>
+      </div>
+
+      <div className="flex flex-1 gap-3 p-3 sm:p-4 overflow-hidden">
         <div className="w-64 shrink-0 overflow-y-auto hidden md:block">
             <Sidebar />
         </div>
 
-        <main className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
+        <main className="flex-1 bg-white p-3 sm:p-6 rounded-md shadow-sm overflow-y-auto min-w-0">
           
           <CreatePost
             newPost={newPost}
@@ -329,6 +339,15 @@ export default function HomePage() {
             />
         </div>
       </div>
+
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-72 max-w-[85vw]">
+            <Sidebar onNavigate={() => setMobileSidebarOpen(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

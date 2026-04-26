@@ -7,6 +7,7 @@ import { API_URL } from "../config/env";
 
 export default function DocumentsPage() {
   const { token, user, selectedClass } = useContext(UserContext);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [files, setFiles] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -83,15 +84,23 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-gray-100 flex flex-col overflow-x-hidden">
       <div className="z-50 shrink-0">
         <Navbar />
       </div>
-      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
-        <div className="w-64 shrink-0 overflow-y-auto">
+      <div className="md:hidden px-3 sm:px-4 pt-2">
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="px-3 py-2 rounded-md bg-white border text-sm font-medium text-sky-700"
+        >
+          ☰ Menu
+        </button>
+      </div>
+      <div className="flex flex-1 gap-3 p-3 sm:p-4 overflow-hidden">
+        <div className="w-64 shrink-0 overflow-y-auto hidden md:block">
             <Sidebar />
         </div>
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
+        <div className="flex-1 bg-white p-3 sm:p-6 rounded-md shadow-sm overflow-y-auto min-w-0">
           <h1 className="text-xl font-semibold text-sky-700">Chia sẻ tài liệu lớp học</h1>
           <div className="mt-4">
             <div className="p-4 border rounded-md">
@@ -106,16 +115,16 @@ export default function DocumentsPage() {
               <div className="text-sm font-semibold mb-2">Danh sách tài liệu</div>
               <div className="space-y-2">
                 {docs.map((d, idx) => (
-                  <div key={d.id} className="flex items-center justify-between border rounded p-2">
-                    <div className="flex items-center gap-3">
+                  <div key={d.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border rounded p-2">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-7 h-7 rounded-full bg-sky-600 text-white flex items-center justify-center text-xs">{idx + 1}</div>
-                      <div>
-                        <div className="text-sm font-medium">{d.original_name}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium break-words">{d.original_name}</div>
                         <div className="text-xs text-gray-500">Người tải lên: {d.username || d.user_id}</div>
                         <div className="text-xs text-gray-500">{new Date(d.created_at).toLocaleString()}</div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3 flex-wrap">
                       <a href={d.url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline">Xem</a>
                       <a href="#" onClick={(e) => handleDownload(e, d)} className="text-xs text-gray-700 underline">Tải</a>
                       {(String(d.user_id) === String(user?.id)) && (
@@ -129,8 +138,16 @@ export default function DocumentsPage() {
             </div>
           </div>
         </div>
-        <div className="w-72 shrink-0"></div>
+        <div className="w-72 shrink-0 hidden lg:block"></div>
       </div>
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-72 max-w-[85vw]">
+            <Sidebar onNavigate={() => setMobileSidebarOpen(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { API_URL, UPLOADS_URL } from "../config/env";
 
 export default function ProfilePage() {
   const { user, setUser, token } = useContext(UserContext);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const params = useParams();
   const viewingId = params.id ? Number(params.id) : null;
   const isSelf = !viewingId || (user && Number(user.id) === viewingId);
@@ -81,18 +82,26 @@ export default function ProfilePage() {
   }, [isSelf, viewingId, token]);
 
   return (
-    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-gray-100 flex flex-col overflow-x-hidden">
       <div className="z-50 shrink-0">
         <Navbar />
       </div>
-      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+      <div className="md:hidden px-3 sm:px-4 pt-2">
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="px-3 py-2 rounded-md bg-white border text-sm font-medium text-sky-700"
+        >
+          ☰ Menu
+        </button>
+      </div>
+      <div className="flex flex-1 gap-3 p-3 sm:p-4 overflow-hidden">
         <div className="w-64 shrink-0 overflow-y-auto hidden md:block">
             <Sidebar />
         </div>
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
+        <div className="flex-1 bg-white p-4 sm:p-6 rounded-md shadow-sm overflow-y-auto min-w-0">
           <h1 className="text-xl font-semibold text-sky-700">Trang cá nhân</h1>
-          <div className="mt-6 flex items-start gap-6">
-            <div>
+          <div className="mt-6 flex flex-col items-start gap-6 md:flex-row">
+            <div className="w-full md:w-auto">
               <div className="w-28 h-28 rounded-full bg-gray-200 overflow-hidden">
                 {(() => {
                   const displayAvatar = preview || (isSelf ? avatarUrl : otherAvatarUrl);
@@ -115,7 +124,7 @@ export default function ProfilePage() {
                 />
               )}
             </div>
-            <div className="flex-1">
+            <div className="flex-1 w-full min-w-0">
               <label className="block text-sm font-medium text-gray-700">Giới thiệu</label>
               <textarea
                 value={bio}
@@ -131,6 +140,14 @@ export default function ProfilePage() {
         </div>
         <div className="w-72 shrink-0 hidden lg:block"></div>
       </div>
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-72 max-w-[85vw]">
+            <Sidebar onNavigate={() => setMobileSidebarOpen(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

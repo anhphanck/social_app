@@ -137,11 +137,11 @@ export default function Users() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+          <div className="flex flex-wrap justify-between items-center gap-2 py-3">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-800">Admin Dashboard</h1>
             <div className="flex items-center gap-4">
               {user && (
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 hidden sm:inline">
                   Xin chào, <span className="font-medium">{user.username}</span>
                 </span>
               )}
@@ -158,8 +158,8 @@ export default function Users() {
 
       {/* Navigation */}
       <nav className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
+          <div className="flex space-x-6 whitespace-nowrap min-w-max">
             <button
               onClick={() => navigate('/dashboard')}
               className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
@@ -195,10 +195,10 @@ export default function Users() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-center">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Quản lý Users</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Quản lý Users</h2>
             <p className="mt-2 text-gray-600">Danh sách tất cả người dùng trong hệ thống</p>
           </div>
           <button

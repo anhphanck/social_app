@@ -35,8 +35,8 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
   const userClass = u?.class;
   
   return (
-   <div className="relative flex items-center justify-between px-6 py-3 bg-sky-200 shadow-md">
-  <div className="flex items-center space-x-4 z-10">
+   <div className="relative flex flex-col gap-3 px-3 py-3 bg-sky-200 shadow-md sm:px-4 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+  <div className="flex items-center justify-between gap-3 z-10">
     <div className="font-bold text-xl text-sky-700">LOGO</div>
     {isTeacher && (
       <div className="flex items-center space-x-2">
@@ -59,7 +59,7 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
     )}
   </div>
 
-  <div className="relative w-full max-w-lg">
+  <div className="relative w-full lg:max-w-lg">
   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">🔍</span>
   <input
     type="text"
@@ -69,7 +69,7 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
     className="w-full pl-12 pr-4 py-2 bg-gray-100 rounded-full focus:outline-none font-medium text-sm text-gray-700 placeholder-gray-500"
   />
   </div>
-  <div className="flex items-center space-x-4 text-sky-800 z-10">
+  <div className="flex items-center justify-between gap-3 text-sky-800 z-10 lg:justify-end">
     <div
       className="flex items-center space-x-2 cursor-pointer"
       onClick={() => navigate('/profile')}
@@ -83,11 +83,11 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
       ) : (
         <div className="w-8 h-8 bg-sky-600 rounded-full" />
       )}
-      <span className="font-semibold">{u?.username}</span>
+      <span className="font-semibold text-sm sm:text-base">{u?.username}</span>
     </div>
     <button
       onClick={logoutHandler}
-      className="text-red-600 text-sm hover:underline ml-2"
+      className="text-red-600 text-sm hover:underline"
     >
       Đăng xuất
     </button>

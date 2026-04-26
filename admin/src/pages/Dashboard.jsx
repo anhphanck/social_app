@@ -66,11 +66,11 @@ export default function Dashboard() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+          <div className="flex flex-wrap justify-between items-center gap-2 py-3">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-800">Admin Dashboard</h1>
             <div className="flex items-center gap-4">
               {user && (
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 hidden sm:inline">
                   Xin chào, <span className="font-medium">{user.username}</span>
                 </span>
               )}
@@ -87,8 +87,8 @@ export default function Dashboard() {
 
       {/* Navigation */}
       <nav className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
+          <div className="flex space-x-6 whitespace-nowrap min-w-max">
             <button
               onClick={() => navigate('/dashboard')}
               className="border-b-2 border-indigo-600 text-indigo-600 py-4 px-1 text-sm font-medium"
@@ -124,9 +124,9 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Tổng quan</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Tổng quan</h2>
           <p className="mt-2 text-gray-600">Thống kê và quản lý hệ thống</p>
         </div>
 
