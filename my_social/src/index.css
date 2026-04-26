@@ -1,5 +1,4 @@
 @import "tailwindcss";
-<<<<<<< HEAD
 
 html, body {
   margin: 0;
@@ -33,9 +32,3 @@ html, body {
     background: #555;
   }
 }
-=======
-html { scrollbar-gutter: stable; }
-body { overflow-y: scroll; }
-html, body { overflow-x: hidden; }
-
->>>>>>> deploy_1

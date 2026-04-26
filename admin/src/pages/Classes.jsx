@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { API_URL as BASE_API_URL } from '../config/env'
 
-<<<<<<< HEAD
-const API_CLASSES = '/api/classes'
-const API_ADMIN_USERS = '/api/admin/users'
-=======
 const API_CLASSES = `${BASE_API_URL}/classes`
 const API_ADMIN_USERS = `${BASE_API_URL}/admin/users`
->>>>>>> deploy_2
 
 export default function Classes() {
   const [user, setUser] = useState(null)
@@ -149,7 +144,7 @@ export default function Classes() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {}
+      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -171,7 +166,7 @@ export default function Classes() {
         </div>
       </header>
 
-      {}
+      {/* Navigation */}
       <nav className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
@@ -209,20 +204,11 @@ export default function Classes() {
         </div>
       </nav>
 
-      {}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-center">
-          <div>
+        <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Quản lý Lớp</h2>
-            <p className="mt-2 text-gray-600">Quản lý danh sách lớp và giáo viên chủ nhiệm</p>
-          </div>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
-          >
-            {loading ? 'Đang làm mới...' : 'Làm mới'}
-          </button>
+             <p className="mt-2 text-gray-600">Quản lý danh sách lớp và giáo viên chủ nhiệm</p>
         </div>
         
         <div className="px-4 py-6 sm:px-0">
@@ -401,4 +387,3 @@ export default function Classes() {
     </div>
   )
 }
-

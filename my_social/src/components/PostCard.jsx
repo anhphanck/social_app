@@ -4,18 +4,9 @@ import axios from "axios";
 import { UserContext } from "../context/UserContext";
 import { API_URL, UPLOADS_URL } from "../config/env";
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-const API_URL = "http://localhost:5000/api";
-//  CommentCard 
-=======
-const API_URL = "/api";
-=======
->>>>>>> deploy_2
 
-
-
->>>>>>> deploy_1
+// ========================== CommentCard ==========================
+// ========================== CommentCard ==========================
 function CommentCard({ comment, onReply, onDelete }) {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
@@ -27,11 +18,7 @@ function CommentCard({ comment, onReply, onDelete }) {
         <div className="cursor-pointer" onClick={() => navigate(`/profile/${comment.user_id}`)}>
           {comment.avatar ? (
             <img
-<<<<<<< HEAD
-              src={comment.avatar.startsWith('http') ? comment.avatar : `/uploads/${comment.avatar}`}
-=======
               src={comment.avatar.startsWith('http') ? comment.avatar : `${UPLOADS_URL}/${comment.avatar}`}
->>>>>>> deploy_2
               alt="avatar"
               className="w-7 h-7 rounded-full object-cover"
             />
@@ -42,7 +29,7 @@ function CommentCard({ comment, onReply, onDelete }) {
           )}
         </div>
         <div className="cursor-pointer" onClick={() => navigate(`/profile/${comment.user_id}`)}>
-          <strong>{comment.username || "Người dùng ẩn"}</strong>
+          <strong>{comment.username}</strong>
         </div>
         <span className="text-gray-400 text-xs">
           {comment.created_at ? new Date(comment.created_at).toLocaleString() : ""}
@@ -60,7 +47,7 @@ function CommentCard({ comment, onReply, onDelete }) {
 
         <button onClick={() => onReply(comment.id)}>Reply</button>
 
-        {}
+        {/* 🔥 NÚT XÓA */}
         {user?.id === comment.user_id && (
           <button
             className="text-red-500 ml-2"
@@ -84,11 +71,7 @@ function CommentCard({ comment, onReply, onDelete }) {
   );
 }
 
-<<<<<<< HEAD
-// CommentList 
-=======
-
->>>>>>> deploy_1
+// ========================== CommentList ==========================
 function CommentList({ postId, showInput }) {
   const { user } = useContext(UserContext);
   const token = localStorage.getItem('token');
@@ -98,7 +81,7 @@ function CommentList({ postId, showInput }) {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
 
-  
+  // Scroll to input when replying
   useEffect(() => {
     if (replyTo !== null && inputRef.current) {
       inputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -113,11 +96,8 @@ function CommentList({ postId, showInput }) {
 
     const nested = [];
     flat.forEach((c) => {
-      if (c.parent_id && map[c.parent_id]) {
-        map[c.parent_id].replies.push(map[c.id]);
-      } else {
-        nested.push(map[c.id]);
-      }
+      if (c.parent_id) map[c.parent_id]?.replies.push(map[c.id]);
+      else nested.push(map[c.id]);
     });
     return nested;
   };
@@ -174,7 +154,7 @@ function CommentList({ postId, showInput }) {
       await loadComments();
     } catch (err) {
       console.error("Error deleting comment:", err);
-      
+      // Xử lý lỗi hiển thị cho người dùng
     }
 };
 
@@ -248,12 +228,8 @@ function CommentList({ postId, showInput }) {
   );
 }
 
-<<<<<<< HEAD
-//  PostCard 
-=======
-
-
->>>>>>> deploy_1
+// ========================== PostCard ==========================
+// ========================== PostCard ==========================
 export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
@@ -356,11 +332,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
           <div className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
             {post.avatar ? (
               <img
-<<<<<<< HEAD
-                src={post.avatar.startsWith('http') ? post.avatar : `/uploads/${post.avatar}`}
-=======
                 src={post.avatar.startsWith('http') ? post.avatar : `${UPLOADS_URL}/${post.avatar}`}
->>>>>>> deploy_2
                 alt="avatar"
                 className="w-9 h-9 rounded-full object-cover"
               />
@@ -401,7 +373,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
       <div className="mt-2 text-gray-800">
         {post.content}
         
-        {}
+        {/* Hiển thị nhiều ảnh */}
         {post.images && post.images.length > 0 && (
           <div className={`mt-3 rounded-lg overflow-hidden ${
             post.images.length === 1 ? 'grid grid-cols-1' :
@@ -432,7 +404,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
             ))}
           </div>
         )}
-        {}
+        {/* Backward compatible: hiển thị ảnh cũ nếu không có images */}
         {(!post.images || post.images.length === 0) && post.image && (
           <img src={post.image} alt="post" className="rounded-md mt-2 max-h-80 w-full object-cover" />
         )}
@@ -535,4 +507,3 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
     </div>
   );
 };
-

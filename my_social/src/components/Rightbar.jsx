@@ -7,37 +7,29 @@ import { API_URL, UPLOADS_URL } from "../config/env";
 
 export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
   const navigate = useNavigate();
-  const { setCurrentChatId, unreadCounts, setUnreadCounts, user } = useContext(UserContext);
+  const { setCurrentChatId, unreadCounts, onlineUsers, setUnreadCounts, user } = useContext(UserContext);
   const [avatarUrls, setAvatarUrls] = useState({});
-<<<<<<< HEAD
-  const API_URL = "/api";
-=======
->>>>>>> deploy_2
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       if (!Array.isArray(users) || users.length === 0) return;
-      
+      // giữ cache hiện có để tránh nhấp nháy avatar
       const next = { ...avatarUrls };
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const fetches = users.map(async (u) => {
         if (!u) return;
-        if (next[u.id]) return; 
+        if (next[u.id]) return; // đã có cache
         if (u.avatar) {
-<<<<<<< HEAD
-          next[u.id] = u.avatar.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`;
-=======
           next[u.id] = u.avatar.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`;
->>>>>>> deploy_2
           return;
         }
         try {
           const res = await axios.get(`${API_URL}/users/${u.id}`, { headers });
           const url = res?.data?.avatar_url || null;
           if (url) next[u.id] = url;
-        } catch {  }
+        } catch { /* ignore */ }
       });
       await Promise.all(fetches);
       if (!cancelled) setAvatarUrls(next);
@@ -88,11 +80,9 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
       <div className="bg-white shadow-sm p-3 rounded-md h-35">
         <h3 className="font-semibold text-sky-700 mb-2">🟢 Đang hoạt động</h3>
         {(() => {
-          const otherUsers = users.filter(u => user && u.id !== user.id);
-          const onlineList = otherUsers.length > 0 ? [otherUsers[0]] : [];
-          
+          const onlineList = users.filter((u) => onlineUsers && onlineUsers.has && onlineUsers.has(String(u.id)));
           if (!onlineList || onlineList.length === 0) return <div className="text-sm text-gray-500">Không có bạn nào đang online</div>;
-          return onlineList.map((u) => (
+          return onlineList.slice(0, 4).map((u) => (
             <div key={u.id} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div
@@ -102,11 +92,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                 >
                   {(avatarUrls[u.id] || u.avatar) ? (
                     <img
-<<<<<<< HEAD
-                      src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`)}
-=======
                       src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`)}
->>>>>>> deploy_2
                       alt="avatar"
                       className="w-7 h-7 rounded-full object-cover"
                     />
@@ -147,11 +133,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
               >
                 {(avatarUrls[u.id] || u.avatar) ? (
                   <img
-<<<<<<< HEAD
-                    src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`)}
-=======
                     src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`)}
->>>>>>> deploy_2
                     alt="avatar"
                     className="w-7 h-7 rounded-full object-cover"
                   />
@@ -176,4 +158,3 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
     </div>
   );
 }
-

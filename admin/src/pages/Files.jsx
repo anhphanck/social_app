@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { API_URL as BASE_API_URL } from '../config/env'
 
-<<<<<<< HEAD
-const API_URL = '/api/documents'
-const API_CLASSES = '/api/classes'
-=======
 const API_URL = `${BASE_API_URL}/documents`
 const API_CLASSES = `${BASE_API_URL}/classes`
->>>>>>> deploy_2
 
 export default function Files() {
   const [docs, setDocs] = useState([])
@@ -33,14 +28,14 @@ export default function Files() {
       const res = await axios.get(API_CLASSES, { headers: { Authorization: `Bearer ${token}` } })
       const list = res.data || []
       setClasses(list)
-      
+      // Mặc định chọn 'Tất cả' (giá trị rỗng) thay vì lớp đầu tiên
       setSelectedClass('') 
     } catch (err) {
       setSelectedClass('')
     }
   }
 
-  
+  // Hàm fetchDocs chỉ nhận tham số tùy chọn, mặc định lấy từ state
   const fetchDocs = async (cls = selectedClass, searchQuery = query) => {
     setLoading(true)
     setError('')
@@ -62,20 +57,20 @@ export default function Files() {
     }
   }
 
-  
+  // Effect khởi tạo: chỉ chạy 1 lần
   useEffect(() => {
     const adminUser = localStorage.getItem('adminUser')
     if (adminUser) setUser(JSON.parse(adminUser))
     fetchClasses()
   }, [])
 
-  
+  // Effect xử lý thay đổi filter/search với debounce
   useEffect(() => {
-    
-    
-    
-    
-    
+    // Bỏ qua lần chạy đầu tiên khi selectedClass chưa được set (nếu cần)
+    // Nhưng ở đây ta set mặc định là '' ngay từ đầu trong fetchClasses hoặc useState
+    // Tuy nhiên fetchClasses là async, nên ta cần kiểm tra selectedClass đã sẵn sàng chưa nếu muốn
+    // Ở đây ta dùng cờ mounted hoặc kiểm tra loading của fetchClasses nếu cần thiết.
+    // Đơn giản hóa: chỉ fetch khi user tương tác hoặc sau khi fetchClasses xong.
     
     const t = setTimeout(() => {
         fetchDocs(selectedClass, query)
@@ -104,11 +99,7 @@ export default function Files() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken')
-<<<<<<< HEAD
-      const res = await axios.get(`/api/documents/download/${doc.id}`, {
-=======
       const res = await axios.get(`${API_URL}/download/${doc.id}`, {
->>>>>>> deploy_2
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       })
@@ -245,3 +236,4 @@ export default function Files() {
     </div>
   )
 }
+

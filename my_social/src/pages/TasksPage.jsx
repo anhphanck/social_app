@@ -1,22 +1,11 @@
+import { useContext, useEffect, useState } from "react";
+import axios from "axios";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-<<<<<<< HEAD
-=======
 import { UserContext } from "../context/UserContext";
 import { API_URL } from "../config/env";
->>>>>>> deploy_2
 
 export default function TasksPage() {
-<<<<<<< HEAD
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="flex gap-4 p-4">
-        <Sidebar />
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm">
-          <h1 className="text-xl font-semibold text-sky-700">Nhiệm vụ</h1>
-          <div className="mt-4 text-gray-700">Nhiệm vụ sắp cập nhập.</div>
-=======
   const { user, token, selectedClass } = useContext(UserContext);
   const [users, setUsers] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -28,10 +17,6 @@ export default function TasksPage() {
   const [assignees, setAssignees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
-<<<<<<< HEAD
-  const API_URL = "/api";
-=======
->>>>>>> deploy_2
   const [editTaskId, setEditTaskId] = useState(null);
   const [editPriority, setEditPriority] = useState("medium");
   const [editDeadline, setEditDeadline] = useState("");
@@ -47,11 +32,7 @@ export default function TasksPage() {
   const handleDownload = async (e, file, type = 'attachment') => {
     e.preventDefault();
     if (file.id) {
-<<<<<<< HEAD
-      window.location.href = `/api/tasks/download/${file.id}?type=${type}`;
-=======
       window.location.href = `${API_URL}/tasks/download/${file.id}?type=${type}`;
->>>>>>> deploy_2
     } else {
       window.open(file.url, '_blank');
     }
@@ -164,7 +145,7 @@ export default function TasksPage() {
           try {
             const det = await axios.get(`${API_URL}/tasks/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             setDetails((prev) => ({ ...prev, [id]: det.data }));
-          } catch {  }
+          } catch { /* ignore */ }
         }
       } else {
         let body = { status };
@@ -182,7 +163,7 @@ export default function TasksPage() {
           try {
             const det = await axios.get(`${API_URL}/tasks/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             setDetails((prev) => ({ ...prev, [id]: det.data }));
-          } catch {  }
+          } catch { /* ignore */ }
         }
       }
       try {
@@ -282,7 +263,7 @@ export default function TasksPage() {
             <h1 className="text-xl font-semibold text-sky-700">Quản lý Task</h1>
           </div>
 
-          {}
+          {/* Giáo viên + admin được tạo nhiệm vụ */}
           {(user?.role === "admin" || user?.role === "teacher") && (
             <div className="mt-4 p-4 border rounded-md">
               <div className="text-sm font-semibold mb-2">Tạo nhiệm vụ mới</div>
@@ -583,11 +564,9 @@ export default function TasksPage() {
               {tasks.length === 0 && <div className="text-gray-500 text-sm">Chưa có nhiệm vụ</div>}
             </div>
           </div>
->>>>>>> deploy_1
         </div>
         <div className="w-72 shrink-0"></div>
       </div>
     </div>
   );
 }
-

@@ -1,32 +1,12 @@
-<<<<<<< HEAD
-=======
 import { useContext, useEffect, useState, useCallback } from "react";
 import axios from "axios";
->>>>>>> deploy_1
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-<<<<<<< HEAD
-=======
 import { UserContext } from "../context/UserContext";
 import { API_URL } from "../config/env";
->>>>>>> deploy_2
 
 export default function DocumentsPage() {
-<<<<<<< HEAD
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="flex gap-4 p-4">
-        <Sidebar />
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm">
-          <h1 className="text-xl font-semibold text-sky-700">Tài liệu lớp học</h1>
-          <div className="mt-4 text-gray-700">Tài liệu sắp cập nhập.</div>
-=======
   const { token, user, selectedClass } = useContext(UserContext);
-<<<<<<< HEAD
-  const API_URL = "/api";
-=======
->>>>>>> deploy_2
   const [files, setFiles] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -46,11 +26,7 @@ export default function DocumentsPage() {
   const handleDownload = async (e, doc) => {
     e.preventDefault();
     try {
-<<<<<<< HEAD
-      const res = await axios.get(`/api/documents/download/${doc.id}`, {
-=======
       const res = await axios.get(`${API_URL}/documents/download/${doc.id}`, {
->>>>>>> deploy_2
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
@@ -152,11 +128,9 @@ export default function DocumentsPage() {
               </div>
             </div>
           </div>
->>>>>>> deploy_1
         </div>
         <div className="w-72 shrink-0"></div>
       </div>
     </div>
   );
 }
-

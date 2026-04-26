@@ -27,11 +27,7 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
           >
             {user?.avatar ? (
             <img
-<<<<<<< HEAD
-              src={user.avatar.startsWith('http') ? user.avatar : `/uploads/${user.avatar}`}
-=======
               src={user.avatar.startsWith('http') ? user.avatar : `${UPLOADS_URL}/${user.avatar}`}
->>>>>>> deploy_2
               alt="avatar"
               className="w-10 h-10 rounded-full object-cover"
             />
@@ -57,11 +53,7 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
       <div className="flex items-center gap-3 mb-3">
         {user?.avatar ? (
           <img
-<<<<<<< HEAD
-            src={user.avatar.startsWith('http') ? user.avatar : `/uploads/${user.avatar}`}
-=======
             src={user.avatar.startsWith('http') ? user.avatar : `${UPLOADS_URL}/${user.avatar}`}
->>>>>>> deploy_2
             alt="avatar"
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -81,7 +73,7 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
         className="w-full p-2 rounded-md outline-none resize-none bg-white border border-gray-200 placeholder-gray-500 text-gray-800"
       ></textarea>
 
-      {}
+      {/* Hiển thị preview nhiều ảnh */}
       {files && files.length > 0 && (
         <div className="mt-3 grid grid-cols-2 gap-2">
           {files.map((file, index) => (
@@ -105,7 +97,7 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
 
       <div className="flex justify-between items-center mt-3 border-t border-gray-200 pt-2">
         <div className="flex space-x-4 text-sky-600 text-sm">
-          {}
+          {/* Nút chọn nhiều ảnh */}
           <label
             htmlFor="imageUpload"
             className="flex items-center gap-1 cursor-pointer hover:text-sky-700"
@@ -148,4 +140,3 @@ export default function CreatePost({ newPost, setNewPost, onSubmit, loading, fil
     </div>
   );
 }
-

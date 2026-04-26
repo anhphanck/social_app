@@ -1,23 +1,23 @@
-import { createContext, useState, useEffect,  } from "react";
+import { createContext, useState, useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 import axios from "axios";
 import { API_ORIGIN, API_URL } from "../config/env";
 
 export const UserContext = createContext();
-const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || undefined;
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const socketRef = useRef(null);
+  const [socketInstance, setSocketInstance] = useState(null);
+  const [currentChatId, setCurrentChatId] = useState(null);
   const [unreadCounts, setUnreadCounts] = useState({});
-<<<<<<< HEAD
-  const [taskNotifCount, setTaskNotifCount] = useState(0);
-=======
-  
+  // store online user ids as a Set for quick lookup
   const [onlineUsers, setOnlineUsers] = useState(new Set());
-  
+  // Lớp hiện tại được chọn (cho teacher) hoặc lớp của user
   const [selectedClass, setSelectedClass] = useState(null);
->>>>>>> deploy_1
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -26,11 +26,11 @@ export const UserProvider = ({ children }) => {
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      
+      // Nếu là teacher, khôi phục lớp đã chọn hoặc mặc định 'A'
       if (parsedUser?.role === 'teacher') {
         setSelectedClass(storedClass || 'A');
       } else if (parsedUser?.class) {
-        
+        // User thường: dùng lớp của họ
         setSelectedClass(parsedUser.class);
       }
     }
@@ -38,9 +38,7 @@ export const UserProvider = ({ children }) => {
     setLoadingUser(false);
   }, []);
 
-<<<<<<< HEAD
-=======
-  
+  // Lưu selectedClass vào localStorage khi thay đổi
   useEffect(() => {
     if (selectedClass) {
       localStorage.setItem("selectedClass", selectedClass);
@@ -49,7 +47,7 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (!token) {
-      
+      // Nếu không có token, disconnect socket nếu đang kết nối
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -59,17 +57,13 @@ export const UserProvider = ({ children }) => {
       return;
     }
     
-    
+    // Nếu đã có socket và đang kết nối, không tạo lại
     if (socketRef.current && socketRef.current.connected) {
       return;
     }
+    // Ngăn việc tạo lại socket khi mở/đóng chat: chỉ phụ thuộc vào token
     
-<<<<<<< HEAD
-    
-    const socket = io(SOCKET_URL, { 
-=======
     const socket = io(API_ORIGIN, { 
->>>>>>> deploy_2
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
@@ -80,19 +74,15 @@ export const UserProvider = ({ children }) => {
 
     socket.on("connect", () => {
       setSocketConnected(true);
-      
+      // ask server for current presence to populate onlineUsers immediately
       try {
         socket.emit('get_presence');
       } catch (e) {
         console.warn('Failed to request presence', e);
       }
-      
+      // fetch unread counts when user comes online
       if (token) {
-<<<<<<< HEAD
-        axios.get('/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
-=======
         axios.get(`${API_URL}/chats/unreads`, { headers: { Authorization: `Bearer ${token}` } })
->>>>>>> deploy_2
           .then((res) => setUnreadCounts(res.data || {}))
           .catch(() => {});
       }
@@ -101,7 +91,7 @@ export const UserProvider = ({ children }) => {
     socket.on("connect_error", (err) => console.error('Socket connect_error', err));
 
     socket.on("private_message", (msg) => {
-      
+      // if message is for current user and chat not open, increment unread
       const receiver = msg.receiver_id || msg.to;
       const sender = msg.sender_id || msg.from;
       if (!user) return;
@@ -140,11 +130,7 @@ export const UserProvider = ({ children }) => {
     const fetchUnreads = async () => {
       try {
         if (!user || !token) return;
-<<<<<<< HEAD
-        const res = await axios.get('/api/chats/unreads', {
-=======
         const res = await axios.get(`${API_URL}/chats/unreads`, {
->>>>>>> deploy_2
           headers: { Authorization: `Bearer ${token}` }
         });
         setUnreadCounts(res.data || {});
@@ -159,11 +145,7 @@ export const UserProvider = ({ children }) => {
     const fetchTaskNotif = async () => {
       try {
         if (!user || !token) return;
-<<<<<<< HEAD
-        const res = await axios.get('/api/tasks/notifications/unread-count', {
-=======
         const res = await axios.get(`${API_URL}/tasks/notifications/unread-count`, {
->>>>>>> deploy_2
           headers: { Authorization: `Bearer ${token}` }
         });
         const n = (res && res.data && res.data.count) ? res.data.count : 0;
@@ -172,47 +154,24 @@ export const UserProvider = ({ children }) => {
     };
     fetchTaskNotif();
   }, [user, token]);
->>>>>>> deploy_1
 
   useEffect(() => {
     const refreshProfile = async () => {
       try {
-<<<<<<< HEAD
-        if (!token) return;
-
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-        if (!storedUser.id) return;
-
-        const res = await axios.get(`http://localhost:5000/api/users/${storedUser.id}`, {
-=======
         if (!user || !token) return;
         if (user.avatar) return;
-<<<<<<< HEAD
-        const res = await axios.get(`/api/users/${user.id}`, {
->>>>>>> deploy_1
-=======
         const res = await axios.get(`${API_URL}/users/${user.id}`, {
->>>>>>> deploy_2
           headers: { Authorization: `Bearer ${token}` }
         });
-        
-        const fetchedUser = res.data?.user;
-        if (fetchedUser) {
-           const merged = { ...storedUser, ...fetchedUser };
-           if (JSON.stringify(merged) !== JSON.stringify(storedUser)) {
-               setUser(merged);
-               localStorage.setItem('user', JSON.stringify(merged));
-           }
-        }
+        const merged = { ...user, ...(res.data?.user || {}) };
+        setUser(merged);
+        try { localStorage.setItem('user', JSON.stringify(merged)); } catch (err) { console.warn('Persist user failed', err); }
       } catch (e) {
         console.warn('Failed to refresh user profile', e);
       }
     };
-    
-    if (token) {
-        refreshProfile();
-    }
-  }, [token]); 
+    refreshProfile();
+  }, [user, token]);
 
   const logout = () => {
     localStorage.removeItem('user');
@@ -223,19 +182,11 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-<<<<<<< HEAD
-    <UserContext.Provider value={{ user, setUser, token, setToken, logout, loadingUser, unreadCounts, setUnreadCounts, taskNotifCount, setTaskNotifCount }}>
-=======
     <UserContext.Provider value={{ user, setUser, token, setToken, logout, loadingUser, socket: socketInstance, socketConnected, currentChatId, setCurrentChatId, unreadCounts, setUnreadCounts, onlineUsers, setOnlineUsers, selectedClass, setSelectedClass }}>
->>>>>>> deploy_1
       {children}
     </UserContext.Provider>
   );
 };
 
 export default UserContext;
-<<<<<<< HEAD
-=======
 
-
->>>>>>> deploy_1

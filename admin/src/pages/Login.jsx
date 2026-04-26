@@ -3,11 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { API_URL as BASE_API_URL } from '../config/env'
 
-<<<<<<< HEAD
-const API_URL = '/api/users'
-=======
 const API_URL = `${BASE_API_URL}/users`
->>>>>>> deploy_2
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -38,7 +34,7 @@ export default function Login() {
       })
 
       if (response.data.token) {
-        
+        // Kiểm tra role - chỉ cho phép admin đăng nhập
         const userRole = response.data.user?.role || 'user'
         if (userRole !== 'admin') {
           setError('Bạn không có quyền truy cập trang quản trị. Chỉ admin mới được phép đăng nhập.')
@@ -117,5 +113,4 @@ export default function Login() {
     </div>
   )
 }
-
 

@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-function Chat() {
-  return (
-    <div>đang cập nhập</div>
-  );
-}
-
-export default Chat;
-=======
 import { useEffect, useRef, useState, useContext } from "react";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
@@ -20,12 +11,8 @@ export default function Chat({ users = [] }) {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const messagesRef = useRef(null);
-<<<<<<< HEAD
-  const API_URL = "/api";
-=======
->>>>>>> deploy_2
 
-  
+  // create/revoke object URL for preview to avoid memory leaks
   useEffect(() => {
     if (!file) {
       setPreviewUrl(null);
@@ -41,8 +28,8 @@ export default function Chat({ users = [] }) {
   useEffect(() => {
     if (!currentChatId || !user) return;
     let cancelled = false;
-    
-    
+    // auto-scroll to bottom whenever messages change
+    // we'll add an effect below for scrolling; here just load messages
     (async () => {
       try {
         const res = await axios.get(`${API_URL}/chats/conversation/${user.id}/${currentChatId}`);
@@ -59,20 +46,20 @@ export default function Chat({ users = [] }) {
       }
     })();
 
-    
+    // clear unread for this chat
     setUnreadCounts((prev) => ({ ...prev, [String(currentChatId)]: 0 }));
 
     const handleIncoming = (msg) => {
       const sender = msg.sender_id || msg.from;
       const receiver = msg.receiver_id || msg.to;
-      
+      // only append if it's part of this conversation
       if (String(sender) === String(currentChatId) || String(receiver) === String(currentChatId)) {
         setMessages((prev) => [...prev, msg]);
       }
     };
 
     const handleDeleted = (updatedMsg) => {
-      
+      // if the deleted message belongs to this conversation, update it
       const sender = updatedMsg.sender_id || updatedMsg.from;
       const receiver = updatedMsg.receiver_id || updatedMsg.to;
       if (String(sender) === String(currentChatId) || String(receiver) === String(currentChatId)) {
@@ -88,19 +75,19 @@ export default function Chat({ users = [] }) {
       cancelled = true;
       if (socket) socket.off('private_message', handleIncoming);
       if (socket) socket.off('message_deleted', handleDeleted);
-      
-      
+      // do not clear currentChatId here — cleanup runs on dependency changes
+      // closing the chat should be handled by the UI (Close button)
     };
   }, [currentChatId, user?.id, socket]);
 
-  
+  // scroll to bottom when messages change
   useEffect(() => {
     if (messagesRef.current) {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
   }, [messages]);
 
-  
+  // show other user's name instead of id
   const [otherName, setOtherName] = useState(null);
   useEffect(() => {
     if (!currentChatId) {
@@ -108,7 +95,7 @@ export default function Chat({ users = [] }) {
       return;
     }
     
-    
+    // Tìm user trong danh sách users đã có (từ Rightbar)
     if (users && users.length > 0) {
       const found = users.find((u) => String(u.id) === String(currentChatId));
       if (found) {
@@ -117,7 +104,7 @@ export default function Chat({ users = [] }) {
       }
     }
     
-    
+    // Nếu không tìm thấy trong danh sách, fetch từ API
     (async () => {
       try {
         const token = localStorage.getItem('token');
@@ -127,7 +114,7 @@ export default function Chat({ users = [] }) {
         setOtherName(found ? found.username : `User ${currentChatId}`);
       } catch (e) {
         console.warn('Failed to fetch users for name', e);
-        
+        // Nếu không fetch được, hiển thị ID
         setOtherName(`User ${currentChatId}`);
       }
     })();
@@ -182,14 +169,14 @@ export default function Chat({ users = [] }) {
                     )}
                   </>}</div>
 
-                {}
+                {/* three-dot menu for sender */}
                 {String(m.sender_id) === String(user.id) && !m.is_deleted && (
                   <div className="inline-block ml-2 relative">
                     <button onClick={() => setOpenMenuId((prev) => (prev === m.id ? null : m.id))} className="px-2 py-1 text-gray-600">⋯</button>
                     {openMenuId === m.id && (
                       <div className="absolute right-0 mt-1 bg-white border rounded shadow p-1 z-10">
                         <button className="text-sm text-red-600 px-3 py-1" onClick={async () => {
-                          
+                          // only allow deletion for persisted messages (numeric id)
                           if (String(m.id).startsWith('tmp-')) { alert('Tin nhắn chưa được lưu, không thể xóa.'); setOpenMenuId(null); return; }
                           try {
                             const res = await axios.delete(`${API_URL}/chats/message/${m.id}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -210,7 +197,7 @@ export default function Chat({ users = [] }) {
           ))}
         </div>
         <div className="p-3 border-t">
-          {}
+          {/* file preview moved above the input row so it doesn't overlap controls */}
           {file && (
             <div className="mb-2">
               <div className="flex items-center gap-2 bg-gray-50 p-2 rounded border">
@@ -244,5 +231,3 @@ export default function Chat({ users = [] }) {
     </div>
   ) : null;
 }
-
->>>>>>> deploy_1

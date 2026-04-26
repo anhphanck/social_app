@@ -1,11 +1,8 @@
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
-<<<<<<< HEAD
-=======
 import axios from "axios";
 import { API_URL, UPLOADS_URL } from "../config/env";
->>>>>>> deploy_2
 
 export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) {
   const navigate = useNavigate();
@@ -20,11 +17,7 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
       const token = localStorage.getItem("token");
       if (!token) return;
       try {
-<<<<<<< HEAD
-        const res = await axios.get("/api/classes", { headers: { Authorization: `Bearer ${token}` } });
-=======
         const res = await axios.get(`${API_URL}/classes`, { headers: { Authorization: `Bearer ${token}` } });
->>>>>>> deploy_2
         const items = Array.isArray(res.data) ? res.data : [];
         const codes = items.map((c) => c.code).filter(Boolean);
         setClassOptions(codes);
@@ -45,8 +38,6 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
    <div className="relative flex items-center justify-between px-6 py-3 bg-sky-200 shadow-md">
   <div className="flex items-center space-x-4 z-10">
     <div className="font-bold text-xl text-sky-700">LOGO</div>
-<<<<<<< HEAD
-=======
     {isTeacher && (
       <div className="flex items-center space-x-2">
         <span className="text-sm font-medium text-sky-800">Lớp:</span>
@@ -66,7 +57,6 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
         Lớp {userClass}
       </div>
     )}
->>>>>>> deploy_1
   </div>
 
   <div className="relative w-full max-w-lg">
@@ -80,21 +70,13 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
   />
   </div>
   <div className="flex items-center space-x-4 text-sky-800 z-10">
-<<<<<<< HEAD
-
-=======
->>>>>>> deploy_1
     <div
       className="flex items-center space-x-2 cursor-pointer"
       onClick={() => navigate('/profile')}
     >
       {u?.avatar ? (
         <img
-<<<<<<< HEAD
-          src={u.avatar.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`}
-=======
           src={u.avatar.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`}
->>>>>>> deploy_2
           alt="avatar"
           className="w-8 h-8 rounded-full object-cover"
         />
@@ -114,4 +96,3 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
 
   );
 }
-

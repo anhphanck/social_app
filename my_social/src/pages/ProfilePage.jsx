@@ -15,10 +15,6 @@ export default function ProfilePage() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [bioDirty, setBioDirty] = useState(false);
-<<<<<<< HEAD
-  const API_URL = "/api";
-=======
->>>>>>> deploy_2
 
   useEffect(() => {
     if (isSelf && user && !bioDirty) {
@@ -47,50 +43,29 @@ export default function ProfilePage() {
   }, [file]);
 
   const onSave = async () => {
-    if (!token) {
-      alert('Bạn cần đăng nhập để cập nhật hồ sơ');
-      return;
-    }
     try {
       const fd = new FormData();
       if (file) fd.append('avatar', file);
-<<<<<<< HEAD
-      fd.append('bio', bio || "");
-=======
       fd.append('bio', bio ?? "");
->>>>>>> deploy_1
       const res = await axios.put(`${API_URL}/users/profile`, fd, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res && res.data && res.data.user) {
         const updated = res.data.user;
         const newUser = { ...user, ...updated };
-        if (res.data.avatar_url) {
-          newUser.avatar_url = res.data.avatar_url;
-        }
         setUser(newUser);
         localStorage.setItem('user', JSON.stringify(newUser));
-<<<<<<< HEAD
-        setFile(null); // Clear file after successful upload
-        setPreview(null); // Clear preview
-=======
         setBioDirty(false);
->>>>>>> deploy_1
         alert('Cập nhật hồ sơ thành công');
       }
     } catch (e) {
       console.error('Update profile failed', e);
-      const errorMessage = e.response?.data?.message || e.message || 'Không thể cập nhật hồ sơ';
-      alert(`Lỗi: ${errorMessage}`);
+      alert('Không thể cập nhật hồ sơ');
     }
   };
 
   const avatarUrl = isSelf
-<<<<<<< HEAD
-    ? (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `/uploads/${user.avatar}`) : null)
-=======
     ? (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${UPLOADS_URL}/${user.avatar}`) : null)
->>>>>>> deploy_2
     : null;
   const [otherAvatarUrl, setOtherAvatarUrl] = useState(null);
   useEffect(() => {
@@ -159,4 +134,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

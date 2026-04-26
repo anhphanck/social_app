@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { API_URL as BASE_API_URL } from '../config/env'
 
-<<<<<<< HEAD
-const API_URL = '/api/posts'
-const API_CLASSES = '/api/classes'
-=======
 const API_URL = `${BASE_API_URL}/posts`
 const API_CLASSES = `${BASE_API_URL}/classes`
->>>>>>> deploy_2
 
 export default function Posts() {
   const [posts, setPosts] = useState([])
@@ -31,7 +26,7 @@ export default function Posts() {
       })
       const list = res.data || []
       setClasses(list)
-      
+      // Mặc định chọn 'Tất cả' (giá trị rỗng)
       setSelectedClass('')
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể tải danh sách lớp')
@@ -47,14 +42,14 @@ export default function Posts() {
       if (cls) params.class = cls
       if (searchQuery) params.q = searchQuery
       
-      
-      
-      
-      
-      
-      
-      
-      
+      // Sử dụng chung endpoint search cho cả lọc và tìm kiếm để nhất quán
+      // Nếu backend hỗ trợ list posts với params q và class ở root endpoint thì dùng root
+      // Dựa trên code cũ: search dùng /search, list dùng /. Ta nên thống nhất nếu có thể.
+      // Kiểm tra lại User input: "quản lý user rất mượt". User.jsx dùng 1 endpoint list với params.
+      // Thử dùng endpoint root với params xem sao (nếu backend hỗ trợ).
+      // Code cũ fetchPosts dùng root endpoint với params class.
+      // Code cũ search dùng /search endpoint.
+      // Để đơn giản và giống Files.jsx, ta gọi fetchPosts trong useEffect.
       
       const endpoint = searchQuery ? `${API_URL}/search` : API_URL
       const res = await axios.get(endpoint, { params })
@@ -76,7 +71,7 @@ export default function Posts() {
   }, [])
 
   useEffect(() => {
-    
+    // Debounce fetch khi filter hoặc search thay đổi
     const t = setTimeout(() => {
       fetchPosts(selectedClass, query)
     }, 400)
@@ -95,7 +90,7 @@ export default function Posts() {
           Authorization: `Bearer ${token}`
         }
       })
-      
+      // Refresh danh sách posts
       fetchPosts()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể xóa bài viết')
@@ -110,7 +105,7 @@ export default function Posts() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {}
+      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -132,7 +127,7 @@ export default function Posts() {
         </div>
       </header>
 
-      {}
+      {/* Navigation */}
       <nav className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
@@ -170,7 +165,7 @@ export default function Posts() {
         </div>
       </nav>
 
-      {}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
@@ -301,5 +296,4 @@ export default function Posts() {
     </div>
   )
 }
-
 
