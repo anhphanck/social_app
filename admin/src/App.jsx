@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import Posts from './pages/Posts'
 import Files from './pages/Files'
+import Classes from './pages/Classes'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('adminToken')
@@ -13,18 +14,18 @@ function PrivateRoute({ children }) {
     return <Navigate to="/login" replace />
   }
   
-  // Kiểm tra role nếu có thông tin user
+  
   if (adminUser) {
     try {
       const user = JSON.parse(adminUser)
       if (user.role !== 'admin') {
-        // Nếu không phải admin, xóa token và chuyển về login
+        
         localStorage.removeItem('adminToken')
         localStorage.removeItem('adminUser')
         return <Navigate to="/login" replace />
       }
     } catch (e) {
-      // Nếu parse lỗi, xóa và chuyển về login
+      
       localStorage.removeItem('adminToken')
       localStorage.removeItem('adminUser')
       return <Navigate to="/login" replace />
@@ -71,6 +72,14 @@ function App() {
             </PrivateRoute>
           } 
         />
+        <Route 
+          path="/classes" 
+          element={
+            <PrivateRoute>
+              <Classes />
+            </PrivateRoute>
+          } 
+        />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
@@ -78,4 +87,5 @@ function App() {
 }
 
 export default App
+
 

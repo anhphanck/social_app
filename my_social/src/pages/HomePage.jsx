@@ -4,6 +4,10 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import Rightbar from "../components/Rightbar";
 import CreatePost from "../components/CreatePost";
+<<<<<<< HEAD
+=======
+
+>>>>>>> deploy_1
 import EditablePost from "../components/EditablePost";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
@@ -14,26 +18,28 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
 
   const [newPost, setNewPost] = useState("");
-  const [files, setFiles] = useState([]); // nhiều ảnh cho bài đăng mới
+  const [files, setFiles] = useState([]); 
 
-  const [editingPost, setEditingPost] = useState(null); // { id, content, images, removeImages }
-  const [editFiles, setEditFiles] = useState([]); // nhiều ảnh cho bài đang sửa
-  const [keepImages, setKeepImages] = useState([]); // ảnh cũ muốn giữ lại
-  const [editContent, setEditContent] = useState(""); // nội dung sửa
+  const [editingPost, setEditingPost] = useState(null); 
+  const [editFiles, setEditFiles] = useState([]); 
+  const [keepImages, setKeepImages] = useState([]); 
+  const [editContent, setEditContent] = useState(""); 
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { user, logout, token } = useContext(UserContext);
+  const { user, logout, token, selectedClass } = useContext(UserContext);
 
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "/api";
 
 
 
   useEffect(() => {
     if (user) {
-      fetchPosts();
+      if (!searchQuery.trim()) {
+        fetchPosts();
+      }
       fetchUsers();
     }
-  }, [user]);
+  }, [user, selectedClass]); 
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -48,27 +54,50 @@ export default function HomePage() {
     try {
       const token = localStorage.getItem('token');
       const userId = user?.id || null;
-      const url = userId ? `${API_URL}/posts?user_id=${userId}` : `${API_URL}/posts`;
+      
+      
+      
+      
+      let classToFilter = null;
+      if (user?.role === 'teacher' && selectedClass) {
+        classToFilter = selectedClass;
+      } else if (user?.role === 'user' && user?.class) {
+        classToFilter = user.class;
+      }
+      
+      let url = userId ? `${API_URL}/posts?user_id=${userId}` : `${API_URL}/posts`;
+      if (classToFilter) {
+        url += `&class=${classToFilter}`;
+      }
+      
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await axios.get(url, { headers });
       setPosts(res.data || []);
     } catch (err) {
       console.error("Lỗi khi lấy posts:", err);
-      // Nếu lỗi, vẫn set mảng rỗng để không crash
+      
       setPosts([]);
     }
   };
 
   const fetchUsers = async () => {
     try {
-      // API users yêu cầu token, nhưng có thể không có token
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await axios.get(`${API_URL}/users`, { headers });
+      let classToFilter = null;
+      if (user?.role === 'teacher' && selectedClass) {
+        classToFilter = selectedClass;
+      } else if (user?.role === 'user' && user?.class) {
+        classToFilter = user.class;
+      }
+      let url = `${API_URL}/users`;
+      if (classToFilter) {
+        url += `?class=${classToFilter}`;
+      }
+      const res = await axios.get(url, { headers });
       setUsers(res.data);
     } catch (err) {
       console.error("Lỗi khi lấy users:", err);
-      // Nếu lỗi 401, có thể do chưa đăng nhập hoặc token hết hạn
       if (err.response?.status === 401) {
         console.warn("Token không hợp lệ, cần đăng nhập lại");
       }
@@ -84,6 +113,11 @@ export default function HomePage() {
     try {
       const formData = new FormData();
       formData.append("content", newPost);
+      
+      if ((user?.role === 'teacher' || user?.role === 'admin') && selectedClass) {
+        formData.append("class", selectedClass);
+      }
+
       if (filesToUpload && filesToUpload.length > 0) {
         filesToUpload.forEach((file) => {
           formData.append("images", file);
@@ -108,8 +142,9 @@ export default function HomePage() {
   };
 
   const handleTogglePin = async (postId, shouldPin) => {
-    if (!user || user.role !== 'admin') {
-      alert('Chỉ admin mới được ghim bài viết');
+    
+    if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
+      alert('Chỉ giáo viên hoặc admin mới được ghim bài viết');
       return;
     }
     if (!token) return;
@@ -150,7 +185,7 @@ export default function HomePage() {
     setEditingPost({ id: post.id, removeImages: false });
     setEditContent(post.content);
     setEditFiles([]);
-    // Giữ lại tất cả ảnh hiện có
+    
     setKeepImages(post.images || (post.image ? [post.image] : []));
     const el = document.getElementById(`post-${post.id}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -162,21 +197,19 @@ export default function HomePage() {
     const formData = new FormData();
     formData.append("content", editContent);
     
-    // Thêm ảnh mới
+    
     if (editFiles && editFiles.length > 0) {
       editFiles.forEach((file) => {
         formData.append("images", file);
       });
     }
     
-    // Xử lý ảnh cũ
+    
     if (editingPost.removeImages) {
       formData.append("removeImages", "true");
     } else if (keepImages && keepImages.length > 0) {
-      // Gửi danh sách ảnh muốn giữ lại (chỉ tên file, không phải full URL)
       keepImages.forEach(img => {
-        const filename = img.includes('/uploads/') ? img.split('/uploads/')[1] : img;
-        formData.append("keepImages", filename);
+        formData.append("keepImages", img);
       });
     }
 
@@ -211,30 +244,51 @@ export default function HomePage() {
   useEffect(() => {
     const delay = setTimeout(() => {
       const search = async () => {
-        if (!searchQuery.trim()) {
+        const q = searchQuery.trim();
+        if (!q) {
           fetchPosts();
           return;
         }
-
         try {
+<<<<<<< HEAD
           const userId = user?.id || "";
           const res = await axios.get(
             `${API_URL}/posts/search?q=${encodeURIComponent(searchQuery)}&user_id=${userId}`
           );
           setPosts(res.data);
+=======
+          let classToFilter = null;
+          if (user?.role === 'teacher' && selectedClass) {
+            classToFilter = selectedClass;
+          } else if (user?.role === 'user' && user?.class) {
+            classToFilter = user.class;
+          }
+          const token = localStorage.getItem('token');
+          const userId = user?.id || null;
+          let url = `${API_URL}/posts/search?q=${encodeURIComponent(q)}${userId ? `&user_id=${userId}` : ""}`;
+          if (classToFilter) {
+            url += `&class=${classToFilter}`;
+          }
+          const headers = token ? { Authorization: `Bearer ${token}` } : {};
+          const res = await axios.get(url, { headers });
+          setPosts(res.data || []);
+>>>>>>> deploy_1
         } catch (err) {
           console.error("Lỗi khi tìm kiếm:", err);
         }
       };
-
-      search(); 
-    }, 500); 
-
+      search();
+    }, 500);
     return () => clearTimeout(delay);
-  }, [searchQuery]);
+  }, [searchQuery, selectedClass, user?.role, user?.class]);
   return (
+<<<<<<< HEAD
     <div className="h-screen w-screen overflow-hidden bg-gray-100 flex flex-col">
       <div className="flex-none z-50">
+=======
+    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+      <div className="z-50 shrink-0">
+>>>>>>> deploy_1
         <Navbar
           user={user}
           onLogout={handleLogout}
@@ -243,12 +297,22 @@ export default function HomePage() {
         />
       </div>
 
+<<<<<<< HEAD
       <div className="flex flex-1 overflow-hidden gap-4 p-4">
         <div className="w-64 h-full overflow-hidden flex flex-col">
           <Sidebar />
         </div>
 
         <main className="flex-1 bg-white p-6 rounded-md shadow-sm h-full overflow-y-auto custom-scrollbar">
+=======
+      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+        <div className="w-64 shrink-0 overflow-y-auto hidden md:block">
+            <Sidebar />
+        </div>
+
+        <main className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
+          
+>>>>>>> deploy_1
           <CreatePost
             newPost={newPost}
             setNewPost={setNewPost}
@@ -285,14 +349,24 @@ export default function HomePage() {
           </div>
         </main>
 
+<<<<<<< HEAD
         <div className="w-72 h-full overflow-hidden flex flex-col">
           <Rightbar
             users={users}
             pinnedPosts={posts.filter((p) => p.is_pinned)}
             onUnpin={(postId) => handleTogglePin(postId, false)}
           />
+=======
+        <div className="w-72 shrink-0 overflow-y-auto hidden lg:block">
+            <Rightbar
+              users={users}
+              pinnedPosts={posts.filter((p) => p.is_pinned)}
+              onUnpin={(postId) => handleTogglePin(postId, false)}
+            />
+>>>>>>> deploy_1
         </div>
       </div>
     </div>
   );
 }
+

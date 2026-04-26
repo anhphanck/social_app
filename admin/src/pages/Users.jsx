@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:5000/api/admin/users'
+const API_URL = '/api/admin/users'
+const API_CLASSES = '/api/classes'
 
 export default function Users() {
   const [users, setUsers] = useState([])
+  const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
@@ -21,6 +23,7 @@ export default function Users() {
     }
 
     fetchUsers()
+    fetchClasses()
   }, [])
 
   const fetchUsers = async () => {
@@ -46,6 +49,16 @@ export default function Users() {
     }
   }
 
+  const fetchClasses = async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await axios.get(API_CLASSES, { headers: { Authorization: `Bearer ${token}` } })
+      setClasses(Array.isArray(res.data) ? res.data : [])
+    } catch (err) {
+      
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('adminToken')
     localStorage.removeItem('adminUser')
@@ -55,7 +68,7 @@ export default function Users() {
   const handleUpdateRole = async (userId, newRole) => {
     try {
       const token = localStorage.getItem('adminToken')
-      await axios.put(`http://localhost:5000/api/admin/users/${userId}/role`, 
+      await axios.put(`/api/admin/users/${userId}/role`, 
         { role: newRole },
         {
           headers: {
@@ -63,10 +76,28 @@ export default function Users() {
           }
         }
       )
-      // Refresh danh sách users
+      
       fetchUsers()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể cập nhật role')
+    }
+  }
+
+  const handleUpdateClass = async (userId, newClassId) => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      await axios.put(`/api/admin/users/${userId}/class`, 
+        { class_id: newClassId ?? null },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      
+      fetchUsers()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể cập nhật lớp')
     }
   }
 
@@ -74,7 +105,7 @@ export default function Users() {
     try {
       setApprovingId(userId)
       const token = localStorage.getItem('adminToken')
-      await axios.put(`http://localhost:5000/api/admin/users/${userId}/approve`, {}, {
+      await axios.put(`/api/admin/users/${userId}/approve`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_approved: 1 } : u))
@@ -89,7 +120,7 @@ export default function Users() {
     try {
       setUnapprovingId(userId)
       const token = localStorage.getItem('adminToken')
-      await axios.put(`http://localhost:5000/api/admin/users/${userId}/unapprove`, {}, {
+      await axios.put(`/api/admin/users/${userId}/unapprove`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_approved: 0 } : u))
@@ -102,7 +133,7 @@ export default function Users() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -124,7 +155,7 @@ export default function Users() {
         </div>
       </header>
 
-      {/* Navigation */}
+      {}
       <nav className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
@@ -152,11 +183,17 @@ export default function Users() {
             >
               Quản lý Tài liệu
             </button>
+            <button
+              onClick={() => navigate('/classes')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Quản lý Lớp
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
+      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
@@ -210,6 +247,9 @@ export default function Users() {
                       Role
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Lớp
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Trạng thái
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -242,13 +282,39 @@ export default function Users() {
                           {u.email}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            u.role === 'admin' 
-                              ? 'bg-purple-100 text-purple-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {u.role === 'admin' ? 'Admin' : 'User'}
+                          <span
+                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              u.role === 'admin'
+                                ? 'bg-purple-100 text-purple-800'
+                                : u.role === 'teacher'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {u.role === 'admin' ? 'Admin' : u.role === 'teacher' ? 'Giáo viên' : 'User'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {}
+                          {u.role === 'user' ? (
+                            <select
+                              value={u.class_id ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                handleUpdateClass(u.id, val === '' ? null : Number(val))
+                              }}
+                              className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                              <option value="">Chưa phân lớp</option>
+                              {classes.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  Lớp {c.code}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 text-xs font-semibold rounded-full ${u.is_approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
@@ -260,21 +326,26 @@ export default function Users() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <div className="flex gap-2 items-center">
-                          {u.role === 'admin' ? (
-                            <button
-                              onClick={() => handleUpdateRole(u.id, 'user')}
-                              className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition text-xs font-medium"
-                            >
-                              Hạ cấp
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleUpdateRole(u.id, 'admin')}
-                              className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-xs font-medium"
-                            >
-                              Thăng cấp
-                            </button>
-                          )}
+                            {}
+                            {u.role !== 'admin' && (
+                              <>
+                                {u.role === 'teacher' ? (
+                                  <button
+                                    onClick={() => handleUpdateRole(u.id, 'user')}
+                                    className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition text-xs font-medium"
+                                  >
+                                    Hạ xuống User
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleUpdateRole(u.id, 'teacher')}
+                                    className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition text-xs font-medium"
+                                  >
+                                    Thăng lên Giáo viên
+                                  </button>
+                                )}
+                              </>
+                            )}
                           {!u.is_approved && (
                             <button
                               onClick={() => handleApprove(u.id)}
@@ -313,3 +384,4 @@ export default function Users() {
     </div>
   )
 }
+

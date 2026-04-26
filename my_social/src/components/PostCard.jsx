@@ -1,87 +1,21 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
 
+<<<<<<< HEAD
 const API_URL = "http://localhost:5000/api";
 //  CommentCard 
+=======
+const API_URL = "/api";
+
+
+
+>>>>>>> deploy_1
 function CommentCard({ comment, onReply, onDelete }) {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
-  const [reaction, setReaction] = useState(comment.user_reaction || null);
-  const [counts, setCounts] = useState(comment.reactions || { like: 0, love: 0, haha: 0, sad: 0 });
-  const [showMenu, setShowMenu] = useState(false);
-  const [holdTimer, setHoldTimer] = useState(null);
   const [showReplies, setShowReplies] = useState(false);
-  const token = localStorage.getItem('token');
-
-  const icons = { like: "👍", love: "❤️", haha: "😂", sad: "😢" };
-
-  const sendReaction = async (type) => {
-    if (!user) return;
-    try {
-      await axios.post(`${API_URL}/comments/react`, {
-        comment_id: comment.id,
-        reaction: type,
-      }, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-
-      const updated = { ...counts };
-      if (reaction) updated[reaction] = Math.max(0, updated[reaction] - 1);
-      updated[type] = (updated[type] || 0) + 1;
-
-      setCounts(updated);
-      setReaction(type);
-      setShowMenu(false);
-    } catch (err) {
-      console.error("Error reacting comment:", err);
-    }
-  };
-
-  const removeReaction = async () => {
-    if (!user || !reaction) return;
-    try {
-      await axios.post(`${API_URL}/comments/remove-react`, {
-        comment_id: comment.id,
-        user_id: user.id,
-      });
-
-      const updated = { ...counts };
-      updated[reaction] = Math.max(0, updated[reaction] - 1);
-
-      setCounts(updated);
-      setReaction(null);
-    } catch (err) {
-      console.error("Error removing reaction:", err);
-    }
-  };
-
-  const handleMouseDown = () => {
-    const timer = setTimeout(() => setShowMenu(true), 500);
-    setHoldTimer(timer);
-  };
-  const handleMouseUp = () => {
-    if (holdTimer) {
-      clearTimeout(holdTimer);
-      setHoldTimer(null);
-    }
-  };
-  useEffect(() => () => { if (holdTimer) clearTimeout(holdTimer); }, [holdTimer]);
-
-  // render reaction icons
-  const renderReactions = () => {
-    const entries = Object.entries(counts).filter(([_, c]) => c > 0);
-    if (!entries.length) return null;
-
-    const sorted = entries.sort((a, b) => b[1] - a[1]);
-    const total = entries.reduce((sum, [_, c]) => sum + c, 0);
-
-    return (
-      <div className="flex items-center gap-1 text-sm mt-1">
-        {sorted.map(([type]) => <span key={type} className="text-lg">{icons[type]}</span>)}
-        <span className="text-gray-500">{total}</span>
-      </div>
-    );
-  };
 
   return (
     <div className="pl-4 border-l border-gray-300 mt-2 relative">
@@ -89,7 +23,7 @@ function CommentCard({ comment, onReply, onDelete }) {
         <div className="cursor-pointer" onClick={() => navigate(`/profile/${comment.user_id}`)}>
           {comment.avatar ? (
             <img
-              src={`http://localhost:5000/uploads/${comment.avatar}`}
+              src={comment.avatar.startsWith('http') ? comment.avatar : `/uploads/${comment.avatar}`}
               alt="avatar"
               className="w-7 h-7 rounded-full object-cover"
             />
@@ -109,19 +43,7 @@ function CommentCard({ comment, onReply, onDelete }) {
 
       <div>{comment.content}</div>
 
-      {renderReactions()}
-
       <div className="flex gap-2 text-sm mt-1 relative">
-        <button
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onClick={() => (reaction === "like" ? removeReaction() : sendReaction("like"))}
-          className="flex items-center gap-1 select-none"
-        >
-          {reaction ? icons[reaction] : "👍"}
-        </button>
-
         {comment.replies?.length > 0 && (
           <button onClick={() => setShowReplies(!showReplies)}>
             {showReplies ? "Ẩn replies" : "Xem replies"}
@@ -130,7 +52,7 @@ function CommentCard({ comment, onReply, onDelete }) {
 
         <button onClick={() => onReply(comment.id)}>Reply</button>
 
-        {/* 🔥 NÚT XÓA */}
+        {}
         {user?.id === comment.user_id && (
           <button
             className="text-red-500 ml-2"
@@ -138,19 +60,6 @@ function CommentCard({ comment, onReply, onDelete }) {
           >
             Xóa
           </button>
-        )}
-
-        {showMenu && (
-          <div
-            className="absolute bg-white border shadow-md rounded-xl p-1 flex gap-1 bottom-6 z-20"
-            onMouseLeave={() => setShowMenu(false)}
-          >
-            {Object.keys(icons).map((k) => (
-              <button key={k} className="text-xl" onClick={() => sendReaction(k)}>
-                {icons[k]}
-              </button>
-            ))}
-          </div>
         )}
       </div>
 
@@ -167,7 +76,11 @@ function CommentCard({ comment, onReply, onDelete }) {
   );
 }
 
+<<<<<<< HEAD
 // CommentList 
+=======
+
+>>>>>>> deploy_1
 function CommentList({ postId, showInput }) {
   const { user } = useContext(UserContext);
   const token = localStorage.getItem('token');
@@ -175,6 +88,15 @@ function CommentList({ postId, showInput }) {
   const [replyTo, setReplyTo] = useState(null);
   const [newContent, setNewContent] = useState("");
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef(null);
+
+  
+  useEffect(() => {
+    if (replyTo !== null && inputRef.current) {
+      inputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      inputRef.current.focus();
+    }
+  }, [replyTo]);
 
   const buildNestedComments = (flat) => {
     if (!Array.isArray(flat)) return [];
@@ -211,7 +133,10 @@ function CommentList({ postId, showInput }) {
 
   const submitComment = async () => {
     const trimmed = newContent.trim();
-    if (!trimmed || !user) return;
+    if (!trimmed || !user) {
+      if (!user) alert("Vui lòng đăng nhập để bình luận");
+      return;
+    }
 
     try {
       await axios.post(`${API_URL}/comments`, {
@@ -225,6 +150,7 @@ function CommentList({ postId, showInput }) {
       await loadComments();
     } catch (err) {
       console.error("Error creating comment:", err);
+      alert("Không thể gửi bình luận. Vui lòng thử lại.");
     }
   };
 
@@ -240,7 +166,7 @@ function CommentList({ postId, showInput }) {
       await loadComments();
     } catch (err) {
       console.error("Error deleting comment:", err);
-      // Xử lý lỗi hiển thị cho người dùng
+      
     }
 };
 
@@ -266,7 +192,7 @@ function CommentList({ postId, showInput }) {
       )}
 
       {replyTo !== null && (
-        <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200" ref={inputRef}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs text-gray-500">Đang trả lời</span>
             <button
@@ -281,9 +207,11 @@ function CommentList({ postId, showInput }) {
           </div>
           <div className="flex gap-2 items-center">
             <input
+              autoFocus
+              type="text"
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && submitComment()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && submitComment()}
               className="border rounded-lg p-2 flex-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
               placeholder="Viết trả lời..."
             />
@@ -312,7 +240,12 @@ function CommentList({ postId, showInput }) {
   );
 }
 
+<<<<<<< HEAD
 //  PostCard 
+=======
+
+
+>>>>>>> deploy_1
 export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
@@ -415,7 +348,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
           <div className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
             {post.avatar ? (
               <img
-                src={`http://localhost:5000/uploads/${post.avatar}`}
+                src={post.avatar.startsWith('http') ? post.avatar : `/uploads/${post.avatar}`}
                 alt="avatar"
                 className="w-9 h-9 rounded-full object-cover"
               />
@@ -431,7 +364,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
           </div>
         </div>
         <div className="space-x-3 text-sm flex items-center gap-3">
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.role === 'teacher') && (
             <button
               onClick={() => onTogglePin && onTogglePin(!post.is_pinned)}
               className={`px-3 py-1 rounded-full text-xs ${post.is_pinned ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}
@@ -450,13 +383,13 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
 
       {post.is_pinned && (
         <div className="flex items-center gap-2 text-amber-600 text-xs font-semibold uppercase">
-          📌 Đã ghim bởi admin
+          📌 Đã ghim bởi quản lý
         </div>
       )}
       <div className="mt-2 text-gray-800">
         {post.content}
         
-        {/* Hiển thị nhiều ảnh */}
+        {}
         {post.images && post.images.length > 0 && (
           <div className={`mt-3 rounded-lg overflow-hidden ${
             post.images.length === 1 ? 'grid grid-cols-1' :
@@ -487,7 +420,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
             ))}
           </div>
         )}
-        {/* Backward compatible: hiển thị ảnh cũ nếu không có images */}
+        {}
         {(!post.images || post.images.length === 0) && post.image && (
           <img src={post.image} alt="post" className="rounded-md mt-2 max-h-80 w-full object-cover" />
         )}
@@ -538,7 +471,10 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
             <span>Thích</span>
           </button>
           <button 
-            onClick={() => setShowCommentInput(s => !s)} 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCommentInput(s => !s);
+            }} 
             className={`flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors ${
               showCommentInput ? "text-blue-600 font-semibold" : ""
             }`}
@@ -587,3 +523,4 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
     </div>
   );
 };
+

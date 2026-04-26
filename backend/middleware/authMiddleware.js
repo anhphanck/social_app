@@ -37,7 +37,7 @@ export function verifyToken(req, res, next) {
   }
 }
 
-// Optional token verification - không bắt buộc token
+
 export function optionalVerifyToken(req, res, next) {
   const authHeader = req.headers.authorization || req.headers.Authorization;
   const token = authHeader && authHeader.split(" ")[1];
@@ -53,24 +53,24 @@ export function optionalVerifyToken(req, res, next) {
         }
         next();
       });
-      return; // prevent double next()
+      return; 
     } catch (err) {
-      // Nếu token không hợp lệ, vẫn tiếp tục nhưng không set req.user
+      
     }
   }
   next();
 }
 
-// Middleware để kiểm tra role admin
+
 export function verifyAdmin(req, res, next) {
   const authHeader = req.headers.authorization || req.headers.Authorization;
   const token = authHeader && authHeader.split(" ")[1];
   if (!token) return res.status(401).json({ message: "Missing token" });
-  
+
   try {
     const payload = jwt.verify(token, SECRET_KEY);
     req.user = payload;
-    // Kiểm tra role, token_version, is_approved từ database
+    
     db.query("SELECT COALESCE(role,'user') AS role, COALESCE(token_version,0) AS token_version, COALESCE(is_approved,1) AS is_approved FROM users WHERE id = ?", [payload.id], (err, results) => {
       if (err) return res.status(500).json({ message: "Lỗi server" });
       if (results.length === 0) return res.status(404).json({ message: "User không tồn tại" });
@@ -95,4 +95,44 @@ export function verifyAdmin(req, res, next) {
     return res.status(401).json({ message: "Invalid token" });
   }
 }
+
+
+export function verifyStaff(req, res, next) {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Missing token" });
+
+  try {
+    const payload = jwt.verify(token, SECRET_KEY);
+    req.user = payload;
+    db.query(
+      "SELECT COALESCE(role,'user') AS role, COALESCE(token_version,0) AS token_version, COALESCE(is_approved,1) AS is_approved FROM users WHERE id = ?",
+      [payload.id],
+      (err, results) => {
+        if (err) return res.status(500).json({ message: "Lỗi server" });
+        if (!results || results.length === 0) return res.status(404).json({ message: "User không tồn tại" });
+
+        const userRole = results[0].role || "user";
+        const tokenVersion = results[0].token_version ?? 0;
+        const isApproved = results[0].is_approved ?? 1;
+
+        if ((payload.ver ?? 0) !== tokenVersion) {
+          return res.status(401).json({ message: "Token đã bị thu hồi" });
+        }
+        if (isApproved === 0) {
+          return res.status(403).json({ message: "Tài khoản chưa được duyệt" });
+        }
+        if (userRole !== "admin" && userRole !== "teacher") {
+          return res.status(403).json({ message: "Chỉ giáo viên hoặc admin mới có quyền truy cập" });
+        }
+
+        req.user.role = userRole;
+        next();
+      }
+    );
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+}
+
 

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:5000/api/posts'
+const API_URL = '/api/posts'
+const API_CLASSES = '/api/classes'
 
 export default function Posts() {
   const [posts, setPosts] = useState([])
@@ -10,7 +11,54 @@ export default function Posts() {
   const [error, setError] = useState('')
   const [user, setUser] = useState(null)
   const [query, setQuery] = useState('')
+  const [classes, setClasses] = useState([])
+  const [selectedClass, setSelectedClass] = useState(null)
   const navigate = useNavigate()
+
+  const fetchClasses = async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await axios.get(API_CLASSES, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const list = res.data || []
+      setClasses(list)
+      
+      setSelectedClass('')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể tải danh sách lớp')
+      setSelectedClass('')
+    }
+  }
+
+  const fetchPosts = async (cls = selectedClass, searchQuery = query) => {
+    setLoading(true)
+    setError('')
+    try {
+      const params = {}
+      if (cls) params.class = cls
+      if (searchQuery) params.q = searchQuery
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      const endpoint = searchQuery ? `${API_URL}/search` : API_URL
+      const res = await axios.get(endpoint, { params })
+      setPosts(res.data)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể tải danh sách bài viết')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     const adminUser = localStorage.getItem('adminUser')
@@ -18,41 +66,16 @@ export default function Posts() {
       setUser(JSON.parse(adminUser))
     }
 
-    fetchPosts()
+    fetchClasses()
   }, [])
 
   useEffect(() => {
-    const t = setTimeout(async () => {
-      if (!query.trim()) {
-        fetchPosts()
-        return
-      }
-      setLoading(true)
-      setError('')
-      try {
-        const res = await axios.get(`${API_URL}/search`, { params: { q: query } })
-        setPosts(res.data)
-      } catch (err) {
-        setError(err.response?.data?.message || 'Không thể tìm kiếm bài viết')
-      } finally {
-        setLoading(false)
-      }
+    
+    const t = setTimeout(() => {
+      fetchPosts(selectedClass, query)
     }, 400)
     return () => clearTimeout(t)
-  }, [query])
-
-  const fetchPosts = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const response = await axios.get(API_URL)
-      setPosts(response.data)
-    } catch (err) {
-      setError(err.response?.data?.message || 'Không thể tải danh sách bài viết')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [query, selectedClass])
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
@@ -66,7 +89,7 @@ export default function Posts() {
           Authorization: `Bearer ${token}`
         }
       })
-      // Refresh danh sách posts
+      
       fetchPosts()
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể xóa bài viết')
@@ -81,7 +104,7 @@ export default function Posts() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -103,7 +126,7 @@ export default function Posts() {
         </div>
       </header>
 
-      {/* Navigation */}
+      {}
       <nav className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
@@ -131,23 +154,46 @@ export default function Posts() {
             >
               Quản lý Tài liệu
             </button>
+            <button
+              onClick={() => navigate('/classes')}
+              className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium transition"
+            >
+              Quản lý Lớp
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
+      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Quản lý Bài viết</h2>
             <p className="mt-2 text-gray-600">Danh sách tất cả bài viết trong hệ thống</p>
           </div>
-          <button
-            onClick={fetchPosts}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
-          >
-            Làm mới
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700">Lớp:</label>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="border rounded px-3 py-2 text-sm"
+              >
+                <option value="">Tất cả</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.code}>
+                    {c.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => fetchPosts()}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
+            >
+              Làm mới
+            </button>
+          </div>
         </div>
 
         <div className="mb-4">
@@ -249,4 +295,5 @@ export default function Posts() {
     </div>
   )
 }
+
 

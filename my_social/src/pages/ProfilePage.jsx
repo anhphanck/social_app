@@ -13,21 +13,27 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const API_URL = "http://localhost:5000/api";
+  const [bioDirty, setBioDirty] = useState(false);
+  const API_URL = "/api";
 
   useEffect(() => {
-    if (isSelf) {
-      if (user) setBio(user.bio || "");
-    } else if (viewingId && token) {
+    if (isSelf && user && !bioDirty) {
+      setBio(user.bio || "");
+    }
+  }, [isSelf, user?.id, bioDirty]);
+
+  useEffect(() => {
+    if (!isSelf && viewingId && token) {
       (async () => {
         try {
           const res = await axios.get(`${API_URL}/users/${viewingId}`, { headers: { Authorization: `Bearer ${token}` } });
           const other = res?.data?.user;
           setBio(other?.bio || "");
-        } catch (e) { console.warn('Failed to load user profile', e); }
+          setBioDirty(false);
+        } catch (e) { }
       })();
     }
-  }, [user, viewingId, token, isSelf]);
+  }, [isSelf, viewingId, token]);
 
   useEffect(() => {
     if (!file) { setPreview(null); return; }
@@ -44,7 +50,11 @@ export default function ProfilePage() {
     try {
       const fd = new FormData();
       if (file) fd.append('avatar', file);
+<<<<<<< HEAD
       fd.append('bio', bio || "");
+=======
+      fd.append('bio', bio ?? "");
+>>>>>>> deploy_1
       const res = await axios.put(`${API_URL}/users/profile`, fd, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -56,8 +66,12 @@ export default function ProfilePage() {
         }
         setUser(newUser);
         localStorage.setItem('user', JSON.stringify(newUser));
+<<<<<<< HEAD
         setFile(null); // Clear file after successful upload
         setPreview(null); // Clear preview
+=======
+        setBioDirty(false);
+>>>>>>> deploy_1
         alert('Cập nhật hồ sơ thành công');
       }
     } catch (e) {
@@ -68,7 +82,7 @@ export default function ProfilePage() {
   };
 
   const avatarUrl = isSelf
-    ? (user?.avatar ? `http://localhost:5000/uploads/${user.avatar}` : null)
+    ? (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `/uploads/${user.avatar}`) : null)
     : null;
   const [otherAvatarUrl, setOtherAvatarUrl] = useState(null);
   useEffect(() => {
@@ -84,11 +98,15 @@ export default function ProfilePage() {
   }, [isSelf, viewingId, token]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
-      <div className="flex gap-4 p-4">
-        <Sidebar />
-        <div className="flex-1 bg-white p-6 rounded-md shadow-sm">
+    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+      <div className="z-50 shrink-0">
+        <Navbar />
+      </div>
+      <div className="flex flex-1 gap-4 p-4 overflow-hidden">
+        <div className="w-64 shrink-0 overflow-y-auto hidden md:block">
+            <Sidebar />
+        </div>
+        <div className="flex-1 bg-white p-6 rounded-md shadow-sm overflow-y-auto">
           <h1 className="text-xl font-semibold text-sky-700">Trang cá nhân</h1>
           <div className="mt-6 flex items-start gap-6">
             <div>
@@ -118,7 +136,7 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium text-gray-700">Giới thiệu</label>
               <textarea
                 value={bio}
-                onChange={(e) => isSelf && setBio(e.target.value)}
+                onChange={(e) => { setBio(e.target.value); setBioDirty(true); }}
                 className="mt-2 w-full min-h-32 p-3 border rounded-md"
                 placeholder="Viết vài dòng giới thiệu về bạn..."
               />
@@ -128,8 +146,9 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-        <div className="w-72"></div>
+        <div className="w-72 shrink-0 hidden lg:block"></div>
       </div>
     </div>
   );
 }
+

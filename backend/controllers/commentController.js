@@ -4,7 +4,11 @@ export const getCommentsByPost = (req, res) => {
   const postId = req.params.postId;
   const userId = (req.user && req.user.id) || req.query.user_id || 0;
 
-  // Lấy comment + reaction counts + reaction của user
+  
+  
+  
+  
+  
   const sql = `
     SELECT c.*, u.username, u.avatar,
       COALESCE(rc.like_count, 0) AS like_count,
@@ -13,7 +17,13 @@ export const getCommentsByPost = (req, res) => {
       COALESCE(rc.sad_count, 0) AS sad_count,
       r.reaction AS user_reaction
     FROM comments c
+<<<<<<< HEAD
     LEFT JOIN users u ON c.user_id = u.id
+=======
+    JOIN users u ON c.user_id = u.id
+    JOIN posts p ON c.post_id = p.id
+    LEFT JOIN users u_viewer ON u_viewer.id = ?
+>>>>>>> deploy_1
     LEFT JOIN (
       SELECT comment_id,
         SUM(reaction='like') AS like_count,
@@ -26,10 +36,15 @@ export const getCommentsByPost = (req, res) => {
     LEFT JOIN comment_reactions r
       ON r.comment_id = c.id AND r.user_id = ?
     WHERE c.post_id = ?
+    AND (
+      u_viewer.role IN ('admin', 'teacher') 
+      OR u_viewer.role IS NULL 
+      OR (u_viewer.role = 'user' AND (p.class_id = u_viewer.class_id OR p.class_id IS NULL))
+    )
     ORDER BY c.created_at ASC
   `;
 
-  db.query(sql, [userId, postId], (err, data) => {
+  db.query(sql, [userId, userId, postId], (err, data) => {
     if (err) return res.status(500).json({ message: "Lỗi server" });
     res.json(data || []);
   });
@@ -47,25 +62,25 @@ export const createComment = (req, res) => {
 };
 
 export const deleteComment = (req, res) => {
-  // 1. Lấy id comment từ URL params
+  
   const { id } = req.params; 
-  // 2. Lấy user_id từ body (hoặc thông qua token/session - cách an toàn hơn)
-  // Giả sử bạn truyền user_id qua body như trong code FE của bạn
+  
+  
   const user_id = req.user && req.user.id; 
 
-  // 3. Cập nhật SQL: Chỉ xóa khi ID khớp VÀ user_id khớp
+  
   const sql = "DELETE FROM comments WHERE id = ? AND user_id = ?";
 
-  // 4. Truyền cả hai giá trị vào truy vấn
+  
   db.query(sql, [id, user_id], (err, result) => {
     if (err) {
-        // Log lỗi chi tiết hơn nếu có thể
+        
         console.error("Database error:", err);
         return res.status(500).json({ message: "Lỗi xóa comment (Database Error)" });
     }
 
     if (result.affectedRows === 0) {
-      // 404: Comment không tồn tại, HOẶC 403: Không có quyền xóa
+      
       return res.status(403).json({ message: "Bạn không có quyền hoặc bình luận không tồn tại" });
     }
 
@@ -101,3 +116,4 @@ export const removeReactComment = (req, res) => {
     res.json({ message: "Đã bỏ phản ứng" });
   });
 };
+

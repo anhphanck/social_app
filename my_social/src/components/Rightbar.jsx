@@ -8,32 +8,35 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
   const navigate = useNavigate();
   const { setCurrentChatId, unreadCounts, setUnreadCounts, user } = useContext(UserContext);
   const [avatarUrls, setAvatarUrls] = useState({});
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "/api";
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       if (!Array.isArray(users) || users.length === 0) return;
-      const next = {};
+      
+      const next = { ...avatarUrls };
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      for (const u of users) {
-        if (!u) continue;
+      const fetches = users.map(async (u) => {
+        if (!u) return;
+        if (next[u.id]) return; 
         if (u.avatar) {
-          next[u.id] = `http://localhost:5000/uploads/${u.avatar}`;
-          continue;
+          next[u.id] = u.avatar.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`;
+          return;
         }
         try {
           const res = await axios.get(`${API_URL}/users/${u.id}`, { headers });
           const url = res?.data?.avatar_url || null;
           if (url) next[u.id] = url;
-        } catch { /* ignore */ }
-      }
+        } catch {  }
+      });
+      await Promise.all(fetches);
       if (!cancelled) setAvatarUrls(next);
     };
     load();
     return () => { cancelled = true; };
-  }, [users]);
+  }, [users]); 
   const scrollToPost = (id) => {
     const el = document.getElementById(`post-${id}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -57,7 +60,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
             <div className="text-gray-600 mt-1 line-clamp-2">{post.content || 'Không có nội dung'}</div>
             <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
               <span>{post.created_at ? new Date(post.created_at).toLocaleString('vi-VN') : ''}</span>
-              {user?.role === 'admin' && (
+              {(user?.role === 'admin' || user?.role === 'teacher') && (
                 <button
                   onClick={() => {
                     if (window.confirm('Bạn có chắc muốn gỡ ghim bài viết này?')) {
@@ -75,7 +78,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
       </div>
       
       <div className="bg-white shadow-sm p-3 rounded-md h-35">
-        <h3 className="font-semibold text-sky-700 mb-2">🟢 Bạn bè đang online</h3>
+        <h3 className="font-semibold text-sky-700 mb-2">🟢 Đang hoạt động</h3>
         {(() => {
           const otherUsers = users.filter(u => user && u.id !== user.id);
           const onlineList = otherUsers.length > 0 ? [otherUsers[0]] : [];
@@ -91,7 +94,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                 >
                   {(avatarUrls[u.id] || u.avatar) ? (
                     <img
-                      src={avatarUrls[u.id] || `http://localhost:5000/uploads/${u.avatar}`}
+                      src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`)}
                       alt="avatar"
                       className="w-7 h-7 rounded-full object-cover"
                     />
@@ -101,7 +104,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                     </div>
                   )}
                 </div>
-                <div className="text-sm">🟢 {u.username}</div>
+                <div className="text-sm">🟢 {u.username} <span className="text-xs text-gray-500">({u.role === 'teacher' ? 'teacher' : 'user'})</span></div>
                 {unreadCounts && unreadCounts[String(u.id)] > 0 && (
                   <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">{unreadCounts[String(u.id)]}</span>
                 )}
@@ -132,7 +135,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
               >
                 {(avatarUrls[u.id] || u.avatar) ? (
                   <img
-                    src={avatarUrls[u.id] || `http://localhost:5000/uploads/${u.avatar}`}
+                    src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`)}
                     alt="avatar"
                     className="w-7 h-7 rounded-full object-cover"
                   />
@@ -142,7 +145,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                   </div>
                 )}
               </div>
-              <div className="text-sm text-gray-800">{u.username}</div>
+              <div className="text-sm text-gray-800">{u.username} <span className="text-xs text-gray-500">({u.role === 'teacher' ? 'teacher' : 'user'})</span></div>
             </div>
             <div className="flex items-center gap-2">
               {unreadCounts[String(u.id)] > 0 && (
@@ -157,3 +160,4 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
     </div>
   );
 }
+
