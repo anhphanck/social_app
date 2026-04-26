@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_CLASSES = 'http://localhost:5000/api/classes'
-const API_ADMIN_USERS = 'http://localhost:5000/api/admin/users'
+const API_CLASSES = '/api/classes'
+const API_ADMIN_USERS = '/api/admin/users'
 
 export default function Classes() {
   const [user, setUser] = useState(null)

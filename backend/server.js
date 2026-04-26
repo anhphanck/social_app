@@ -15,9 +15,17 @@ import classRoutes from "./routes/classRoutes.js";
 import chatController from "./controllers/chatController.js";
 import { verifyTokenSocket } from "./middleware/authMiddleware.js";
 import db from "./config/db.js";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:5174")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const app = express();
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(bodyParser.json());
 
 app.use("/api/users", userRoutes); 
@@ -48,7 +56,7 @@ app.get('/api/files/:filename', (req, res) => {
 
 const httpServer = createServer(app);
 const io = new IOServer(httpServer, {
-	cors: { origin: ["http://localhost:5173", "http://localhost:5174"], methods: ["GET", "POST"], credentials: true },
+	cors: { origin: allowedOrigins, methods: ["GET", "POST"], credentials: true },
 });
 
 
@@ -172,6 +180,6 @@ io.on('connection', (socket) => {
 	});
 });
 
-const PORT = 5000;
+const PORT = Number(process.env.PORT || 5000);
 httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 

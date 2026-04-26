@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:5000/api/posts'
-const API_CLASSES = 'http://localhost:5000/api/classes'
+const API_URL = '/api/posts'
+const API_CLASSES = '/api/classes'
 
 export default function Posts() {
   const [posts, setPosts] = useState([])

@@ -16,7 +16,7 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
       const token = localStorage.getItem("token");
       if (!token) return;
       try {
-        const res = await axios.get("http://localhost:5000/api/classes", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await axios.get("/api/classes", { headers: { Authorization: `Bearer ${token}` } });
         const items = Array.isArray(res.data) ? res.data : [];
         const codes = items.map((c) => c.code).filter(Boolean);
         setClassOptions(codes);
@@ -75,7 +75,7 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
     >
       {u?.avatar ? (
         <img
-          src={u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`}
+          src={u.avatar.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`}
           alt="avatar"
           className="w-8 h-8 rounded-full object-cover"
         />

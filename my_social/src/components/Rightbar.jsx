@@ -8,7 +8,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
   const navigate = useNavigate();
   const { setCurrentChatId, unreadCounts, onlineUsers, setUnreadCounts, user } = useContext(UserContext);
   const [avatarUrls, setAvatarUrls] = useState({});
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "/api";
 
   useEffect(() => {
     let cancelled = false;
@@ -22,7 +22,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
         if (!u) return;
         if (next[u.id]) return; 
         if (u.avatar) {
-          next[u.id] = u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`;
+          next[u.id] = u.avatar.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`;
           return;
         }
         try {
@@ -92,7 +92,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                 >
                   {(avatarUrls[u.id] || u.avatar) ? (
                     <img
-                      src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`)}
+                      src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`)}
                       alt="avatar"
                       className="w-7 h-7 rounded-full object-cover"
                     />
@@ -133,7 +133,7 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
               >
                 {(avatarUrls[u.id] || u.avatar) ? (
                   <img
-                    src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `http://localhost:5000/uploads/${u.avatar}`)}
+                    src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`)}
                     alt="avatar"
                     className="w-7 h-7 rounded-full object-cover"
                   />

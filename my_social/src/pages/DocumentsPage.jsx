@@ -6,7 +6,7 @@ import { UserContext } from "../context/UserContext";
 
 export default function DocumentsPage() {
   const { token, user, selectedClass } = useContext(UserContext);
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "/api";
   const [files, setFiles] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function DocumentsPage() {
   const handleDownload = async (e, doc) => {
     e.preventDefault();
     try {
-      const res = await axios.get(`http://localhost:5000/api/documents/download/${doc.id}`, {
+      const res = await axios.get(`/api/documents/download/${doc.id}`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });

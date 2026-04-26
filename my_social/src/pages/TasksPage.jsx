@@ -16,7 +16,7 @@ export default function TasksPage() {
   const [assignees, setAssignees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "/api";
   const [editTaskId, setEditTaskId] = useState(null);
   const [editPriority, setEditPriority] = useState("medium");
   const [editDeadline, setEditDeadline] = useState("");
@@ -32,7 +32,7 @@ export default function TasksPage() {
   const handleDownload = async (e, file, type = 'attachment') => {
     e.preventDefault();
     if (file.id) {
-      window.location.href = `http://localhost:5000/api/tasks/download/${file.id}?type=${type}`;
+      window.location.href = `/api/tasks/download/${file.id}?type=${type}`;
     } else {
       window.open(file.url, '_blank');
     }

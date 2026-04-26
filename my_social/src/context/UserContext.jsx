@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import axios from "axios";
 
 export const UserContext = createContext();
+const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || undefined;
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -62,7 +63,7 @@ export const UserProvider = ({ children }) => {
     }
     
     
-    const socket = io("http://localhost:5000", { 
+    const socket = io(SOCKET_URL, { 
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
@@ -81,7 +82,7 @@ export const UserProvider = ({ children }) => {
       }
       
       if (token) {
-        axios.get('http://localhost:5000/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get('/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
           .then((res) => setUnreadCounts(res.data || {}))
           .catch(() => {});
       }
@@ -129,7 +130,7 @@ export const UserProvider = ({ children }) => {
     const fetchUnreads = async () => {
       try {
         if (!user || !token) return;
-        const res = await axios.get('http://localhost:5000/api/chats/unreads', {
+        const res = await axios.get('/api/chats/unreads', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setUnreadCounts(res.data || {});
@@ -144,7 +145,7 @@ export const UserProvider = ({ children }) => {
     const fetchTaskNotif = async () => {
       try {
         if (!user || !token) return;
-        const res = await axios.get('http://localhost:5000/api/tasks/notifications/unread-count', {
+        const res = await axios.get('/api/tasks/notifications/unread-count', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const n = (res && res.data && res.data.count) ? res.data.count : 0;
@@ -159,7 +160,7 @@ export const UserProvider = ({ children }) => {
       try {
         if (!user || !token) return;
         if (user.avatar) return;
-        const res = await axios.get(`http://localhost:5000/api/users/${user.id}`, {
+        const res = await axios.get(`/api/users/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const merged = { ...user, ...(res.data?.user || {}) };

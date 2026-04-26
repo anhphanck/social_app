@@ -10,7 +10,7 @@ export default function Chat({ users = [] }) {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const messagesRef = useRef(null);
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "/api";
 
   
   useEffect(() => {

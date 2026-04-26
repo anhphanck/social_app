@@ -25,7 +25,7 @@ export default function HomePage() {
 
   const { user, logout, token, selectedClass } = useContext(UserContext);
 
-  const API_URL = "http://localhost:5000/api";
+  const API_URL = "/api";
 
 
 
