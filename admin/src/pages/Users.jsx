@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { API_URL as BASE_API_URL } from '../config/env'
 
-const API_URL = 'http://localhost:5000/api/admin/users'
-const API_CLASSES = 'http://localhost:5000/api/classes'
+const API_URL = `${BASE_API_URL}/admin/users`
+const API_CLASSES = `${BASE_API_URL}/classes`
 
 export default function Users() {
   const [users, setUsers] = useState([])
@@ -68,7 +69,7 @@ export default function Users() {
   const handleUpdateRole = async (userId, newRole) => {
     try {
       const token = localStorage.getItem('adminToken')
-      await axios.put(`http://localhost:5000/api/admin/users/${userId}/role`, 
+      await axios.put(`${API_URL}/${userId}/role`, 
         { role: newRole },
         {
           headers: {
@@ -86,7 +87,7 @@ export default function Users() {
   const handleUpdateClass = async (userId, newClassId) => {
     try {
       const token = localStorage.getItem('adminToken')
-      await axios.put(`http://localhost:5000/api/admin/users/${userId}/class`, 
+      await axios.put(`${API_URL}/${userId}/class`, 
         { class_id: newClassId ?? null },
         {
           headers: {
@@ -105,7 +106,7 @@ export default function Users() {
     try {
       setApprovingId(userId)
       const token = localStorage.getItem('adminToken')
-      await axios.put(`http://localhost:5000/api/admin/users/${userId}/approve`, {}, {
+      await axios.put(`${API_URL}/${userId}/approve`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_approved: 1 } : u))
@@ -120,7 +121,7 @@ export default function Users() {
     try {
       setUnapprovingId(userId)
       const token = localStorage.getItem('adminToken')
-      await axios.put(`http://localhost:5000/api/admin/users/${userId}/unapprove`, {}, {
+      await axios.put(`${API_URL}/${userId}/unapprove`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_approved: 0 } : u))

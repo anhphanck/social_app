@@ -8,6 +8,7 @@ import CreatePost from "../components/CreatePost";
 import EditablePost from "../components/EditablePost";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
+import { API_URL } from "../config/env";
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
@@ -24,10 +25,6 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { user, logout, token, selectedClass } = useContext(UserContext);
-
-  const API_URL = "http://localhost:5000/api";
-
-
 
   useEffect(() => {
     if (user) {

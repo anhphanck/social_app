@@ -2,8 +2,8 @@ import React, { useContext, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
+import { API_URL, UPLOADS_URL } from "../config/env";
 
-const API_URL = "http://localhost:5000/api";
 
 // ========================== CommentCard ==========================
 // ========================== CommentCard ==========================
@@ -18,7 +18,7 @@ function CommentCard({ comment, onReply, onDelete }) {
         <div className="cursor-pointer" onClick={() => navigate(`/profile/${comment.user_id}`)}>
           {comment.avatar ? (
             <img
-              src={comment.avatar.startsWith('http') ? comment.avatar : `http://localhost:5000/uploads/${comment.avatar}`}
+              src={comment.avatar.startsWith('http') ? comment.avatar : `${UPLOADS_URL}/${comment.avatar}`}
               alt="avatar"
               className="w-7 h-7 rounded-full object-cover"
             />
@@ -332,7 +332,7 @@ export default function PostCard({ post, onEdit, onDelete, onTogglePin }) {
           <div className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
             {post.avatar ? (
               <img
-                src={post.avatar.startsWith('http') ? post.avatar : `http://localhost:5000/uploads/${post.avatar}`}
+                src={post.avatar.startsWith('http') ? post.avatar : `${UPLOADS_URL}/${post.avatar}`}
                 alt="avatar"
                 className="w-9 h-9 rounded-full object-cover"
               />

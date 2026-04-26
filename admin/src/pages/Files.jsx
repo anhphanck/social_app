@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { API_URL as BASE_API_URL } from '../config/env'
 
-const API_URL = 'http://localhost:5000/api/documents'
-const API_CLASSES = 'http://localhost:5000/api/classes'
+const API_URL = `${BASE_API_URL}/documents`
+const API_CLASSES = `${BASE_API_URL}/classes`
 
 export default function Files() {
   const [docs, setDocs] = useState([])
@@ -98,7 +99,7 @@ export default function Files() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken')
-      const res = await axios.get(`http://localhost:5000/api/documents/download/${doc.id}`, {
+      const res = await axios.get(`${API_URL}/download/${doc.id}`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       })

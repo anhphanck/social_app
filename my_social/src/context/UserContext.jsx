@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import axios from "axios";
+import { API_ORIGIN, API_URL } from "../config/env";
 
 export const UserContext = createContext();
 
@@ -62,7 +63,7 @@ export const UserProvider = ({ children }) => {
     }
     // Ngăn việc tạo lại socket khi mở/đóng chat: chỉ phụ thuộc vào token
     
-    const socket = io("http://localhost:5000", { 
+    const socket = io(API_ORIGIN, { 
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
@@ -81,7 +82,7 @@ export const UserProvider = ({ children }) => {
       }
       // fetch unread counts when user comes online
       if (token) {
-        axios.get('http://localhost:5000/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_URL}/chats/unreads`, { headers: { Authorization: `Bearer ${token}` } })
           .then((res) => setUnreadCounts(res.data || {}))
           .catch(() => {});
       }
@@ -129,7 +130,7 @@ export const UserProvider = ({ children }) => {
     const fetchUnreads = async () => {
       try {
         if (!user || !token) return;
-        const res = await axios.get('http://localhost:5000/api/chats/unreads', {
+        const res = await axios.get(`${API_URL}/chats/unreads`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setUnreadCounts(res.data || {});
@@ -144,7 +145,7 @@ export const UserProvider = ({ children }) => {
     const fetchTaskNotif = async () => {
       try {
         if (!user || !token) return;
-        const res = await axios.get('http://localhost:5000/api/tasks/notifications/unread-count', {
+        const res = await axios.get(`${API_URL}/tasks/notifications/unread-count`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const n = (res && res.data && res.data.count) ? res.data.count : 0;
@@ -159,7 +160,7 @@ export const UserProvider = ({ children }) => {
       try {
         if (!user || !token) return;
         if (user.avatar) return;
-        const res = await axios.get(`http://localhost:5000/api/users/${user.id}`, {
+        const res = await axios.get(`${API_URL}/users/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const merged = { ...user, ...(res.data?.user || {}) };

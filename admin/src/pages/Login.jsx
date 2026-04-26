@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { API_URL as BASE_API_URL } from '../config/env'
 
-const API_URL = 'http://localhost:5000/api/users'
+const API_URL = `${BASE_API_URL}/users`
 
 export default function Login() {
   const [formData, setFormData] = useState({
