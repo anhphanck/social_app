@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { UserContext } from "../context/UserContext";
 import axios from "axios";
+import { API_URL, UPLOADS_URL } from "../config/env";
 
 export default function ProfilePage() {
   const { user, setUser, token } = useContext(UserContext);
@@ -14,7 +15,10 @@ export default function ProfilePage() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [bioDirty, setBioDirty] = useState(false);
+<<<<<<< HEAD
   const API_URL = "/api";
+=======
+>>>>>>> deploy_2
 
   useEffect(() => {
     if (isSelf && user && !bioDirty) {
@@ -82,7 +86,11 @@ export default function ProfilePage() {
   };
 
   const avatarUrl = isSelf
+<<<<<<< HEAD
     ? (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `/uploads/${user.avatar}`) : null)
+=======
+    ? (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${UPLOADS_URL}/${user.avatar}`) : null)
+>>>>>>> deploy_2
     : null;
   const [otherAvatarUrl, setOtherAvatarUrl] = useState(null);
   useEffect(() => {

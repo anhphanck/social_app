@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { upload } from "./postController.js";
 import path from "path";
-<<<<<<< HEAD
+import cloudinary from "../config/cloudinary.js";
+import { Readable } from "stream";
 
 async function ensureUserProfileColumns() {
   try {
@@ -29,10 +30,6 @@ async function ensureUserProfileColumns() {
   }
 }
 ensureUserProfileColumns();
-=======
-import cloudinary from "../config/cloudinary.js";
-import { Readable } from "stream";
->>>>>>> deploy_1
 
 const SECRET_KEY = "secret_key_demo";
 
@@ -371,11 +368,6 @@ export const getUserById = async (req, res) => {
     const userId = req.params.id;
     if (!userId) return res.status(400).json({ message: 'Missing user id' });
 
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> deploy_1
     let bioColumnExists = false;
     try {
       const [cols] = await db.promise().query("SHOW COLUMNS FROM users LIKE 'bio'");

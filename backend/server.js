@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
+import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server as IOServer } from "socket.io";
 import path from "path";
@@ -8,9 +9,6 @@ import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
-<<<<<<< HEAD
-import { verifyTokenSocket } from "./middleware/authMiddleware.js";
-=======
 import chatRoutes from "./routes/chatRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import docRoutes from "./routes/docRoutes.js";
@@ -18,17 +16,14 @@ import classRoutes from "./routes/classRoutes.js";
 import chatController from "./controllers/chatController.js";
 import { verifyTokenSocket } from "./middleware/authMiddleware.js";
 import db from "./config/db.js";
-import dotenv from "dotenv";
 
 dotenv.config();
 
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:5174")
+const app = express();
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173,http://localhost:5174")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
->>>>>>> deploy_1
-
-const app = express();
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(bodyParser.json());
 
@@ -37,13 +32,10 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/comments", commentRoutes);
-<<<<<<< HEAD
-=======
 app.use("/api/chats", chatRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/documents", docRoutes);
 app.use("/api/classes", classRoutes);
->>>>>>> deploy_1
 
 app.get('/api/files/:filename', (req, res) => {
   try {
@@ -62,8 +54,6 @@ app.get('/api/files/:filename', (req, res) => {
 
 
 const httpServer = createServer(app);
-<<<<<<< HEAD
-=======
 const io = new IOServer(httpServer, {
 	cors: { origin: allowedOrigins, methods: ["GET", "POST"], credentials: true },
 });
@@ -188,7 +178,6 @@ io.on('connection', (socket) => {
 		}
 	});
 });
->>>>>>> deploy_1
 
 const PORT = Number(process.env.PORT || 5000);
 httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));

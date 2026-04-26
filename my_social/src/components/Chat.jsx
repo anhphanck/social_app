@@ -10,6 +10,7 @@ export default Chat;
 import { useEffect, useRef, useState, useContext } from "react";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
+import { API_URL } from "../config/env";
 
 export default function Chat({ users = [] }) {
   const { user, token, socket, currentChatId, setCurrentChatId, setUnreadCounts } = useContext(UserContext);
@@ -19,7 +20,10 @@ export default function Chat({ users = [] }) {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const messagesRef = useRef(null);
+<<<<<<< HEAD
   const API_URL = "/api";
+=======
+>>>>>>> deploy_2
 
   
   useEffect(() => {

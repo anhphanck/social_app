@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect,  } from "react";
 import axios from "axios";
+import { API_ORIGIN, API_URL } from "../config/env";
 
 export const UserContext = createContext();
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || undefined;
@@ -63,8 +64,12 @@ export const UserProvider = ({ children }) => {
       return;
     }
     
+<<<<<<< HEAD
     
     const socket = io(SOCKET_URL, { 
+=======
+    const socket = io(API_ORIGIN, { 
+>>>>>>> deploy_2
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
@@ -83,7 +88,11 @@ export const UserProvider = ({ children }) => {
       }
       
       if (token) {
+<<<<<<< HEAD
         axios.get('/api/chats/unreads', { headers: { Authorization: `Bearer ${token}` } })
+=======
+        axios.get(`${API_URL}/chats/unreads`, { headers: { Authorization: `Bearer ${token}` } })
+>>>>>>> deploy_2
           .then((res) => setUnreadCounts(res.data || {}))
           .catch(() => {});
       }
@@ -131,7 +140,11 @@ export const UserProvider = ({ children }) => {
     const fetchUnreads = async () => {
       try {
         if (!user || !token) return;
+<<<<<<< HEAD
         const res = await axios.get('/api/chats/unreads', {
+=======
+        const res = await axios.get(`${API_URL}/chats/unreads`, {
+>>>>>>> deploy_2
           headers: { Authorization: `Bearer ${token}` }
         });
         setUnreadCounts(res.data || {});
@@ -146,7 +159,11 @@ export const UserProvider = ({ children }) => {
     const fetchTaskNotif = async () => {
       try {
         if (!user || !token) return;
+<<<<<<< HEAD
         const res = await axios.get('/api/tasks/notifications/unread-count', {
+=======
+        const res = await axios.get(`${API_URL}/tasks/notifications/unread-count`, {
+>>>>>>> deploy_2
           headers: { Authorization: `Bearer ${token}` }
         });
         const n = (res && res.data && res.data.count) ? res.data.count : 0;
@@ -170,8 +187,12 @@ export const UserProvider = ({ children }) => {
 =======
         if (!user || !token) return;
         if (user.avatar) return;
+<<<<<<< HEAD
         const res = await axios.get(`/api/users/${user.id}`, {
 >>>>>>> deploy_1
+=======
+        const res = await axios.get(`${API_URL}/users/${user.id}`, {
+>>>>>>> deploy_2
           headers: { Authorization: `Bearer ${token}` }
         });
         

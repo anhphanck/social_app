@@ -5,6 +5,11 @@ import axios from "axios";
 >>>>>>> deploy_1
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+<<<<<<< HEAD
+=======
+import { UserContext } from "../context/UserContext";
+import { API_URL } from "../config/env";
+>>>>>>> deploy_2
 
 export default function DocumentsPage() {
 <<<<<<< HEAD
@@ -18,7 +23,10 @@ export default function DocumentsPage() {
           <div className="mt-4 text-gray-700">Tài liệu sắp cập nhập.</div>
 =======
   const { token, user, selectedClass } = useContext(UserContext);
+<<<<<<< HEAD
   const API_URL = "/api";
+=======
+>>>>>>> deploy_2
   const [files, setFiles] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -38,7 +46,11 @@ export default function DocumentsPage() {
   const handleDownload = async (e, doc) => {
     e.preventDefault();
     try {
+<<<<<<< HEAD
       const res = await axios.get(`/api/documents/download/${doc.id}`, {
+=======
+      const res = await axios.get(`${API_URL}/documents/download/${doc.id}`, {
+>>>>>>> deploy_2
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });

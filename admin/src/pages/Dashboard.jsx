@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { API_URL as BASE_API_URL } from '../config/env'
 
+<<<<<<< HEAD
 const API_URL = '/api/admin/users'
+=======
+const API_URL = `${BASE_API_URL}/admin/users`
+>>>>>>> deploy_2
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
@@ -38,7 +43,11 @@ export default function Dashboard() {
         console.error('Error fetching users:', err)
         setStats(s => ({ ...s, loading: false }))
       })
+<<<<<<< HEAD
       axios.get('/api/documents', {
+=======
+      axios.get(`${BASE_API_URL}/documents`, {
+>>>>>>> deploy_2
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => {
@@ -47,7 +56,11 @@ export default function Dashboard() {
       .catch(() => {})
     }
 
+<<<<<<< HEAD
     axios.get('/api/posts')
+=======
+    axios.get(`${BASE_API_URL}/posts`)
+>>>>>>> deploy_2
       .then(res => {
         setStats(s => ({ ...s, totalPosts: Array.isArray(res.data) ? res.data.length : 0 }))
       })

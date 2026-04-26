@@ -3,12 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import Chat from "./Chat";
 import axios from "axios";
+import { API_URL, UPLOADS_URL } from "../config/env";
 
 export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
   const navigate = useNavigate();
   const { setCurrentChatId, unreadCounts, setUnreadCounts, user } = useContext(UserContext);
   const [avatarUrls, setAvatarUrls] = useState({});
+<<<<<<< HEAD
   const API_URL = "/api";
+=======
+>>>>>>> deploy_2
 
   useEffect(() => {
     let cancelled = false;
@@ -22,7 +26,11 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
         if (!u) return;
         if (next[u.id]) return; 
         if (u.avatar) {
+<<<<<<< HEAD
           next[u.id] = u.avatar.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`;
+=======
+          next[u.id] = u.avatar.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`;
+>>>>>>> deploy_2
           return;
         }
         try {
@@ -94,7 +102,11 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
                 >
                   {(avatarUrls[u.id] || u.avatar) ? (
                     <img
+<<<<<<< HEAD
                       src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`)}
+=======
+                      src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`)}
+>>>>>>> deploy_2
                       alt="avatar"
                       className="w-7 h-7 rounded-full object-cover"
                     />
@@ -135,7 +147,11 @@ export default function Rightbar({ users, pinnedPosts = [], onUnpin }) {
               >
                 {(avatarUrls[u.id] || u.avatar) ? (
                   <img
+<<<<<<< HEAD
                     src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`)}
+=======
+                    src={avatarUrls[u.id] || (u.avatar?.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`)}
+>>>>>>> deploy_2
                     alt="avatar"
                     className="w-7 h-7 rounded-full object-cover"
                   />

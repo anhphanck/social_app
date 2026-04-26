@@ -6,6 +6,7 @@ import AuthInput from "../components/AuthInput";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
+import { API_URL as BASE_API_URL } from "../config/env";
 
 export default function AuthPage() {
   const { setUser, setToken } = useContext(UserContext);
@@ -20,7 +21,11 @@ export default function AuthPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("error");
 
+<<<<<<< HEAD
   const API_URL = "/api/users";
+=======
+  const API_URL = `${BASE_API_URL}/users`;
+>>>>>>> deploy_2
   const navigate = useNavigate();
   const transition = { duration: 0.6, ease: "easeInOut" };
 

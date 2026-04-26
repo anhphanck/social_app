@@ -1,6 +1,11 @@
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
+<<<<<<< HEAD
+=======
+import axios from "axios";
+import { API_URL, UPLOADS_URL } from "../config/env";
+>>>>>>> deploy_2
 
 export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) {
   const navigate = useNavigate();
@@ -15,7 +20,11 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
       const token = localStorage.getItem("token");
       if (!token) return;
       try {
+<<<<<<< HEAD
         const res = await axios.get("/api/classes", { headers: { Authorization: `Bearer ${token}` } });
+=======
+        const res = await axios.get(`${API_URL}/classes`, { headers: { Authorization: `Bearer ${token}` } });
+>>>>>>> deploy_2
         const items = Array.isArray(res.data) ? res.data : [];
         const codes = items.map((c) => c.code).filter(Boolean);
         setClassOptions(codes);
@@ -81,7 +90,11 @@ export default function Navbar({ user, onLogout, searchQuery, setSearchQuery }) 
     >
       {u?.avatar ? (
         <img
+<<<<<<< HEAD
           src={u.avatar.startsWith('http') ? u.avatar : `/uploads/${u.avatar}`}
+=======
+          src={u.avatar.startsWith('http') ? u.avatar : `${UPLOADS_URL}/${u.avatar}`}
+>>>>>>> deploy_2
           alt="avatar"
           className="w-8 h-8 rounded-full object-cover"
         />

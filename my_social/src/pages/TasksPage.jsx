@@ -1,5 +1,10 @@
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+<<<<<<< HEAD
+=======
+import { UserContext } from "../context/UserContext";
+import { API_URL } from "../config/env";
+>>>>>>> deploy_2
 
 export default function TasksPage() {
 <<<<<<< HEAD
@@ -23,7 +28,10 @@ export default function TasksPage() {
   const [assignees, setAssignees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
+<<<<<<< HEAD
   const API_URL = "/api";
+=======
+>>>>>>> deploy_2
   const [editTaskId, setEditTaskId] = useState(null);
   const [editPriority, setEditPriority] = useState("medium");
   const [editDeadline, setEditDeadline] = useState("");
@@ -39,7 +47,11 @@ export default function TasksPage() {
   const handleDownload = async (e, file, type = 'attachment') => {
     e.preventDefault();
     if (file.id) {
+<<<<<<< HEAD
       window.location.href = `/api/tasks/download/${file.id}?type=${type}`;
+=======
+      window.location.href = `${API_URL}/tasks/download/${file.id}?type=${type}`;
+>>>>>>> deploy_2
     } else {
       window.open(file.url, '_blank');
     }
