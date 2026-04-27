@@ -5,7 +5,9 @@
 ## Demo online
 
 - Ứng dụng người dùng: `https://social-app-cyan-nine.vercel.app/`
+- ( tk thử: test@gmail.com   123456)
 - Trang quản trị: `https://socialappadmin.vercel.app/`
+- ( tk thử: admin@gmail.com   123456)
 
 ## Công nghệ sử dụng
 
@@ -115,17 +117,19 @@ Xem `social_app/DEPLOY.md` để tham khảo hướng dẫn deploy gốc. Luồn
 - **Render**: deploy `social_app/backend` (build: `npm install`, start: `npm start`)
 - **Vercel**: deploy `social_app/my_social` và `social_app/admin` (set `VITE_API_ORIGIN` trỏ về URL backend trên Render)
 
-<img width="639" height="402" alt="image" src="https://github.com/user-attachments/assets/96ec7f73-959f-4145-bec1-2bd5fd0d812b" />
-<img width="492" height="316" alt="image" src="https://github.com/user-attachments/assets/bbeba440-2a3f-4963-aede-8a8ecaec246c" />
-<img width="736" height="407" alt="image" src="https://github.com/user-attachments/assets/2804d40d-9260-49a1-9ec4-061608a19e85" />
-<img width="578" height="345" alt="image" src="https://github.com/user-attachments/assets/51a5c8b2-2dfc-4cfc-8ccc-621063c8c5f9" />
-<img width="741" height="415" alt="image" src="https://github.com/user-attachments/assets/63221885-47d6-4c1c-968c-b6ee5931587c" />
-<img width="733" height="412" alt="image" src="https://github.com/user-attachments/assets/57025e89-1e22-4749-9ac2-3cbab7d55a7b" />
-<img width="547" height="313" alt="image" src="https://github.com/user-attachments/assets/0744f23d-3ae6-48a5-82b0-f46c4ba6991a" />
-<img width="673" height="413" alt="image" src="https://github.com/user-attachments/assets/75e05c98-f3a1-4277-bbc4-e0b5738a8548" />
-<img width="733" height="396" alt="image" src="https://github.com/user-attachments/assets/3af80388-dcc0-44a3-ab9c-bd343ba0d7c6" />
-<img width="739" height="436" alt="image" src="https://github.com/user-attachments/assets/50e2c391-85ad-42d0-9b69-3c110ee86cdf" />
-<img width="744" height="447" alt="image" src="https://github.com/user-attachments/assets/d537ef9a-17f3-464f-afc9-e66d741454e8" />
+<p align="center">
+  <img width="639" height="402" alt="image" src="https://github.com/user-attachments/assets/96ec7f73-959f-4145-bec1-2bd5fd0d812b" />
+  <img width="492" height="316" alt="image" src="https://github.com/user-attachments/assets/bbeba440-2a3f-4963-aede-8a8ecaec246c" />
+  <img width="736" height="407" alt="image" src="https://github.com/user-attachments/assets/2804d40d-9260-49a1-9ec4-061608a19e85" />
+  <img width="578" height="345" alt="image" src="https://github.com/user-attachments/assets/51a5c8b2-2dfc-4cfc-8ccc-621063c8c5f9" />
+  <img width="741" height="415" alt="image" src="https://github.com/user-attachments/assets/63221885-47d6-4c1c-968c-b6ee5931587c" />
+  <img width="733" height="412" alt="image" src="https://github.com/user-attachments/assets/57025e89-1e22-4749-9ac2-3cbab7d55a7b" />
+  <img width="547" height="313" alt="image" src="https://github.com/user-attachments/assets/0744f23d-3ae6-48a5-82b0-f46c4ba6991a" />
+  <img width="673" height="413" alt="image" src="https://github.com/user-attachments/assets/75e05c98-f3a1-4277-bbc4-e0b5738a8548" />
+  <img width="733" height="396" alt="image" src="https://github.com/user-attachments/assets/3af80388-dcc0-44a3-ab9c-bd343ba0d7c6" />
+  <img width="739" height="436" alt="image" src="https://github.com/user-attachments/assets/50e2c391-85ad-42d0-9b69-3c110ee86cdf" />
+  <img width="744" height="447" alt="image" src="https://github.com/user-attachments/assets/d537ef9a-17f3-464f-afc9-e66d741454e8" />
+</p>
 
 
 
